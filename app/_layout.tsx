@@ -52,31 +52,19 @@ export default function RootLayout() {
               name="session/record"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
             />
-            <Stack.Screen
-              name="session/[id]"
-              options={{ headerShown: true, headerTitle: "Session", headerStyle: { backgroundColor: "#f4f2ee" }, headerTintColor: "#26241f" }}
-            />
-            <Stack.Screen
-              name="exercises/[id]"
-              options={{ headerShown: true, headerTitle: "Exercise", headerStyle: { backgroundColor: "#f4f2ee" }, headerTintColor: "#26241f" }}
-            />
+            <Stack.Screen name="session/[id]" />
+            <Stack.Screen name="exercises/[id]" />
             <Stack.Screen
               name="routine/new-split"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
             />
-            <Stack.Screen
-              name="routine/[id]"
-              options={{ headerShown: true, headerTitle: "Split", headerBackTitle: "Rotina", headerStyle: { backgroundColor: "#f4f2ee" }, headerTintColor: "#26241f" }}
-            />
+            <Stack.Screen name="routine/[id]" />
             <Stack.Screen
               name="routine/program/new"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
             />
-            <Stack.Screen
-              name="routine/program/[id]"
-              options={{ headerShown: true, headerTitle: "Plano", headerBackTitle: "Split", headerStyle: { backgroundColor: "#f4f2ee" }, headerTintColor: "#26241f" }}
-            />
-            <Stack.Screen name="routine/program/week/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="routine/program/[id]" />
+            <Stack.Screen name="routine/program/week/[id]" />
           </Stack>
         </SessionRecorderProvider>
       </SafeAreaProvider>

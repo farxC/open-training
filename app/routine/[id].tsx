@@ -8,6 +8,7 @@ import { RunPlanTable } from "@/components/RunPlanTable";
 import { StrengthPlanTable } from "@/components/StrengthPlanTable";
 import { WeekdayPicker } from "@/components/WeekdayPicker";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useRoutine } from "@/hooks/useRoutine";
 import { modalityConfig, modalityLabel } from "@/data/modalities";
 import { confirmAction } from "@/utils/confirm";
@@ -29,8 +30,11 @@ export default function EditSplitScreen() {
 
   if (!split) {
     return (
-      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-        <Text className="text-ink-mute">Split not found.</Text>
+      <SafeAreaView className="flex-1 bg-surface">
+        <ScreenHeader title="Split" fallbackHref="/routine" />
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-ink-mute">Split not found.</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -93,21 +97,25 @@ export default function EditSplitScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-        <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
+    <SafeAreaView className="flex-1 bg-surface">
+      <ScreenHeader
+        fallbackHref="/routine"
+        titleNode={
           <TextInput
             value={split.name}
             onChangeText={(v) => r.renameSplit(split.id, v)}
             placeholder="Nome do split"
             placeholderTextColor="#bdb8aa"
-            className="flex-1 text-ink font-display font-semibold text-2xl"
+            className="text-ink font-display font-semibold text-2xl"
           />
-          <TouchableOpacity onPress={confirmRemoveSplit} className="px-1">
-            <Text className="text-red-600 text-base">✕</Text>
+        }
+        right={
+          <TouchableOpacity onPress={confirmRemoveSplit} className="p-1">
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#dc2626" />
           </TouchableOpacity>
-        </View>
-
+        }
+      />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <View
           className="flex-row items-center self-start px-2 py-1 rounded-full mb-4"
           style={{ backgroundColor: "#ebe7df", gap: 4 }}

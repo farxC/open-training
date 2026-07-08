@@ -3,8 +3,10 @@ import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-nativ
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRoutine } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { getProgram, getProgramWeeks } from "@/db/queries";
 import { confirmAction, notify } from "@/utils/confirm";
 import type { ProgramWeek } from "@/types";
@@ -34,8 +36,11 @@ export default function EditProgramScreen() {
 
   if (!program || !split) {
     return (
-      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-        <Text className="text-ink-mute">Plano não encontrado.</Text>
+      <SafeAreaView className="flex-1 bg-surface">
+        <ScreenHeader title="Plano" fallbackHref="/routine" />
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-ink-mute">Plano não encontrado.</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -92,21 +97,25 @@ export default function EditProgramScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={["bottom"]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-        <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
+    <SafeAreaView className="flex-1 bg-surface">
+      <ScreenHeader
+        fallbackHref={`/routine/${split.id}`}
+        titleNode={
           <TextInput
             value={program.name}
             onChangeText={(name) => r.renameProgram(program.id, { name })}
             placeholder="Nome do plano"
             placeholderTextColor="#bdb8aa"
-            className="flex-1 text-ink font-display font-semibold text-2xl"
+            className="text-ink font-display font-semibold text-2xl"
           />
-          <TouchableOpacity onPress={confirmDeleteProgram} className="px-1">
-            <Text className="text-red-600 text-base">✕</Text>
+        }
+        right={
+          <TouchableOpacity onPress={confirmDeleteProgram} className="p-1">
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#dc2626" />
           </TouchableOpacity>
-        </View>
-
+        }
+      />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <View className="flex-row items-center mb-4" style={{ gap: 10 }}>
           <View className="flex-row items-center" style={{ gap: 8 }}>
             <Text className="text-ink-mute text-sm">Semanas totais</Text>
@@ -144,7 +153,7 @@ export default function EditProgramScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => confirmDeleteWeek(week.id)} className="px-2">
-              <Text className="text-red-600 text-base">✕</Text>
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
             </TouchableOpacity>
           </View>
         ))}

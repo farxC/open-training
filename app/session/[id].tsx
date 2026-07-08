@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSession } from "@/hooks/useSessions";
 import { deleteSession } from "@/db/queries";
 import { confirmAction } from "@/utils/confirm";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import type { WorkoutSet } from "@/types";
 
 const MONTH_NAMES = [
@@ -40,8 +42,11 @@ export default function SessionDetailScreen() {
 
   if (!session) {
     return (
-      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-        <Text className="text-ink-mute">Session not found.</Text>
+      <SafeAreaView className="flex-1 bg-surface">
+        <ScreenHeader title="Session" fallbackHref="/" />
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-ink-mute">Session not found.</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -60,7 +65,16 @@ export default function SessionDetailScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-surface">
+      <ScreenHeader
+        title={formatDate(session.date)}
+        fallbackHref="/"
+        right={
+          <TouchableOpacity onPress={handleDelete} className="p-1">
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#dc2626" />
+          </TouchableOpacity>
+        }
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {session.photo_uri && (
           <Image
@@ -71,23 +85,15 @@ export default function SessionDetailScreen() {
         )}
 
         <View className="px-4 pt-4">
-          <View className="flex-row justify-between items-start mb-4">
-            <View>
-              <Text className="text-ink font-display font-semibold text-2xl" style={{ letterSpacing: -0.4 }}>
-                {formatDate(session.date)}
+          <View className="mb-4">
+            <Text className="text-ink-mute text-sm">
+              Duration: {formatDuration(session.duration_seconds)}
+            </Text>
+            {totalVolume > 0 && (
+              <Text className="text-ink text-sm mt-0.5">
+                {totalVolume.toFixed(0)} kg total volume
               </Text>
-              <Text className="text-ink-mute text-sm">
-                Duration: {formatDuration(session.duration_seconds)}
-              </Text>
-              {totalVolume > 0 && (
-                <Text className="text-ink text-sm mt-0.5">
-                  {totalVolume.toFixed(0)} kg total volume
-                </Text>
-              )}
-            </View>
-            <TouchableOpacity onPress={handleDelete}>
-              <Text className="text-red-600 text-sm">Delete</Text>
-            </TouchableOpacity>
+            )}
           </View>
 
           {session.notes && (

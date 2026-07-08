@@ -1,4 +1,5 @@
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { WorkoutSet } from "@/types";
 
 interface Props {
@@ -46,7 +47,7 @@ export function SetRow({ set, onChange, onDelete }: Props) {
         </View>
 
         <TouchableOpacity onPress={onDelete} style={{ padding: 4 }}>
-          <Text style={{ color: '#928d80', fontSize: 18, lineHeight: 20 }}>×</Text>
+          <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
         </TouchableOpacity>
       </View>
 

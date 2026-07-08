@@ -5,6 +5,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRoutine } from "@/hooks/useRoutine";
 import { NumField, RunTargetFields } from "@/components/TargetFields";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { getProgram, getProgramWeek, getWeekEntries } from "@/db/queries";
 import type { ProgramEntry, ProgramWeek, RoutineUnitExercise, TrainingProgram } from "@/types";
 
@@ -73,12 +74,7 @@ export default function EditProgramWeekScreen() {
   if (!week || !program || !split) {
     return (
       <SafeAreaView className="flex-1 bg-surface">
-        <View className="flex-row items-center px-4 py-3">
-          <Text className="text-ink-mute flex-1">Semana não encontrada.</Text>
-          <TouchableOpacity onPress={close}>
-            <Text className="text-ink-soft text-base">Fechar</Text>
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader title="Semana não encontrada" onBack={close} />
       </SafeAreaView>
     );
   }
@@ -121,14 +117,11 @@ export default function EditProgramWeekScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <View className="flex-row items-center px-4 py-3">
-        <Text className="text-ink font-display font-semibold text-2xl flex-1" style={{ letterSpacing: -0.4 }}>
-          Semana {week.week_number}
-        </Text>
-        <TouchableOpacity onPress={close}>
-          <Text className="text-ink-soft text-base">Fechar</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title={`Semana ${week.week_number}`}
+        showBack={!isWizard}
+        onBack={close}
+      />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         {isWizard && (
@@ -207,14 +200,21 @@ export default function EditProgramWeekScreen() {
         })}
 
         {isWizard && (
-          <TouchableOpacity
-            className="mt-2 py-2.5 rounded-xl items-center bg-brand-500"
-            onPress={goToNextWizardWeek}
-          >
-            <Text className="text-white text-sm font-medium">
-              {isLastWizardWeek ? "Concluir e ver split" : "Próxima semana →"}
-            </Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              className="mt-2 py-2.5 rounded-xl items-center bg-brand-500"
+              onPress={goToNextWizardWeek}
+            >
+              <Text className="text-white text-sm font-medium">
+                {isLastWizardWeek ? "Concluir e ver split" : "Próxima semana →"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity className="mt-4 py-1 items-center" onPress={close}>
+              <Text className="text-ink-mute text-sm" style={{ textDecorationLine: "underline" }}>
+                Continuar depois
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>

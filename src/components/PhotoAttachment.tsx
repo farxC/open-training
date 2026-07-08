@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { Image, Text, TouchableOpacity, View } from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 interface Props {
   uri: string | null;
@@ -32,7 +33,7 @@ export function PhotoAttachment({ uri, onPick, onRemove }: Props) {
           className="absolute top-2 right-2 bg-black/60 rounded-full w-7 h-7 items-center justify-center"
           onPress={onRemove}
         >
-          <Text className="text-white text-sm">×</Text>
+          <MaterialCommunityIcons name="trash-can-outline" size={15} color="#ffffff" />
         </TouchableOpacity>
       </View>
     );

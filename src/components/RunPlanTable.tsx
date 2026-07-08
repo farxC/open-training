@@ -1,4 +1,5 @@
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { continuousDurationSec, formatClock, formatPaceSec } from "@/data/modalities";
@@ -151,7 +152,7 @@ export function RunPlanTable({
                   )}
                   {onDelete && (
                     <TouchableOpacity onPress={() => onDelete(unit.id)} className="px-1">
-                      <Text className="text-red-600 text-base">✕</Text>
+                      <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
                     </TouchableOpacity>
                   )}
                 </View>

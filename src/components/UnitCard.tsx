@@ -1,4 +1,5 @@
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { Modality, RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { modalityConfig } from "@/data/modalities";
@@ -79,7 +80,7 @@ export function UnitCard({
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={onDelete} className="px-1">
-              <Text className="text-red-600 text-base">✕</Text>
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
             </TouchableOpacity>
           </View>
         )}
@@ -113,7 +114,7 @@ export function UnitCard({
                   <View className="flex-row items-center justify-between mb-2">
                     <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
                     <TouchableOpacity onPress={() => onRemoveExercise(re.id)} className="px-2">
-                      <Text className="text-ink-mute text-xl">×</Text>
+                      <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
                     </TouchableOpacity>
                   </View>
 

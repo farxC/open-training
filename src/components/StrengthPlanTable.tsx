@@ -1,4 +1,5 @@
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
@@ -128,7 +129,7 @@ export function StrengthPlanTable({
                   )}
                   {onDelete && (
                     <TouchableOpacity onPress={() => onDelete(unit.id)} className="px-1">
-                      <Text className="text-red-600 text-base">✕</Text>
+                      <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -141,8 +142,8 @@ export function StrengthPlanTable({
                   >
                     <View className="flex-row items-center justify-between mb-2">
                       <Text className="text-ink text-sm flex-1">{ex.exercise_name}</Text>
-                      <TouchableOpacity onPress={() => onRemoveExercise(ex.id)}>
-                        <Text className="text-ink-mute text-xl px-2">×</Text>
+                      <TouchableOpacity onPress={() => onRemoveExercise(ex.id)} className="px-2">
+                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
                       </TouchableOpacity>
                     </View>
                     <View className="flex-row items-center flex-wrap" style={{ gap: 8 }}>

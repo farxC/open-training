@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VolumeChart } from "@/components/VolumeChart";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { getExerciseSets } from "@/db/queries";
 import { getExercises } from "@/db/queries";
 
@@ -30,17 +31,20 @@ export default function ExerciseDetailScreen() {
 
   if (!exercise) {
     return (
-      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-        <Text className="text-ink-mute">Exercise not found.</Text>
+      <SafeAreaView className="flex-1 bg-surface">
+        <ScreenHeader title="Exercise" fallbackHref="/" />
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-ink-mute">Exercise not found.</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-surface">
+      <ScreenHeader title={exercise.name} fallbackHref="/" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View className="mb-4">
-          <Text className="text-ink font-display font-semibold text-2xl" style={{ letterSpacing: -0.4 }}>{exercise.name}</Text>
           <Text className="text-ink-mute text-sm capitalize mt-0.5">
             {exercise.muscle_group} · {exercise.equipment} · {exercise.type}
           </Text>
