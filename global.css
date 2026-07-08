@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hanken Grotesk is the base UI face. Display titles (font-display → Fraunces)
+   and numeric data (inline JetBrains Mono) override this via higher specificity. */
+* {
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #f4f2ee; }
+::-webkit-scrollbar-thumb { background: #ddd8ce; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #c9c3b6; }
+
+::selection { background: rgba(38, 36, 31, 0.12); }
