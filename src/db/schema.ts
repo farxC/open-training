@@ -1,0 +1,118 @@
+export const SCHEMA_VERSION = 7;
+
+export const CREATE_TABLES: string[] = [
+  `CREATE TABLE IF NOT EXISTS exercises (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    muscle_group TEXT NOT NULL,
+    equipment TEXT NOT NULL,
+    type TEXT NOT NULL,
+    is_custom INTEGER NOT NULL DEFAULT 0,
+    modality TEXT NOT NULL DEFAULT 'musculacao'
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    notes TEXT,
+    duration_seconds INTEGER,
+    photo_uri TEXT
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS sets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+    set_number INTEGER NOT NULL,
+    reps INTEGER NOT NULL,
+    weight_kg REAL NOT NULL,
+    rpe REAL,
+    rir INTEGER,
+    notes TEXT
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS routine_splits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    modality TEXT NOT NULL DEFAULT 'musculacao',
+    anchor_date TEXT,
+    rest_weekdays TEXT NOT NULL DEFAULT '',
+    "order" INTEGER NOT NULL DEFAULT 0
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS routine_units (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    split_id INTEGER NOT NULL REFERENCES routine_splits(id) ON DELETE CASCADE,
+    ordinal INTEGER NOT NULL,
+    label TEXT NOT NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS routine_unit_exercises (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id INTEGER NOT NULL REFERENCES routine_units(id) ON DELETE CASCADE,
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+    "order" INTEGER NOT NULL DEFAULT 0,
+    target_sets INTEGER NOT NULL DEFAULT 3,
+    target_reps INTEGER NOT NULL DEFAULT 8,
+    target_reps_max INTEGER,
+    target_weight_kg REAL,
+    target_distance_km REAL,
+    target_duration_min REAL,
+    run_type TEXT,
+    target_pace_sec INTEGER,
+    interval_reps INTEGER,
+    interval_work_sec INTEGER,
+    interval_work_km REAL,
+    interval_rest_sec INTEGER
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS routine_overrides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS user_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS training_programs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    split_id INTEGER NOT NULL REFERENCES routine_splits(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    total_weeks INTEGER NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 0,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    setup_week_number INTEGER
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS program_weeks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    program_id INTEGER NOT NULL REFERENCES training_programs(id) ON DELETE CASCADE,
+    week_number INTEGER NOT NULL,
+    label TEXT,
+    UNIQUE(program_id, week_number)
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS program_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    week_id INTEGER NOT NULL REFERENCES program_weeks(id) ON DELETE CASCADE,
+    unit_id INTEGER NOT NULL REFERENCES routine_units(id) ON DELETE CASCADE,
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+    target_sets INTEGER,
+    target_reps INTEGER,
+    target_reps_max INTEGER,
+    target_weight_kg REAL,
+    target_distance_km REAL,
+    target_duration_min REAL,
+    run_type TEXT,
+    target_pace_sec INTEGER,
+    interval_reps INTEGER,
+    interval_work_sec INTEGER,
+    interval_work_km REAL,
+    interval_rest_sec INTEGER,
+    UNIQUE(week_id, unit_id, exercise_id)
+  )`,
+];
