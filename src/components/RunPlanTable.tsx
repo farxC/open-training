@@ -5,7 +5,7 @@ import type { TargetPatch } from "@/hooks/useRoutine";
 import { continuousDurationSec, formatClock, formatPaceSec } from "@/data/modalities";
 import { RunTargetFields } from "@/components/TargetFields";
 
-function runSummary(re: RoutineUnitExercise): string {
+export function runSummary(re: RoutineUnitExercise): string {
   const type = re.run_type ?? "continuous";
   if (type === "interval") {
     if (!re.interval_reps) return "—";

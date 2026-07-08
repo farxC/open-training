@@ -85,7 +85,8 @@ export const CREATE_TABLES: string[] = [
     total_weeks INTEGER NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 0,
     "order" INTEGER NOT NULL DEFAULT 0,
-    setup_week_number INTEGER
+    setup_week_number INTEGER,
+    started_at TEXT
   )`,
 
   `CREATE TABLE IF NOT EXISTS program_weeks (

@@ -1,6 +1,7 @@
 import { db } from "./client";
 import { CREATE_TABLES, SCHEMA_VERSION } from "./schema";
 import { SEED_EXERCISES, SEED_RUNNING_EXERCISES } from "../data/exercises";
+import { todayISO } from "../utils/cycle";
 
 function hasColumn(table: string, column: string): boolean {
   const rows = db.getAllSync<{ name: string }>(`PRAGMA table_info(${table})`);
@@ -38,6 +39,14 @@ export function runMigrations(): void {
   ensureColumn("routine_unit_exercises", "interval_rest_sec", "INTEGER");
   ensureColumn("routine_unit_exercises", "target_reps_max", "INTEGER");
   ensureColumn("training_programs", "setup_week_number", "INTEGER");
+  ensureColumn("training_programs", "started_at", "TEXT");
+
+  // Backfill: programs already active before this column existed have no anchor for
+  // "which week are we in" — start counting from today rather than showing nothing.
+  db.runSync(
+    "UPDATE training_programs SET started_at = ? WHERE is_active = 1 AND started_at IS NULL",
+    [todayISO()]
+  );
 
   const row = db.getFirstSync<{ value: string }>(
     "SELECT value FROM user_meta WHERE key = 'schema_version'"

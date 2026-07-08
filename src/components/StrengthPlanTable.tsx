@@ -4,7 +4,7 @@ import type { RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
 
-function strengthSummary(exercises: RoutineUnitExercise[]): string {
+export function strengthSummary(exercises: RoutineUnitExercise[]): string {
   if (exercises.length === 0) return "—";
   const first = exercises[0];
   const sets = first.target_sets > 0 ? `${first.target_sets}s` : null;

@@ -1,4 +1,5 @@
 import { db } from "./client";
+import { todayISO } from "../utils/cycle";
 import type {
   Exercise,
   MuscleGroup,
@@ -393,6 +394,7 @@ interface TrainingProgramRow {
   is_active: number;
   order: number;
   setup_week_number: number | null;
+  started_at: string | null;
 }
 
 function mapProgram(r: TrainingProgramRow): TrainingProgram {
@@ -404,6 +406,7 @@ function mapProgram(r: TrainingProgramRow): TrainingProgram {
     is_active: r.is_active === 1,
     order: r.order,
     setup_week_number: r.setup_week_number,
+    started_at: r.started_at,
   };
 }
 
@@ -465,7 +468,11 @@ export function deleteProgram(id: number): void {
 
 export function setActiveProgram(splitId: number, programId: number): void {
   db.runSync("UPDATE training_programs SET is_active = 0 WHERE split_id = ?", [splitId]);
-  db.runSync("UPDATE training_programs SET is_active = 1 WHERE id = ?", [programId]);
+  // COALESCE preserves the original start across a deactivate/reactivate toggle.
+  db.runSync(
+    "UPDATE training_programs SET is_active = 1, started_at = COALESCE(started_at, ?) WHERE id = ?",
+    [todayISO(), programId]
+  );
 }
 
 export function getProgramWeeks(programId: number): ProgramWeek[] {

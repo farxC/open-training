@@ -6,25 +6,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useRoutine } from "@/hooks/useRoutine";
 import { NumField, RunTargetFields } from "@/components/TargetFields";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { getProgram, getProgramWeek, getWeekEntries } from "@/db/queries";
+import { mergedTarget } from "@/utils/programEntry";
+import { currentProgramWeekNumber } from "@/utils/cycle";
+import { getProgram, getProgramWeek, getProgramWeeks, getWeekEntries } from "@/db/queries";
 import type { ProgramEntry, ProgramWeek, RoutineUnitExercise, TrainingProgram } from "@/types";
-
-function mergedValue(ex: RoutineUnitExercise, entry: ProgramEntry | undefined) {
-  return {
-    target_sets: entry ? entry.target_sets : ex.target_sets,
-    target_reps: entry ? entry.target_reps : ex.target_reps,
-    target_reps_max: entry ? entry.target_reps_max : ex.target_reps_max,
-    target_weight_kg: entry ? entry.target_weight_kg : ex.target_weight_kg,
-    target_distance_km: entry ? entry.target_distance_km : ex.target_distance_km,
-    target_duration_min: entry ? entry.target_duration_min : ex.target_duration_min,
-    run_type: entry ? entry.run_type : ex.run_type,
-    target_pace_sec: entry ? entry.target_pace_sec : ex.target_pace_sec,
-    interval_reps: entry ? entry.interval_reps : ex.interval_reps,
-    interval_work_sec: entry ? entry.interval_work_sec : ex.interval_work_sec,
-    interval_work_km: entry ? entry.interval_work_km : ex.interval_work_km,
-    interval_rest_sec: entry ? entry.interval_rest_sec : ex.interval_rest_sec,
-  };
-}
 
 export default function EditProgramWeekScreen() {
   const { id, wizardWeekIds, wizardIndex, wizardSplitId } = useLocalSearchParams<{
@@ -95,6 +80,15 @@ export default function EditProgramWeekScreen() {
 
   const isDistance = split.modality === "corrida";
 
+  const currentWeekNumber = !isWizard ? currentProgramWeekNumber(program.started_at, program.total_weeks) : null;
+  const isCurrentWeek = currentWeekNumber === week.week_number;
+
+  const goToCurrentWeek = () => {
+    if (currentWeekNumber == null) return;
+    const target = getProgramWeeks(program.id).find((w) => w.week_number === currentWeekNumber);
+    if (target) router.replace(`/routine/program/week/${target.id}`);
+  };
+
   const entryFor = (unitId: number, exerciseId: number) =>
     entries.find((e) => e.unit_id === unitId && e.exercise_id === exerciseId);
 
@@ -104,7 +98,7 @@ export default function EditProgramWeekScreen() {
       week_id: weekId,
       unit_id: unitId,
       exercise_id: ex.exercise_id,
-      ...mergedValue(ex, entry),
+      ...mergedTarget(ex, entry),
       ...patch,
     });
     refresh();
@@ -129,6 +123,33 @@ export default function EditProgramWeekScreen() {
             Semana {wizardStep! + 1} de {wizardIds!.length} · defina o treino de cada dia
           </Text>
         )}
+
+        {!isWizard && currentWeekNumber != null && (
+          isCurrentWeek ? (
+            <View
+              className="flex-row items-center self-start px-2.5 py-1 rounded-full mb-4"
+              style={{ backgroundColor: "#e3efe8", gap: 5 }}
+            >
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#2f9e6e" }} />
+              <Text style={{ color: "#227a54", fontSize: 12, fontWeight: "700" }}>Semana atual do plano</Text>
+            </View>
+          ) : (
+            <View
+              className="rounded-2xl px-4 py-3 mb-4"
+              style={{ backgroundColor: "#faf1de", borderWidth: 1, borderColor: "#e8d6ac" }}
+            >
+              <Text className="text-sm mb-2" style={{ color: "#8a6a1f" }}>
+                Você está editando a Semana {week.week_number}. A semana atual do plano é a Semana {currentWeekNumber}.
+              </Text>
+              <TouchableOpacity onPress={goToCurrentWeek} className="self-start">
+                <Text style={{ color: "#8a6a1f", fontSize: 13, fontWeight: "700", textDecorationLine: "underline" }}>
+                  Ir para a semana atual →
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )
+        )}
+
         <TextInput
           value={week.label ?? ""}
           onChangeText={(label) => { r.renameWeek(week.id, label.trim() === "" ? null : label); refresh(); }}
@@ -148,7 +169,7 @@ export default function EditProgramWeekScreen() {
               <Text className="text-ink font-semibold text-sm mb-3">{unit.label}</Text>
               {exercises.map((ex) => {
                 const entry = entryFor(unit.id, ex.exercise_id);
-                const value = mergedValue(ex, entry);
+                const value = mergedTarget(ex, entry);
                 return (
                   <View key={ex.id} className="mb-3">
                     <View className="flex-row items-center justify-between mb-2">

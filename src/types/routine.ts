@@ -60,6 +60,8 @@ export interface TrainingProgram {
   order: number;
   /** Week number the week-mapping wizard left off at; null once finished (or never started). */
   setup_week_number: number | null;
+  /** Date (YYYY-MM-DD) this program was first activated; anchors "current week" math. Null until activated. */
+  started_at: string | null;
 }
 
 export interface ProgramWeek {

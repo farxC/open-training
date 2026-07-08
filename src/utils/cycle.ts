@@ -1,3 +1,9 @@
+/** Today's date as 'YYYY-MM-DD' in local time (not UTC, unlike Date#toISOString). */
+export function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** Whole days from `fromISO` to `toISO` (both 'YYYY-MM-DD'); negative if `to` is earlier. */
 export function daysBetween(fromISO: string, toISO: string): number {
   const from = new Date(fromISO + "T00:00:00").getTime();
@@ -56,4 +62,16 @@ export function cyclicSlotIndex(
 /** 0-based count of full weeks elapsed from `anchorISO` to `dateISO` (negative if `dateISO` is earlier). */
 export function weekIndexSince(anchorISO: string, dateISO: string): number {
   return Math.floor(daysBetween(anchorISO, dateISO) / 7);
+}
+
+/**
+ * 1-based "current week" of a program that started on `startedAt`, as of today.
+ * Returns null when there's no meaningful current week: not started yet, or the
+ * program's `totalWeeks` have already elapsed (it's finished).
+ */
+export function currentProgramWeekNumber(startedAt: string | null, totalWeeks: number): number | null {
+  if (!startedAt) return null;
+  const elapsed = weekIndexSince(startedAt, todayISO());
+  if (elapsed < 0 || elapsed >= totalWeeks) return null;
+  return elapsed + 1;
 }
