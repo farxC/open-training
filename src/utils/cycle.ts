@@ -1,7 +1,11 @@
+/** `Date` as 'YYYY-MM-DD' in local time (not UTC, unlike Date#toISOString). */
+export function dateToISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** Today's date as 'YYYY-MM-DD' in local time (not UTC, unlike Date#toISOString). */
 export function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return dateToISO(new Date());
 }
 
 /** Whole days from `fromISO` to `toISO` (both 'YYYY-MM-DD'); negative if `to` is earlier. */

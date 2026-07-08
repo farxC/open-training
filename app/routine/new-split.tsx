@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react";
+import { useRef, useState, type ComponentProps } from "react";
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -6,6 +6,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRoutine } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
 import { WeekdayPicker } from "@/components/WeekdayPicker";
+import { MonthCalendar } from "@/components/MonthCalendar";
 import { MODALITIES, modalityLabel } from "@/data/modalities";
 import { getProgramWeeks } from "@/db/queries";
 import type { Modality, RoutineSplit, SplitMode } from "@/types";
@@ -14,7 +15,18 @@ type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const WD_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]; // getDay 0..6
 
-type Step = "basics" | "days" | "plan";
+const STEP_ICON_CIRCLE = {
+  width: 60,
+  height: 60,
+  borderRadius: 30,
+  backgroundColor: "#ebe7df",
+  alignItems: "center" as const,
+  justifyContent: "center" as const,
+  marginBottom: 16,
+};
+
+type Step = "basics" | "days" | "plan" | "cyclicRest" | "cyclicStart" | "cyclicDays";
+const CYCLIC_STEPS: Step[] = ["cyclicRest", "cyclicStart", "cyclicDays"];
 
 export default function NewSplitScreen() {
   const r = useRoutine();
@@ -24,6 +36,15 @@ export default function NewSplitScreen() {
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [planName, setPlanName] = useState("");
   const [totalWeeks, setTotalWeeks] = useState<number | null>(8);
+
+  // Cyclic-split wizard: rest days → optional start date → the days that repeat.
+  // Kept as local state (not persisted) until the wizard finishes, same as the
+  // corrida weekly wizard above — abandoning it midway leaves nothing behind.
+  const [cyclicRestDays, setCyclicRestDays] = useState<number[]>([]);
+  const [cyclicAnchorDate, setCyclicAnchorDate] = useState<string | null>(null);
+  const [cyclicMonth, setCyclicMonth] = useState(() => new Date());
+  const [cyclicDayKeys, setCyclicDayKeys] = useState<number[]>([]);
+  const nextCyclicDayKey = useRef(0);
 
   const chooseMode = (mode: SplitMode) => {
     // Fall back to the modality label so the button always creates a split
@@ -37,17 +58,50 @@ export default function NewSplitScreen() {
       return;
     }
 
-    const splitId = r.addSplit(finalName, mode, modality);
-    if (modality === "corrida") {
-      // Cyclic corrida still requires a plan — force its creation before continuing.
-      router.replace({ pathname: "/routine/program/new", params: { splitId: String(splitId) } });
-    } else {
-      router.replace(`/routine/${splitId}`);
+    if (mode === "cyclic") {
+      setCyclicRestDays([]);
+      setCyclicAnchorDate(null);
+      setCyclicMonth(new Date());
+      setCyclicDayKeys([]);
+      setStep("cyclicRest");
+      return;
     }
+
+    // musculação/other + weekly: nothing else required up front.
+    const splitId = r.addSplit(finalName, mode, modality);
+    router.replace(`/routine/${splitId}`);
   };
 
   const toggleDay = (wd: number) => {
     setSelectedDays((prev) => (prev.includes(wd) ? prev.filter((d) => d !== wd) : [...prev, wd]));
+  };
+
+  const toggleCyclicRestDay = (wd: number) => {
+    setCyclicRestDays((prev) => (prev.includes(wd) ? prev.filter((d) => d !== wd) : [...prev, wd]));
+  };
+
+  const createCyclicSplit = () => {
+    const splitId = r.addSplit(name, "cyclic", modality);
+    if (cyclicRestDays.length > 0) r.setRestWeekdays(splitId, cyclicRestDays);
+    if (cyclicAnchorDate) r.setSplitAnchorDate(splitId, cyclicAnchorDate);
+    // r.splits hasn't re-rendered with the new split yet — addUnit only needs these fields.
+    const split: RoutineSplit = {
+      id: splitId,
+      name,
+      mode: "cyclic",
+      modality,
+      anchor_date: cyclicAnchorDate,
+      rest_weekdays: cyclicRestDays,
+      order: 0,
+    };
+    for (let i = 0; i < cyclicDayKeys.length; i++) r.addUnit(split);
+
+    if (modality === "corrida") {
+      // Corrida still requires a plan — force its creation before continuing.
+      router.replace({ pathname: "/routine/program/new", params: { splitId: String(splitId) } });
+    } else {
+      router.replace(`/routine/${splitId}`);
+    }
   };
 
   const createWeeklyCorridaSplit = () => {
@@ -91,12 +145,18 @@ export default function NewSplitScreen() {
             {step === "basics" && "Novo Split"}
             {step === "days" && "Dias da semana"}
             {step === "plan" && "Novo Plano"}
+            {step === "cyclicRest" && "Dias de descanso"}
+            {step === "cyclicStart" && "Início do ciclo"}
+            {step === "cyclicDays" && "Dias do ciclo"}
           </Text>
           <TouchableOpacity
             onPress={() => {
               if (step === "basics") router.back();
               else if (step === "days") setStep("basics");
-              else setStep("days");
+              else if (step === "plan") setStep("days");
+              else if (step === "cyclicRest") setStep("basics");
+              else if (step === "cyclicStart") setStep("cyclicRest");
+              else if (step === "cyclicDays") setStep("cyclicStart");
             }}
           >
             <Text className="text-ink-soft text-base">{step === "basics" ? "Cancelar" : "Voltar"}</Text>
@@ -114,6 +174,22 @@ export default function NewSplitScreen() {
                 backgroundColor: step === "plan" ? "#26241f" : "#ddd8ce",
               }}
             />
+          </View>
+        )}
+
+        {CYCLIC_STEPS.includes(step) && (
+          <View className="flex-row px-4 mb-1" style={{ gap: 6 }}>
+            {CYCLIC_STEPS.map((s, i) => (
+              <View
+                key={s}
+                style={{
+                  flex: 1,
+                  height: 3,
+                  borderRadius: 2,
+                  backgroundColor: i <= CYCLIC_STEPS.indexOf(step) ? "#26241f" : "#ddd8ce",
+                }}
+              />
+            ))}
           </View>
         )}
 
@@ -197,17 +273,7 @@ export default function NewSplitScreen() {
 
           {step === "days" && (
             <View style={{ alignItems: "center" }}>
-              <View
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  backgroundColor: "#ebe7df",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 16,
-                }}
-              >
+              <View style={STEP_ICON_CIRCLE}>
                 <MaterialCommunityIcons name="calendar-week" size={26} color="#26241f" />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
@@ -238,17 +304,7 @@ export default function NewSplitScreen() {
 
           {step === "plan" && (
             <View style={{ alignItems: "center" }}>
-              <View
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  backgroundColor: "#ebe7df",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 16,
-                }}
-              >
+              <View style={STEP_ICON_CIRCLE}>
                 <MaterialCommunityIcons name="notebook-outline" size={26} color="#26241f" />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
@@ -278,6 +334,108 @@ export default function NewSplitScreen() {
                 onPress={createWeeklyCorridaSplit}
               >
                 <Text className="text-white text-sm font-semibold">Criar plano</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {step === "cyclicRest" && (
+            <View style={{ alignItems: "center" }}>
+              <View style={STEP_ICON_CIRCLE}>
+                <MaterialCommunityIcons name="weather-night" size={26} color="#26241f" />
+              </View>
+              <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
+                Dias de descanso
+              </Text>
+              <Text className="text-ink-mute text-sm mb-7" style={{ textAlign: "center", maxWidth: 280 }}>
+                Esses dias da semana não contam como treino no ciclo. Pode deixar em branco e ajustar depois.
+              </Text>
+              <WeekdayPicker selected={cyclicRestDays} onToggle={toggleCyclicRestDay} size="large" />
+              <TouchableOpacity
+                className="mt-8 py-3 rounded-xl items-center bg-brand-500"
+                style={{ width: "100%" }}
+                onPress={() => setStep("cyclicStart")}
+              >
+                <Text className="text-white text-sm font-semibold">Continuar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {step === "cyclicStart" && (
+            <View style={{ alignItems: "center" }}>
+              <View style={STEP_ICON_CIRCLE}>
+                <MaterialCommunityIcons name="calendar-blank-outline" size={26} color="#26241f" />
+              </View>
+              <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
+                Início do ciclo
+              </Text>
+              <Text className="text-ink-mute text-sm mb-6" style={{ textAlign: "center", maxWidth: 280 }}>
+                Opcional. Se você já sabe quando o dia 1 do ciclo cai, escolha a data — dá pra definir isso depois também.
+              </Text>
+              <View style={{ width: "100%" }}>
+                <MonthCalendar
+                  monthDate={cyclicMonth}
+                  onMonthChange={setCyclicMonth}
+                  selectedDate={cyclicAnchorDate}
+                  onSelectDate={setCyclicAnchorDate}
+                />
+              </View>
+              <TouchableOpacity
+                className="mt-6 py-3 rounded-xl items-center bg-brand-500"
+                style={{ width: "100%" }}
+                onPress={() => setStep("cyclicDays")}
+              >
+                <Text className="text-white text-sm font-semibold">
+                  {cyclicAnchorDate ? "Continuar" : "Continuar sem definir"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {step === "cyclicDays" && (
+            <View style={{ alignItems: "center" }}>
+              <View style={STEP_ICON_CIRCLE}>
+                <MaterialCommunityIcons name="repeat" size={26} color="#26241f" />
+              </View>
+              <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
+                Dias do ciclo
+              </Text>
+              <Text className="text-ink-mute text-sm mb-6" style={{ textAlign: "center", maxWidth: 280 }}>
+                A sequência de treinos que se repete. Pode pular e adicionar (com os exercícios) depois, na tela do split.
+              </Text>
+
+              {cyclicDayKeys.length > 0 && (
+                <View style={{ width: "100%", gap: 8, marginBottom: 12 }}>
+                  {cyclicDayKeys.map((key, i) => (
+                    <View
+                      key={key}
+                      className="flex-row items-center justify-between px-4 py-3 rounded-2xl"
+                      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                    >
+                      <Text className="text-ink text-sm font-medium">Dia {i + 1}</Text>
+                      <TouchableOpacity onPress={() => setCyclicDayKeys((prev) => prev.filter((k) => k !== key))}>
+                        <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity
+                className="py-3 rounded-xl items-center mb-6"
+                style={{ width: "100%", borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                onPress={() => setCyclicDayKeys((prev) => [...prev, nextCyclicDayKey.current++])}
+              >
+                <Text className="text-ink text-sm font-medium">+ Adicionar dia</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="py-3 rounded-xl items-center bg-brand-500"
+                style={{ width: "100%" }}
+                onPress={createCyclicSplit}
+              >
+                <Text className="text-white text-sm font-semibold">
+                  {cyclicDayKeys.length > 0 ? "Concluir" : "Concluir sem dias"}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
