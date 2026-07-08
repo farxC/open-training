@@ -8,6 +8,7 @@ import { RunPlanTable } from "@/components/RunPlanTable";
 import { StrengthPlanTable } from "@/components/StrengthPlanTable";
 import { WeekdayPicker } from "@/components/WeekdayPicker";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
+import { DatePickerModal } from "@/components/DatePickerModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useRoutine } from "@/hooks/useRoutine";
 import { modalityConfig, modalityLabel } from "@/data/modalities";
@@ -20,12 +21,22 @@ type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const WD_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]; // getDay 0..6
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sun
+const MONTHS_LONG = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+function formatLongDate(dateISO: string): string {
+  const d = new Date(dateISO + "T00:00:00");
+  return `${d.getDate()} de ${MONTHS_LONG[d.getMonth()]} de ${d.getFullYear()}`;
+}
 
 export default function EditSplitScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const r = useRoutine();
   const [expandedUnitId, setExpandedUnitId] = useState<number | null>(null);
   const [pickerUnitId, setPickerUnitId] = useState<number | null>(null);
+  const [anchorPickerOpen, setAnchorPickerOpen] = useState(false);
   const nameInputRef = useRef<TextInput>(null);
 
   const split = r.splits.find((s) => s.id === Number(id));
@@ -201,22 +212,31 @@ export default function EditSplitScreen() {
 
             <Text className="text-ink-soft text-xs font-semibold mb-1">Agenda do ciclo</Text>
             <Text className="text-ink-faint text-xs mb-2">
-              Quando o ciclo roda no calendário — dias fixos de descanso e o início da contagem.
+              Quando o ciclo roda no calendário — dias fixos de descanso e a data em que o dia 1 cai.
             </Text>
             <View className="mb-3">
               <WeekdayPicker selected={split.rest_weekdays} onToggle={toggleRest} />
             </View>
 
-            <TouchableOpacity
-              className="py-2.5 rounded-xl items-center bg-brand-500 mb-6"
-              onPress={() => r.startSplitCycle(split.id)}
+            <View
+              className="flex-row items-center justify-between rounded-2xl px-4 py-3 mb-6"
+              style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
             >
-              <Text className="text-white font-semibold text-sm">
-                {split.anchor_date
-                  ? `Reiniciar ciclo (hoje = dia 1) · desde ${split.anchor_date}`
-                  : "Iniciar ciclo (hoje = dia 1)"}
-              </Text>
-            </TouchableOpacity>
+              <View style={{ gap: 2, flex: 1 }}>
+                <Text className="text-ink-mute text-xs font-medium">Dia 1 do ciclo</Text>
+                <Text className="text-ink text-sm font-medium">
+                  {split.anchor_date ? formatLongDate(split.anchor_date) : "Ainda não definido"}
+                </Text>
+              </View>
+              <TouchableOpacity
+                className="px-3 py-2 rounded-xl bg-brand-500"
+                onPress={() => setAnchorPickerOpen(true)}
+              >
+                <Text className="text-white text-xs font-semibold">
+                  {split.anchor_date ? "Alterar" : "Escolher data"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </>
         ) : (
           <View className="mb-6">
@@ -329,6 +349,17 @@ export default function EditSplitScreen() {
           if (pickerUnitId != null) r.addExercise(pickerUnitId, ex);
         }}
         onClose={() => setPickerUnitId(null)}
+      />
+
+      <DatePickerModal
+        visible={anchorPickerOpen}
+        title="Dia 1 do ciclo"
+        selectedDate={split.anchor_date}
+        onSelect={(dateISO) => {
+          r.setSplitAnchorDate(split.id, dateISO);
+          setAnchorPickerOpen(false);
+        }}
+        onClose={() => setAnchorPickerOpen(false)}
       />
     </SafeAreaView>
   );

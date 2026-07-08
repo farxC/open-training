@@ -5,7 +5,6 @@ import {
   updateSplit,
   deleteSplit,
   moveSplit,
-  startSplitToday,
   getUnits,
   createUnit,
   updateUnitLabel,
@@ -190,8 +189,8 @@ export function useRoutine() {
     (id: number, days: number[]) => { updateSplit(id, { rest_weekdays: days }); refreshAll(); },
     [refreshAll]
   );
-  const startSplitCycle = useCallback(
-    (id: number) => { startSplitToday(id); refreshAll(); },
+  const setSplitAnchorDate = useCallback(
+    (id: number, anchorISO: string) => { updateSplit(id, { anchor_date: anchorISO }); refreshAll(); },
     [refreshAll]
   );
 
@@ -374,7 +373,7 @@ export function useRoutine() {
     removeSplit,
     reorderSplit,
     setRestWeekdays,
-    startSplitCycle,
+    setSplitAnchorDate,
     addUnit,
     renameUnit,
     removeUnit,

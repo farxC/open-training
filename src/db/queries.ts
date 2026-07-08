@@ -248,12 +248,6 @@ export function moveSplit(id: number, direction: "up" | "down"): void {
   db.runSync(`UPDATE routine_splits SET "order" = ? WHERE id = ?`, [rows[idx].order, rows[swap].id]);
 }
 
-export function startSplitToday(id: number): void {
-  const d = new Date();
-  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  db.runSync("UPDATE routine_splits SET anchor_date = ? WHERE id = ?", [iso, id]);
-}
-
 export function getUnits(splitId: number): RoutineUnit[] {
   return db.getAllSync<RoutineUnit>(
     "SELECT * FROM routine_units WHERE split_id = ? ORDER BY ordinal",
