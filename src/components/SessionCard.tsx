@@ -33,9 +33,9 @@ export function SessionCard({ session, onPress }: Props) {
       {/* Top accent line */}
       <View style={{ height: 2, backgroundColor: '#26241f' }} />
 
-      {session.photo_uri && (
+      {session.cover_photo_uri && (
         <Image
-          source={{ uri: session.photo_uri }}
+          source={{ uri: session.cover_photo_uri }}
           className="w-full h-40"
           resizeMode="cover"
         />
@@ -49,7 +49,7 @@ export function SessionCard({ session, onPress }: Props) {
               {day}
             </Text>
             <Text className="text-ink font-display font-medium text-xl leading-tight" style={{ letterSpacing: -0.3 }}>
-              {month} {date}
+              {session.name || `${month} ${date}`}
             </Text>
           </View>
           {duration !== "" && (
@@ -75,14 +75,23 @@ export function SessionCard({ session, onPress }: Props) {
           </View>
         )}
 
-        {/* Volume */}
-        {session.total_volume != null && session.total_volume > 0 && (
+        {/* Volume or distance */}
+        {session.modality === "corrida" && session.total_distance_km != null && session.total_distance_km > 0 ? (
           <View className="flex-row items-baseline" style={{ gap: 4 }}>
             <Text style={{ color: '#26241f', fontSize: 22, fontWeight: '700', fontFamily: 'JetBrains Mono, Menlo, Courier New, monospace' }}>
-              {session.total_volume.toFixed(0)}
+              {session.total_distance_km.toFixed(1)}
             </Text>
-            <Text className="text-ink-mute text-sm">kg total volume</Text>
+            <Text className="text-ink-mute text-sm">km</Text>
           </View>
+        ) : (
+          session.total_volume != null && session.total_volume > 0 && (
+            <View className="flex-row items-baseline" style={{ gap: 4 }}>
+              <Text style={{ color: '#26241f', fontSize: 22, fontWeight: '700', fontFamily: 'JetBrains Mono, Menlo, Courier New, monospace' }}>
+                {session.total_volume.toFixed(0)}
+              </Text>
+              <Text className="text-ink-mute text-sm">kg total volume</Text>
+            </View>
+          )
         )}
 
         {session.notes && (

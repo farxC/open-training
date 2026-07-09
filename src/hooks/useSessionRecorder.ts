@@ -8,19 +8,41 @@ import {
   updateSet,
   deleteSet,
   getSetsBySession,
+  addSessionPhoto,
 } from "@/db/queries";
-import type { Exercise, WorkoutSet } from "@/types";
+import type { Exercise, Modality, RoutineUnitExercise, WorkoutSet } from "@/types";
 
 export function useSessionRecorder() {
-  const { state, start, addExercise, removeExercise, finish, discard } =
+  const { state, start, addExercise, addExercises, removeExercise, finish, discard } =
     useRecorderContext();
 
-  const startSession = useCallback(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const sessionId = createSession(today);
-    start(sessionId);
-    return sessionId;
-  }, [start]);
+  const startResolvedSession = useCallback(
+    (payload: {
+      date: string;
+      modality: Modality;
+      splitId: number | null;
+      unitId: number | null;
+      programWeekId: number | null;
+      name: string | null;
+      notes: string | null;
+      photoUris: string[];
+      exercises: { exercise: Exercise; targets?: RoutineUnitExercise }[];
+    }) => {
+      const sessionId = createSession(payload.date, {
+        name: payload.name,
+        notes: payload.notes,
+        modality: payload.modality,
+        split_id: payload.splitId,
+        unit_id: payload.unitId,
+        program_week_id: payload.programWeekId,
+      });
+      payload.photoUris.forEach((uri, i) => addSessionPhoto(sessionId, uri, i));
+      start(sessionId, payload.modality, payload.splitId, payload.unitId, payload.programWeekId);
+      addExercises(payload.exercises);
+      return sessionId;
+    },
+    [start, addExercises]
+  );
 
   const addExerciseToSession = useCallback(
     (exercise: Exercise) => {
@@ -51,6 +73,9 @@ export function useSessionRecorder() {
         rpe: setData.rpe ?? null,
         rir: null,
         notes: setData.notes ?? null,
+        distance_km: null,
+        duration_sec: null,
+        pace_sec: null,
       });
     },
     [state.sessionId]
@@ -68,7 +93,7 @@ export function useSessionRecorder() {
   }, []);
 
   const finishSession = useCallback(
-    (notes?: string, photoUri?: string) => {
+    (notes?: string) => {
       if (!state.sessionId || !state.startTime) return;
       const duration = Math.round(
         (Date.now() - state.startTime.getTime()) / 1000
@@ -76,7 +101,6 @@ export function useSessionRecorder() {
       updateSession(state.sessionId, {
         notes: notes ?? null,
         duration_seconds: duration,
-        photo_uri: photoUri ?? null,
       });
       finish();
     },
@@ -92,7 +116,7 @@ export function useSessionRecorder() {
 
   return {
     ...state,
-    startSession,
+    startResolvedSession,
     addExerciseToSession,
     removeExerciseFromSession,
     addSetToSession,

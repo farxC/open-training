@@ -40,12 +40,29 @@ export function runMigrations(): void {
   ensureColumn("routine_unit_exercises", "target_reps_max", "INTEGER");
   ensureColumn("training_programs", "setup_week_number", "INTEGER");
   ensureColumn("training_programs", "started_at", "TEXT");
+  ensureColumn("sessions", "name", "TEXT");
+  ensureColumn("sessions", "modality", "TEXT NOT NULL DEFAULT 'musculacao'");
+  ensureColumn("sessions", "split_id", "INTEGER REFERENCES routine_splits(id) ON DELETE SET NULL");
+  ensureColumn("sessions", "unit_id", "INTEGER REFERENCES routine_units(id) ON DELETE SET NULL");
+  ensureColumn("sessions", "program_week_id", "INTEGER REFERENCES program_weeks(id) ON DELETE SET NULL");
+  ensureColumn("sets", "distance_km", "REAL");
+  ensureColumn("sets", "duration_sec", "INTEGER");
+  ensureColumn("sets", "pace_sec", "INTEGER");
 
   // Backfill: programs already active before this column existed have no anchor for
   // "which week are we in" — start counting from today rather than showing nothing.
   db.runSync(
     "UPDATE training_programs SET started_at = ? WHERE is_active = 1 AND started_at IS NULL",
     [todayISO()]
+  );
+
+  // Backfill: photo_uri predates session_photos (multi-photo support). Copy any legacy
+  // single photo into the new table once; NOT EXISTS keeps this idempotent across launches.
+  db.runSync(
+    `INSERT INTO session_photos (session_id, uri, "order")
+     SELECT id, photo_uri, 0 FROM sessions
+     WHERE photo_uri IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM session_photos WHERE session_id = sessions.id)`
   );
 
   const row = db.getFirstSync<{ value: string }>(

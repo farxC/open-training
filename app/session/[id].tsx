@@ -6,6 +6,7 @@ import { useSession } from "@/hooks/useSessions";
 import { deleteSession } from "@/db/queries";
 import { confirmAction } from "@/utils/confirm";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { formatClock, formatPaceSec } from "@/data/modalities";
 import type { WorkoutSet } from "@/types";
 
 const MONTH_NAMES = [
@@ -67,7 +68,7 @@ export default function SessionDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader
-        title={formatDate(session.date)}
+        title={session.name || formatDate(session.date)}
         fallbackHref="/"
         right={
           <TouchableOpacity onPress={handleDelete} className="p-1">
@@ -76,16 +77,24 @@ export default function SessionDetailScreen() {
         }
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {session.photo_uri && (
-          <Image
-            source={{ uri: session.photo_uri }}
-            className="w-full h-56"
-            resizeMode="cover"
-          />
+        {session.photos.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
+            {session.photos.map((photo) => (
+              <Image
+                key={photo.id}
+                source={{ uri: photo.uri }}
+                style={{ width: 320, height: 224 }}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
         )}
 
         <View className="px-4 pt-4">
           <View className="mb-4">
+            {session.name && (
+              <Text className="text-ink-mute text-sm">{formatDate(session.date)}</Text>
+            )}
             <Text className="text-ink-mute text-sm">
               Duration: {formatDuration(session.duration_seconds)}
             </Text>
@@ -113,9 +122,16 @@ export default function SessionDetailScreen() {
                 >
                   <View className="flex-row items-center">
                     <Text className="text-ink-mute text-sm" style={{ width: 24 }}>{s.set_number}</Text>
-                    <Text className="text-ink flex-1 text-sm">
-                      {s.weight_kg} kg × {s.reps} reps
-                    </Text>
+                    {s.distance_km != null ? (
+                      <Text className="text-ink flex-1 text-sm">
+                        {s.distance_km} km em {formatClock(s.duration_sec)}
+                        {formatPaceSec(s.pace_sec) ? ` · pace ${formatPaceSec(s.pace_sec)}` : ""}
+                      </Text>
+                    ) : (
+                      <Text className="text-ink flex-1 text-sm">
+                        {s.weight_kg} kg × {s.reps} reps
+                      </Text>
+                    )}
                   </View>
                   {(s.rpe != null || s.rir != null) && (
                     <View className="flex-row mt-0.5" style={{ gap: 12, paddingLeft: 24 }}>

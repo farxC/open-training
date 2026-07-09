@@ -1,16 +1,32 @@
 import React, { createContext, useCallback, useContext, useReducer } from "react";
-import type { Exercise } from "@/types";
+import type { Exercise, Modality, RoutineUnitExercise } from "@/types";
 
 interface RecorderState {
   sessionId: number | null;
   startTime: Date | null;
   selectedExercises: Exercise[];
+  targetsByExerciseId: Record<number, RoutineUnitExercise>;
   isRecording: boolean;
+  modality: Modality;
+  splitId: number | null;
+  unitId: number | null;
+  programWeekId: number | null;
 }
 
+type StartExercise = { exercise: Exercise; targets?: RoutineUnitExercise };
+
 type RecorderAction =
-  | { type: "START"; sessionId: number; startTime: Date }
+  | {
+      type: "START";
+      sessionId: number;
+      startTime: Date;
+      modality: Modality;
+      splitId: number | null;
+      unitId: number | null;
+      programWeekId: number | null;
+    }
   | { type: "ADD_EXERCISE"; exercise: Exercise }
+  | { type: "ADD_EXERCISES"; items: StartExercise[] }
   | { type: "REMOVE_EXERCISE"; exerciseId: number }
   | { type: "FINISH" }
   | { type: "DISCARD" };
@@ -19,7 +35,12 @@ const initialState: RecorderState = {
   sessionId: null,
   startTime: null,
   selectedExercises: [],
+  targetsByExerciseId: {},
   isRecording: false,
+  modality: "musculacao",
+  splitId: null,
+  unitId: null,
+  programWeekId: null,
 };
 
 function reducer(state: RecorderState, action: RecorderAction): RecorderState {
@@ -29,7 +50,12 @@ function reducer(state: RecorderState, action: RecorderAction): RecorderState {
         sessionId: action.sessionId,
         startTime: action.startTime,
         selectedExercises: [],
+        targetsByExerciseId: {},
         isRecording: true,
+        modality: action.modality,
+        splitId: action.splitId,
+        unitId: action.unitId,
+        programWeekId: action.programWeekId,
       };
     case "ADD_EXERCISE":
       if (state.selectedExercises.some((e) => e.id === action.exercise.id)) {
@@ -39,6 +65,19 @@ function reducer(state: RecorderState, action: RecorderAction): RecorderState {
         ...state,
         selectedExercises: [...state.selectedExercises, action.exercise],
       };
+    case "ADD_EXERCISES": {
+      const existingIds = new Set(state.selectedExercises.map((e) => e.id));
+      const fresh = action.items.filter((item) => !existingIds.has(item.exercise.id));
+      const targets = { ...state.targetsByExerciseId };
+      for (const item of fresh) {
+        if (item.targets) targets[item.exercise.id] = item.targets;
+      }
+      return {
+        ...state,
+        selectedExercises: [...state.selectedExercises, ...fresh.map((f) => f.exercise)],
+        targetsByExerciseId: targets,
+      };
+    }
     case "REMOVE_EXERCISE":
       return {
         ...state,
@@ -56,8 +95,15 @@ function reducer(state: RecorderState, action: RecorderAction): RecorderState {
 
 interface RecorderContextValue {
   state: RecorderState;
-  start: (sessionId: number) => void;
+  start: (
+    sessionId: number,
+    modality: Modality,
+    splitId: number | null,
+    unitId: number | null,
+    programWeekId: number | null
+  ) => void;
   addExercise: (exercise: Exercise) => void;
+  addExercises: (items: StartExercise[]) => void;
   removeExercise: (exerciseId: number) => void;
   finish: () => void;
   discard: () => void;
@@ -72,12 +118,25 @@ export function SessionRecorderProvider({
 }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const start = useCallback((sessionId: number) => {
-    dispatch({ type: "START", sessionId, startTime: new Date() });
-  }, []);
+  const start = useCallback(
+    (
+      sessionId: number,
+      modality: Modality,
+      splitId: number | null,
+      unitId: number | null,
+      programWeekId: number | null
+    ) => {
+      dispatch({ type: "START", sessionId, startTime: new Date(), modality, splitId, unitId, programWeekId });
+    },
+    []
+  );
 
   const addExercise = useCallback((exercise: Exercise) => {
     dispatch({ type: "ADD_EXERCISE", exercise });
+  }, []);
+
+  const addExercises = useCallback((items: StartExercise[]) => {
+    dispatch({ type: "ADD_EXERCISES", items });
   }, []);
 
   const removeExercise = useCallback((exerciseId: number) => {
@@ -94,7 +153,7 @@ export function SessionRecorderProvider({
 
   return (
     <SessionRecorderContext.Provider
-      value={{ state, start, addExercise, removeExercise, finish, discard }}
+      value={{ state, start, addExercise, addExercises, removeExercise, finish, discard }}
     >
       {children}
     </SessionRecorderContext.Provider>

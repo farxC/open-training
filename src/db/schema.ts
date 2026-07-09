@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -14,9 +14,21 @@ export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL,
+    name TEXT,
     notes TEXT,
     duration_seconds INTEGER,
-    photo_uri TEXT
+    photo_uri TEXT,
+    modality TEXT NOT NULL DEFAULT 'musculacao',
+    split_id INTEGER REFERENCES routine_splits(id) ON DELETE SET NULL,
+    unit_id INTEGER REFERENCES routine_units(id) ON DELETE SET NULL,
+    program_week_id INTEGER REFERENCES program_weeks(id) ON DELETE SET NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS session_photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    uri TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0
   )`,
 
   `CREATE TABLE IF NOT EXISTS sets (
@@ -28,7 +40,10 @@ export const CREATE_TABLES: string[] = [
     weight_kg REAL NOT NULL,
     rpe REAL,
     rir INTEGER,
-    notes TEXT
+    notes TEXT,
+    distance_km REAL,
+    duration_sec INTEGER,
+    pace_sec INTEGER
   )`,
 
   `CREATE TABLE IF NOT EXISTS routine_splits (

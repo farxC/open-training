@@ -49,6 +49,10 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen
+              name="session/new"
+              options={{ presentation: "modal", animation: "slide_from_bottom" }}
+            />
+            <Stack.Screen
               name="session/record"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
             />

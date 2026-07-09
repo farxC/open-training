@@ -318,17 +318,21 @@ export function useRoutine() {
 
   // ── Resolved targets (fixed unit target, overridden by the active program's current week) ──
   const resolvedTargetsForUnit = useCallback(
-    (unit: RoutineUnit, split: RoutineSplit, dateISO: string): RoutineUnitExercise[] => {
+    (
+      unit: RoutineUnit,
+      split: RoutineSplit,
+      dateISO: string
+    ): { exercises: RoutineUnitExercise[]; programWeekId: number | null } => {
       const base = exercisesByUnit[unit.id] ?? [];
-      if (!split.anchor_date) return base;
+      if (!split.anchor_date) return { exercises: base, programWeekId: null };
       const active = (programsBySplit[split.id] ?? []).find((p) => p.is_active);
-      if (!active) return base;
+      if (!active) return { exercises: base, programWeekId: null };
       const weekIndex = weekIndexSince(split.anchor_date, dateISO);
-      if (weekIndex < 0 || weekIndex >= active.total_weeks) return base;
+      if (weekIndex < 0 || weekIndex >= active.total_weeks) return { exercises: base, programWeekId: null };
       const week = getProgramWeeks(active.id).find((w) => w.week_number === weekIndex + 1);
-      if (!week) return base;
+      if (!week) return { exercises: base, programWeekId: null };
       const entries = getWeekEntries(week.id).filter((e) => e.unit_id === unit.id);
-      return applyProgramEntries(base, entries);
+      return { exercises: applyProgramEntries(base, entries), programWeekId: week.id };
     },
     [exercisesByUnit, programsBySplit]
   );

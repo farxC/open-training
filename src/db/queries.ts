@@ -5,6 +5,7 @@ import type {
   MuscleGroup,
   Modality,
   Session,
+  SessionPhoto,
   SessionSummary,
   SessionWithSets,
   WorkoutSet,
@@ -25,15 +26,28 @@ export function getSessions(): SessionSummary[] {
   const rows = db.getAllSync<{
     id: number;
     date: string;
+    name: string | null;
     notes: string | null;
     duration_seconds: number | null;
     photo_uri: string | null;
+    modality: Modality;
+    split_id: number | null;
+    unit_id: number | null;
+    program_week_id: number | null;
+    cover_photo_uri: string | null;
     total_volume: number | null;
+    total_distance_km: number | null;
     exercise_names_raw: string | null;
   }>(
     `SELECT
-      s.id, s.date, s.notes, s.duration_seconds, s.photo_uri,
+      s.id, s.date, s.name, s.notes, s.duration_seconds, s.photo_uri,
+      s.modality, s.split_id, s.unit_id, s.program_week_id,
+      COALESCE(
+        (SELECT uri FROM session_photos WHERE session_id = s.id ORDER BY "order", id LIMIT 1),
+        s.photo_uri
+      ) AS cover_photo_uri,
       SUM(st.reps * st.weight_kg) AS total_volume,
+      SUM(st.distance_km) AS total_distance_km,
       GROUP_CONCAT(DISTINCT e.name) AS exercise_names_raw
     FROM sessions s
     LEFT JOIN sets st ON st.session_id = s.id
@@ -49,7 +63,9 @@ export function getSessions(): SessionSummary[] {
 
 export function getSessionById(id: number): Session | null {
   return db.getFirstSync<Session>(
-    "SELECT id, date, notes, duration_seconds, photo_uri FROM sessions WHERE id = ?",
+    `SELECT id, date, name, notes, duration_seconds, photo_uri,
+            modality, split_id, unit_id, program_week_id
+     FROM sessions WHERE id = ?`,
     [id]
   );
 }
@@ -67,20 +83,39 @@ export function getSessionWithSets(id: number): SessionWithSets | null {
     [id]
   );
 
-  return { ...session, sets };
+  return { ...session, sets, photos: getSessionPhotos(id) };
 }
 
-export function createSession(date: string): number {
+export function createSession(
+  date: string,
+  opts?: {
+    name?: string | null;
+    notes?: string | null;
+    modality?: Modality;
+    split_id?: number | null;
+    unit_id?: number | null;
+    program_week_id?: number | null;
+  }
+): number {
   const result = db.runSync(
-    "INSERT INTO sessions (date) VALUES (?)",
-    [date]
+    `INSERT INTO sessions (date, name, notes, modality, split_id, unit_id, program_week_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      date,
+      opts?.name ?? null,
+      opts?.notes ?? null,
+      opts?.modality ?? "musculacao",
+      opts?.split_id ?? null,
+      opts?.unit_id ?? null,
+      opts?.program_week_id ?? null,
+    ]
   );
   return result.lastInsertRowId;
 }
 
 export function updateSession(
   id: number,
-  patch: Partial<Pick<Session, "notes" | "duration_seconds" | "photo_uri">>
+  patch: Partial<Pick<Session, "name" | "notes" | "duration_seconds">>
 ): void {
   const fields = Object.keys(patch) as (keyof typeof patch)[];
   if (fields.length === 0) return;
@@ -91,6 +126,28 @@ export function updateSession(
 
 export function deleteSession(id: number): void {
   db.runSync("DELETE FROM sessions WHERE id = ?", [id]);
+}
+
+// ─── Session photos ────────────────────────────────────────────────────────────
+
+export function getSessionPhotos(sessionId: number): SessionPhoto[] {
+  return db.getAllSync<SessionPhoto>(
+    `SELECT * FROM session_photos WHERE session_id = ? ORDER BY "order", id`,
+    [sessionId]
+  );
+}
+
+export function addSessionPhoto(sessionId: number, uri: string, order?: number): number {
+  const position = order ?? getSessionPhotos(sessionId).length;
+  const result = db.runSync(
+    `INSERT INTO session_photos (session_id, uri, "order") VALUES (?, ?, ?)`,
+    [sessionId, uri, position]
+  );
+  return result.lastInsertRowId;
+}
+
+export function removeSessionPhoto(id: number): void {
+  db.runSync("DELETE FROM session_photos WHERE id = ?", [id]);
 }
 
 // ─── Sets ─────────────────────────────────────────────────────────────────────
@@ -104,8 +161,8 @@ export function getSetsBySession(sessionId: number): WorkoutSet[] {
 
 export function addSet(set: Omit<WorkoutSet, "id">): number {
   const result = db.runSync(
-    `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       set.session_id,
       set.exercise_id,
@@ -115,6 +172,9 @@ export function addSet(set: Omit<WorkoutSet, "id">): number {
       set.rpe ?? null,
       set.rir ?? null,
       set.notes ?? null,
+      set.distance_km ?? null,
+      set.duration_sec ?? null,
+      set.pace_sec ?? null,
     ]
   );
   return result.lastInsertRowId;

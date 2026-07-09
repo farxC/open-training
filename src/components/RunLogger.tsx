@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { SetRow } from "./SetRow";
+import { RunRow } from "./RunRow";
 import {
   addSet,
   deleteSet,
   getSetsBySession,
   updateSet,
 } from "@/db/queries";
+import { formatPaceSec } from "@/data/modalities";
 import type { RoutineUnitExercise, WorkoutSet } from "@/types";
 
 interface Props {
@@ -18,15 +19,12 @@ interface Props {
 }
 
 function targetLabel(targets: RoutineUnitExercise): string | null {
-  if (!targets.target_sets || targets.target_sets <= 0) return null;
-  const reps = targets.target_reps_max
-    ? `${targets.target_reps}–${targets.target_reps_max}`
-    : `${targets.target_reps}`;
-  const weight = targets.target_weight_kg ? ` @ ${targets.target_weight_kg}kg` : "";
-  return `Meta: ${targets.target_sets}×${reps} reps${weight}`;
+  if (!targets.target_distance_km) return null;
+  const pace = formatPaceSec(targets.target_pace_sec);
+  return `Meta: ${targets.target_distance_km}km${pace ? ` · pace ${pace}` : ""}`;
 }
 
-export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets }: Props) {
+export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets }: Props) {
   const [sets, setSets] = useState<WorkoutSet[]>([]);
 
   const refreshSets = useCallback(() => {
@@ -40,13 +38,12 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
   }, [refreshSets]);
 
   const handleAdd = () => {
-    const last = sets[sets.length - 1];
     addSet({
       session_id: sessionId,
       exercise_id: exerciseId,
       set_number: sets.length + 1,
-      reps: last?.reps ?? targets?.target_reps ?? 8,
-      weight_kg: last?.weight_kg ?? targets?.target_weight_kg ?? 0,
+      reps: 0,
+      weight_kg: 0,
       rpe: null,
       rir: null,
       notes: null,
@@ -69,7 +66,6 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
 
   return (
     <View className="mb-5">
-      {/* Exercise header */}
       <View className="flex-row justify-between items-center mb-2">
         <View className="flex-row items-center" style={{ gap: 8 }}>
           <View style={{ width: 2, height: 14, backgroundColor: '#26241f', borderRadius: 1 }} />
@@ -85,19 +81,18 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
         </TouchableOpacity>
       </View>
 
-      {/* Column headers */}
       {sets.length > 0 && (
         <View className="flex-row mb-1" style={{ gap: 8, paddingLeft: 0 }}>
           <Text className="text-ink-mute text-xs text-center" style={{ width: 20 }}>#</Text>
-          <Text className="text-ink-mute text-xs flex-1 text-center">Weight</Text>
-          <Text className="text-ink-mute text-xs" style={{ width: 12 }} />
-          <Text className="text-ink-mute text-xs flex-1 text-center">Reps</Text>
+          <Text className="text-ink-mute text-xs flex-1 text-center">Distância</Text>
+          <Text className="text-ink-mute text-xs" style={{ width: 20 }} />
+          <Text className="text-ink-mute text-xs flex-1 text-center">Duração</Text>
           <Text style={{ width: 20 }} />
         </View>
       )}
 
       {sets.map((set) => (
-        <SetRow
+        <RunRow
           key={set.id}
           set={set}
           onChange={(patch) => handleChange(set.id, patch)}
@@ -110,7 +105,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
         style={{ borderWidth: 1, borderColor: '#c9c3b6', borderStyle: 'dashed' }}
         onPress={handleAdd}
       >
-        <Text className="text-ink text-sm">+ Add Set</Text>
+        <Text className="text-ink text-sm">+ Add Run</Text>
       </TouchableOpacity>
     </View>
   );

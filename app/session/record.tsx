@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,34 +13,42 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { SetLogger } from "@/components/SetLogger";
+import { RunLogger } from "@/components/RunLogger";
 import { useSessionRecorder } from "@/hooks/useSessionRecorder";
+import { getSessionById, getSessionPhotos, addSessionPhoto, removeSessionPhoto } from "@/db/queries";
 import { confirmAction, notify } from "@/utils/confirm";
+import type { SessionPhoto } from "@/types";
 
 export default function RecordScreen() {
   const recorder = useSessionRecorder();
   const [pickerVisible, setPickerVisible] = useState(false);
   const [notes, setNotes] = useState("");
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const started = useRef(false);
+  const [photos, setPhotos] = useState<SessionPhoto[]>([]);
 
   useEffect(() => {
-    if (!started.current) {
-      started.current = true;
-      recorder.startSession();
+    if (recorder.sessionId == null) {
+      router.replace("/session/new");
+      return;
     }
-  }, []);
+    const session = getSessionById(recorder.sessionId);
+    setNotes(session?.notes ?? "");
+    setPhotos(getSessionPhotos(recorder.sessionId));
+  }, [recorder.sessionId]);
+
+  if (recorder.sessionId == null) {
+    return <SafeAreaView className="flex-1 bg-surface" />;
+  }
 
   const handleFinish = () => {
     if (recorder.selectedExercises.length === 0) {
       notify("No exercises", "Add at least one exercise before finishing.");
       return;
     }
-    recorder.finishSession(notes, photoUri ?? undefined);
+    recorder.finishSession(notes);
     router.dismiss();
   };
 
-  const hasData =
-    recorder.selectedExercises.length > 0 || notes.trim().length > 0 || photoUri != null;
+  const hasData = recorder.selectedExercises.length > 0 || notes.trim().length > 0 || photos.length > 0;
 
   const handleDiscard = () => {
     if (!hasData) {
@@ -52,6 +60,16 @@ export default function RecordScreen() {
       recorder.discardSession();
       router.dismiss();
     });
+  };
+
+  const handleAddPhoto = (uri: string) => {
+    addSessionPhoto(recorder.sessionId!, uri);
+    setPhotos(getSessionPhotos(recorder.sessionId!));
+  };
+
+  const handleRemovePhoto = (id: number) => {
+    removeSessionPhoto(id);
+    setPhotos(getSessionPhotos(recorder.sessionId!));
   };
 
   return (
@@ -99,18 +117,27 @@ export default function RecordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {recorder.sessionId != null &&
-            recorder.selectedExercises.map((exercise) => (
+          {recorder.selectedExercises.map((exercise) =>
+            exercise.modality === "corrida" ? (
+              <RunLogger
+                key={exercise.id}
+                exerciseId={exercise.id}
+                exerciseName={exercise.name}
+                sessionId={recorder.sessionId!}
+                targets={recorder.targetsByExerciseId[exercise.id]}
+                onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
+              />
+            ) : (
               <SetLogger
                 key={exercise.id}
                 exerciseId={exercise.id}
                 exerciseName={exercise.name}
                 sessionId={recorder.sessionId!}
-                onRemoveExercise={() =>
-                  recorder.removeExerciseFromSession(exercise.id)
-                }
+                targets={recorder.targetsByExerciseId[exercise.id]}
+                onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
               />
-            ))}
+            )
+          )}
 
           <TouchableOpacity
             className="py-3 rounded-xl items-center mb-6"
@@ -121,9 +148,9 @@ export default function RecordScreen() {
           </TouchableOpacity>
 
           <PhotoAttachment
-            uri={photoUri}
-            onPick={setPhotoUri}
-            onRemove={() => setPhotoUri(null)}
+            photos={photos.map((p) => ({ id: p.id, uri: p.uri }))}
+            onAdd={handleAddPhoto}
+            onRemove={handleRemovePhoto}
           />
 
           <TextInput
@@ -142,6 +169,7 @@ export default function RecordScreen() {
 
       <ExercisePickerModal
         visible={pickerVisible}
+        modality={recorder.modality}
         onSelect={(ex) => recorder.addExerciseToSession(ex)}
         onClose={() => setPickerVisible(false)}
       />

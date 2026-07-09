@@ -36,7 +36,7 @@ export default function FeedScreen() {
           </View>
           <TouchableOpacity
             className="bg-ink w-11 h-11 rounded-full items-center justify-center"
-            onPress={() => router.push("/session/record")}
+            onPress={() => router.push("/session/new")}
             style={{
               shadowColor: '#26241f',
               shadowOffset: { width: 0, height: 4 },
