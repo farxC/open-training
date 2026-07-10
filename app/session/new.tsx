@@ -435,7 +435,7 @@ export default function NewSessionScreen() {
                 <View style={{ alignItems: "center" }}>
                   <Text
                     className="text-ink-mute text-center"
-                    style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 6 }}
+                    style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 5 }}
                   >
                     NOME DA SESSÃO
                   </Text>
@@ -449,21 +449,29 @@ export default function NewSessionScreen() {
                     className="font-display text-ink text-center"
                     style={{
                       width: "100%",
-                      fontSize: 22,
+                      fontSize: 16,
                       fontWeight: "600",
-                      letterSpacing: -0.3,
-                      paddingVertical: 8,
-                      marginBottom: 4,
+                      letterSpacing: -0.1,
+                      paddingVertical: 5,
+                      marginBottom: 3,
                       borderBottomWidth: 1.5,
                       borderBottomColor: nameFocused ? "#26241f" : "#ddd8ce",
                     }}
                   />
                   <Text
                     className="text-ink-faint text-center italic"
-                    style={{ fontSize: 11, marginBottom: 24 }}
+                    style={{ fontSize: 11, marginBottom: 20 }}
                   >
                     opcional
                   </Text>
+                </View>
+
+                <View style={{ marginBottom: 16 }}>
+                  <PhotoAttachment
+                    photos={photoUris.map((uri, i) => ({ id: i, uri }))}
+                    onAdd={(uri) => setPhotoUris((prev) => [...prev, uri])}
+                    onRemove={(id) => setPhotoUris((prev) => prev.filter((_, i) => i !== id))}
+                  />
                 </View>
 
                 <Text
@@ -507,14 +515,6 @@ export default function NewSessionScreen() {
                   <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
                 </TouchableOpacity>
 
-                <View style={{ marginBottom: 16 }}>
-                  <PhotoAttachment
-                    photos={photoUris.map((uri, i) => ({ id: i, uri }))}
-                    onAdd={(uri) => setPhotoUris((prev) => [...prev, uri])}
-                    onRemove={(id) => setPhotoUris((prev) => prev.filter((_, i) => i !== id))}
-                  />
-                </View>
-
                 <TextInput
                   value={notes}
                   onChangeText={setNotes}
@@ -530,8 +530,9 @@ export default function NewSessionScreen() {
                 <TouchableOpacity
                   className="py-3 rounded-xl items-center bg-brand-500"
                   onPress={handleStart}
+                  activeOpacity={0.55}
                 >
-                  <Text className="text-white text-sm font-semibold">Iniciar sessão</Text>
+                  <Text className="text-white text-sm font-semibold">Concluir</Text>
                 </TouchableOpacity>
               </View>
             )}
