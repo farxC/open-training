@@ -100,12 +100,19 @@ export default function NewSessionScreen() {
     if (recorder.sessionId == null) {
       const modalityExercises = getExercises({ modality: params.modality });
       const exerciseById = new Map<number, Exercise>(modalityExercises.map((e) => [e.id, e]));
-      const items = params.exercises
+      const items: { exercise: Exercise; targets?: RoutineUnitExercise }[] = params.exercises
         .map((t) => {
           const exercise = exerciseById.get(t.exercise_id);
           return exercise ? { exercise, targets: t } : null;
         })
         .filter((x): x is { exercise: Exercise; targets: RoutineUnitExercise } => x != null);
+
+      // Corrida has no exercise picker — a run session just *is* the run, so seed
+      // it with the default running exercise when the day didn't already resolve one.
+      if (params.modality === "corrida" && items.length === 0 && modalityExercises.length > 0) {
+        items.push({ exercise: modalityExercises[0] });
+      }
+
       recorder.startResolvedSession({
         date,
         modality: params.modality,
@@ -540,12 +547,14 @@ export default function NewSessionScreen() {
                   />
                 </View>
 
-                <Text
-                  className="text-ink-mute"
-                  style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
-                >
-                  EXERCÍCIOS{recorder.selectedExercises.length > 0 ? ` · ${recorder.selectedExercises.length}` : ""}
-                </Text>
+                {modality !== "corrida" && (
+                  <Text
+                    className="text-ink-mute"
+                    style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
+                  >
+                    EXERCÍCIOS{recorder.selectedExercises.length > 0 ? ` · ${recorder.selectedExercises.length}` : ""}
+                  </Text>
+                )}
 
                 {recorder.selectedExercises.map((exercise) =>
                   exercise.modality === "corrida" ? (
@@ -569,13 +578,15 @@ export default function NewSessionScreen() {
                   )
                 )}
 
-                <TouchableOpacity
-                  className="py-3 rounded-xl items-center mb-6"
-                  style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
-                  onPress={() => setPickerVisible(true)}
-                >
-                  <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
-                </TouchableOpacity>
+                {modality !== "corrida" && (
+                  <TouchableOpacity
+                    className="py-3 rounded-xl items-center mb-6"
+                    style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                    onPress={() => setPickerVisible(true)}
+                  >
+                    <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
+                  </TouchableOpacity>
+                )}
 
                 <TextInput
                   value={notes}
