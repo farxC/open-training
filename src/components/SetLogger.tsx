@@ -35,9 +35,29 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
     );
   }, [sessionId, exerciseId]);
 
+  // Adding an exercise implies at least one set is coming, so seed it instead of
+  // making the user tap "+ Add Set" for what's always their first one. Runs once
+  // per mount, so deleting the only set afterward doesn't bring it back.
   useEffect(() => {
+    const existing = getSetsBySession(sessionId).filter((s) => s.exercise_id === exerciseId);
+    if (existing.length === 0) {
+      addSet({
+        session_id: sessionId,
+        exercise_id: exerciseId,
+        set_number: 1,
+        reps: targets?.target_reps ?? 8,
+        weight_kg: targets?.target_weight_kg ?? 0,
+        rpe: null,
+        rir: null,
+        notes: null,
+        distance_km: null,
+        duration_sec: null,
+        pace_sec: null,
+      });
+    }
     refreshSets();
-  }, [refreshSets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAdd = () => {
     const last = sets[sets.length - 1];

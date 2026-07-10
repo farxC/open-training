@@ -33,9 +33,29 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
     );
   }, [sessionId, exerciseId]);
 
+  // Adding a run exercise implies at least one entry is coming, so seed it instead
+  // of making the user tap "+ Add Run" for what's always their first one. Runs once
+  // per mount, so deleting the only entry afterward doesn't bring it back.
   useEffect(() => {
+    const existing = getSetsBySession(sessionId).filter((s) => s.exercise_id === exerciseId);
+    if (existing.length === 0) {
+      addSet({
+        session_id: sessionId,
+        exercise_id: exerciseId,
+        set_number: 1,
+        reps: 0,
+        weight_kg: 0,
+        rpe: null,
+        rir: null,
+        notes: null,
+        distance_km: null,
+        duration_sec: null,
+        pace_sec: null,
+      });
+    }
     refreshSets();
-  }, [refreshSets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAdd = () => {
     addSet({
