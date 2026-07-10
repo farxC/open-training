@@ -139,8 +139,8 @@ export function DayDetailModal({
         <ExercisePickerModal
           visible={pickerUnitId != null}
           modality={pickerModality}
-          onSelect={(ex) => {
-            if (pickerUnitId != null) onAddExercise(pickerUnitId, ex);
+          onConfirm={(exs) => {
+            if (pickerUnitId != null) exs.forEach((ex) => onAddExercise(pickerUnitId, ex));
           }}
           onClose={() => {
             setPickerUnitId(null);

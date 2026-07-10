@@ -70,6 +70,7 @@ export default function NewSessionScreen() {
   const [resolvedExercises, setResolvedExercises] = useState<RoutineUnitExercise[]>([]);
 
   const [name, setName] = useState("");
+  const [nameFocused, setNameFocused] = useState(false);
   const [notes, setNotes] = useState("");
   const [photoUris, setPhotoUris] = useState<string[]>([]);
 
@@ -412,14 +413,37 @@ export default function NewSessionScreen() {
                   </Text>
                 </View>
 
+                <Text
+                  className="text-ink-mute text-center"
+                  style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 6 }}
+                >
+                  NOME DA SESSÃO
+                </Text>
                 <TextInput
                   value={name}
                   onChangeText={setName}
-                  placeholder="Nome da sessão (opcional)"
+                  onFocus={() => setNameFocused(true)}
+                  onBlur={() => setNameFocused(false)}
+                  placeholder="Ex.: Treino de pernas pesado"
                   placeholderTextColor="#bdb8aa"
-                  className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
-                  style={{ width: "100%" }}
+                  className="font-display text-ink text-center"
+                  style={{
+                    width: "100%",
+                    fontSize: 22,
+                    fontWeight: "600",
+                    letterSpacing: -0.3,
+                    paddingVertical: 8,
+                    marginBottom: 4,
+                    borderBottomWidth: 1.5,
+                    borderBottomColor: nameFocused ? "#26241f" : "#ddd8ce",
+                  }}
                 />
+                <Text
+                  className="text-ink-faint text-center italic"
+                  style={{ fontSize: 11, marginBottom: 20 }}
+                >
+                  opcional
+                </Text>
 
                 <View style={{ width: "100%", marginBottom: 16 }}>
                   <PhotoAttachment

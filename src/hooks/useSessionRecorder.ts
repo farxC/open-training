@@ -51,6 +51,13 @@ export function useSessionRecorder() {
     [addExercise]
   );
 
+  const addExercisesToSession = useCallback(
+    (exercises: Exercise[]) => {
+      addExercises(exercises.map((exercise) => ({ exercise })));
+    },
+    [addExercises]
+  );
+
   const removeExerciseFromSession = useCallback(
     (exerciseId: number) => {
       removeExercise(exerciseId);
@@ -118,6 +125,7 @@ export function useSessionRecorder() {
     ...state,
     startResolvedSession,
     addExerciseToSession,
+    addExercisesToSession,
     removeExerciseFromSession,
     addSetToSession,
     updateSetInSession,

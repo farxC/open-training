@@ -15,13 +15,14 @@ import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
 import { useSessionRecorder } from "@/hooks/useSessionRecorder";
-import { getSessionById, getSessionPhotos, addSessionPhoto, removeSessionPhoto } from "@/db/queries";
+import { getSessionById, getSessionPhotos, addSessionPhoto, removeSessionPhoto, updateSession } from "@/db/queries";
 import { confirmAction, notify } from "@/utils/confirm";
 import type { SessionPhoto } from "@/types";
 
 export default function RecordScreen() {
   const recorder = useSessionRecorder();
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [photos, setPhotos] = useState<SessionPhoto[]>([]);
 
@@ -31,6 +32,7 @@ export default function RecordScreen() {
       return;
     }
     const session = getSessionById(recorder.sessionId);
+    setName(session?.name ?? "");
     setNotes(session?.notes ?? "");
     setPhotos(getSessionPhotos(recorder.sessionId));
   }, [recorder.sessionId]);
@@ -48,7 +50,11 @@ export default function RecordScreen() {
     router.dismiss();
   };
 
-  const hasData = recorder.selectedExercises.length > 0 || notes.trim().length > 0 || photos.length > 0;
+  const hasData =
+    recorder.selectedExercises.length > 0 ||
+    notes.trim().length > 0 ||
+    photos.length > 0 ||
+    name.trim().length > 0;
 
   const handleDiscard = () => {
     if (!hasData) {
@@ -72,6 +78,11 @@ export default function RecordScreen() {
     setPhotos(getSessionPhotos(recorder.sessionId!));
   };
 
+  const handleNameChange = (v: string) => {
+    setName(v);
+    updateSession(recorder.sessionId!, { name: v.trim() || null });
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top", "bottom"]}>
       {/* Header */}
@@ -85,11 +96,25 @@ export default function RecordScreen() {
             <Text className="text-ink-mute text-sm">Discard</Text>
           </TouchableOpacity>
 
-          {/* Center: title */}
-          <View className="flex-1 items-center">
-            <Text className="font-display font-medium" style={{ color: '#26241f', fontSize: 18, letterSpacing: -0.2 }}>
-              New Session
-            </Text>
+          {/* Center: title — tap to rename */}
+          <View className="flex-1 items-center px-2">
+            <TextInput
+              value={name}
+              onChangeText={handleNameChange}
+              placeholder="New Session"
+              placeholderTextColor="#928d80"
+              className="font-display font-medium"
+              style={{
+                color: '#26241f',
+                fontSize: 18,
+                letterSpacing: -0.2,
+                textAlign: 'center',
+                width: '100%',
+                padding: 0,
+              }}
+              numberOfLines={1}
+              underlineColorAndroid="transparent"
+            />
           </View>
 
           {/* Finish */}
@@ -117,6 +142,17 @@ export default function RecordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <View
+            className="bg-surface-card rounded-2xl p-4 mb-5"
+            style={{ borderWidth: 1, borderColor: '#ddd8ce' }}
+          >
+            <PhotoAttachment
+              photos={photos.map((p) => ({ id: p.id, uri: p.uri }))}
+              onAdd={handleAddPhoto}
+              onRemove={handleRemovePhoto}
+            />
+          </View>
+
           {recorder.selectedExercises.map((exercise) =>
             exercise.modality === "corrida" ? (
               <RunLogger
@@ -147,12 +183,6 @@ export default function RecordScreen() {
             <Text className="text-ink text-sm font-medium">+ Add Exercise</Text>
           </TouchableOpacity>
 
-          <PhotoAttachment
-            photos={photos.map((p) => ({ id: p.id, uri: p.uri }))}
-            onAdd={handleAddPhoto}
-            onRemove={handleRemovePhoto}
-          />
-
           <TextInput
             className="bg-surface-card text-ink rounded-xl px-4 py-3 mt-4"
             placeholder="Session notes…"
@@ -170,7 +200,7 @@ export default function RecordScreen() {
       <ExercisePickerModal
         visible={pickerVisible}
         modality={recorder.modality}
-        onSelect={(ex) => recorder.addExerciseToSession(ex)}
+        onConfirm={(exs) => recorder.addExercisesToSession(exs)}
         onClose={() => setPickerVisible(false)}
       />
     </SafeAreaView>

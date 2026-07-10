@@ -381,8 +381,8 @@ export default function EditSplitScreen() {
       <ExercisePickerModal
         visible={pickerUnitId != null}
         modality="musculacao"
-        onSelect={(ex) => {
-          if (pickerUnitId != null) r.addExercise(pickerUnitId, ex);
+        onConfirm={(exs) => {
+          if (pickerUnitId != null) exs.forEach((ex) => r.addExercise(pickerUnitId, ex));
         }}
         onClose={() => setPickerUnitId(null)}
       />
