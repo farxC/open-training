@@ -52,10 +52,6 @@ export default function RootLayout() {
               name="session/new"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
             />
-            <Stack.Screen
-              name="session/record"
-              options={{ presentation: "modal", animation: "slide_from_bottom" }}
-            />
             <Stack.Screen name="session/[id]" />
             <Stack.Screen name="exercises/[id]" />
             <Stack.Screen

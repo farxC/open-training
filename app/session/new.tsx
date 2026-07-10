@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -17,10 +17,19 @@ import { useSessionRecorder } from "@/hooks/useSessionRecorder";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
+import { SetLogger } from "@/components/SetLogger";
+import { RunLogger } from "@/components/RunLogger";
 import { MODALITIES, modalityConfig, modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
-import { getExercises } from "@/db/queries";
+import {
+  getExercises,
+  updateSession,
+  getSessionPhotos,
+  addSessionPhoto,
+  removeSessionPhoto,
+} from "@/db/queries";
+import { confirmAction, notify } from "@/utils/confirm";
 import { dateToISO, todayISO } from "@/utils/cycle";
-import type { Exercise, Modality, RoutineSplit, RoutineUnit, RoutineUnitExercise } from "@/types";
+import type { Exercise, Modality, RoutineSplit, RoutineUnit, RoutineUnitExercise, SessionPhoto } from "@/types";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -73,30 +82,59 @@ export default function NewSessionScreen() {
   const [name, setName] = useState("");
   const [nameFocused, setNameFocused] = useState(false);
   const [notes, setNotes] = useState("");
-  const [photoUris, setPhotoUris] = useState<string[]>([]);
-  const [pendingExercises, setPendingExercises] = useState<
-    { exercise: Exercise; targets?: RoutineUnitExercise }[]
-  >([]);
+  const [photos, setPhotos] = useState<SessionPhoto[]>([]);
   const [pickerVisible, setPickerVisible] = useState(false);
 
   const split = splitId != null ? r.splits.find((s) => s.id === splitId) ?? null : null;
 
-  // The wizard's own exercise list starts from whatever the routine resolved for
-  // this day, and stays editable from here on — no separate "add exercises" screen.
-  useEffect(() => {
-    const modalityExercises = getExercises({ modality });
-    const exerciseById = new Map<number, Exercise>(modalityExercises.map((e) => [e.id, e]));
-    const items = resolvedExercises
-      .map((t) => {
-        const exercise = exerciseById.get(t.exercise_id);
-        return exercise ? { exercise, targets: t } : null;
-      })
-      .filter((x): x is { exercise: Exercise; targets: RoutineUnitExercise } => x != null);
-    setPendingExercises(items);
-  }, [resolvedExercises, modality]);
+  // The details step *is* the recording screen now — there's no separate page to hop
+  // to just to add exercises. Reaching it lazily creates the live session (once) so
+  // SetLogger/RunLogger below can log real sets immediately, exactly like /session/record used to.
+  const goToDetails = (params: {
+    modality: Modality;
+    splitId: number | null;
+    unitId: number | null;
+    programWeekId: number | null;
+    exercises: RoutineUnitExercise[];
+  }) => {
+    if (recorder.sessionId == null) {
+      const modalityExercises = getExercises({ modality: params.modality });
+      const exerciseById = new Map<number, Exercise>(modalityExercises.map((e) => [e.id, e]));
+      const items = params.exercises
+        .map((t) => {
+          const exercise = exerciseById.get(t.exercise_id);
+          return exercise ? { exercise, targets: t } : null;
+        })
+        .filter((x): x is { exercise: Exercise; targets: RoutineUnitExercise } => x != null);
+      recorder.startResolvedSession({
+        date,
+        modality: params.modality,
+        splitId: params.splitId,
+        unitId: params.unitId,
+        programWeekId: params.programWeekId,
+        name: null,
+        notes: null,
+        photoUris: [],
+        exercises: items,
+      });
+    }
+    setStep("details");
+  };
 
-  const removePendingExercise = (exerciseId: number) => {
-    setPendingExercises((prev) => prev.filter((p) => p.exercise.id !== exerciseId));
+  const handleNameChange = (v: string) => {
+    setName(v);
+    if (recorder.sessionId != null) updateSession(recorder.sessionId, { name: v.trim() || null });
+  };
+
+  const handleAddPhoto = (uri: string) => {
+    if (recorder.sessionId == null) return;
+    addSessionPhoto(recorder.sessionId, uri);
+    setPhotos(getSessionPhotos(recorder.sessionId));
+  };
+
+  const handleRemovePhoto = (id: number) => {
+    removeSessionPhoto(id);
+    if (recorder.sessionId != null) setPhotos(getSessionPhotos(recorder.sessionId));
   };
 
   const applyEntryForSplit = (targetSplit: RoutineSplit, forDate: string) => {
@@ -124,7 +162,7 @@ export default function NewSessionScreen() {
       setResolvedStatus("rest");
       setProgramWeekId(null);
       setResolvedExercises([]);
-      setStep("details");
+      goToDetails({ modality: m, splitId: null, unitId: null, programWeekId: null, exercises: [] });
     } else {
       setStep("splitChoice");
     }
@@ -142,7 +180,7 @@ export default function NewSessionScreen() {
     setResolvedStatus("rest");
     setProgramWeekId(null);
     setResolvedExercises([]);
-    setStep("details");
+    goToDetails({ modality, splitId: null, unitId: null, programWeekId: null, exercises: [] });
   };
 
   const chooseUnitManually = (unit: RoutineUnit) => {
@@ -152,7 +190,7 @@ export default function NewSessionScreen() {
     setResolvedStatus("workout");
     setProgramWeekId(pwId);
     setResolvedExercises(exercises);
-    setStep("details");
+    goToDetails({ modality, splitId, unitId: unit.id, programWeekId: pwId, exercises });
   };
 
   const skipUnit = () => {
@@ -160,7 +198,7 @@ export default function NewSessionScreen() {
     setResolvedStatus("rest");
     setProgramWeekId(null);
     setResolvedExercises([]);
-    setStep("details");
+    goToDetails({ modality, splitId, unitId: null, programWeekId: null, exercises: [] });
   };
 
   const confirmDate = (newDate: string) => {
@@ -170,19 +208,30 @@ export default function NewSessionScreen() {
     if (step === "changeUnit" || step === "resolvedDay") setStep("resolvedDay");
   };
 
-  const handleStart = () => {
-    recorder.startResolvedSession({
-      date,
-      modality,
-      splitId,
-      unitId: resolvedUnit?.id ?? null,
-      programWeekId,
-      name: name.trim() || null,
-      notes: notes.trim() || null,
-      photoUris,
-      exercises: pendingExercises,
+  const handleFinish = () => {
+    if (recorder.selectedExercises.length === 0) {
+      notify("Nenhum exercício", "Adicione ao menos um exercício antes de concluir.");
+      return;
+    }
+    recorder.finishSession(notes);
+    router.replace("/");
+  };
+
+  const handleDiscard = () => {
+    const hasData =
+      recorder.selectedExercises.length > 0 ||
+      notes.trim().length > 0 ||
+      photos.length > 0 ||
+      name.trim().length > 0;
+    if (!hasData) {
+      if (recorder.sessionId != null) recorder.discardSession();
+      router.replace("/");
+      return;
+    }
+    confirmAction("Descartar sessão?", "Os dados serão perdidos.", "Descartar", () => {
+      recorder.discardSession();
+      router.replace("/");
     });
-    router.replace("/session/record");
   };
 
   const goBack = () => {
@@ -190,7 +239,6 @@ export default function NewSessionScreen() {
     else if (step === "splitChoice") setStep("modality");
     else if (step === "resolvedDay") setStep("splitChoice");
     else if (step === "changeUnit") setStep("resolvedDay");
-    else if (step === "details") setStep(splitId != null ? "resolvedDay" : "splitChoice");
   };
 
   const stepTitle: Record<Step, string> = {
@@ -221,8 +269,10 @@ export default function NewSessionScreen() {
               <Text className="text-ink-soft text-xs font-medium">{formatDatePill(date)}</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={goBack}>
-            <Text className="text-ink-soft text-base">{step === "modality" ? "Cancelar" : "Voltar"}</Text>
+          <TouchableOpacity onPress={step === "details" ? handleDiscard : goBack}>
+            <Text className="text-ink-soft text-base">
+              {step === "modality" ? "Cancelar" : step === "details" ? "Descartar" : "Voltar"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -346,7 +396,15 @@ export default function NewSessionScreen() {
                     <TouchableOpacity
                       className="py-3 rounded-xl items-center bg-brand-500"
                       style={{ width: "100%" }}
-                      onPress={() => setStep("details")}
+                      onPress={() =>
+                        goToDetails({
+                          modality,
+                          splitId,
+                          unitId: resolvedUnit?.id ?? null,
+                          programWeekId,
+                          exercises: resolvedExercises,
+                        })
+                      }
                     >
                       <Text className="text-white text-sm font-semibold">Continuar com este treino</Text>
                     </TouchableOpacity>
@@ -370,7 +428,15 @@ export default function NewSessionScreen() {
                     <TouchableOpacity
                       className="py-3 rounded-xl items-center mb-3"
                       style={{ width: "100%", borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
-                      onPress={() => setStep("details")}
+                      onPress={() =>
+                        goToDetails({
+                          modality,
+                          splitId,
+                          unitId: resolvedUnit?.id ?? null,
+                          programWeekId,
+                          exercises: resolvedExercises,
+                        })
+                      }
                     >
                       <Text className="text-ink text-sm font-medium">Registrar mesmo assim</Text>
                     </TouchableOpacity>
@@ -441,7 +507,7 @@ export default function NewSessionScreen() {
                   </Text>
                   <TextInput
                     value={name}
-                    onChangeText={setName}
+                    onChangeText={handleNameChange}
                     onFocus={() => setNameFocused(true)}
                     onBlur={() => setNameFocused(false)}
                     placeholder="Ex.: Treino de pernas pesado"
@@ -468,9 +534,9 @@ export default function NewSessionScreen() {
 
                 <View style={{ marginBottom: 16 }}>
                   <PhotoAttachment
-                    photos={photoUris.map((uri, i) => ({ id: i, uri }))}
-                    onAdd={(uri) => setPhotoUris((prev) => [...prev, uri])}
-                    onRemove={(id) => setPhotoUris((prev) => prev.filter((_, i) => i !== id))}
+                    photos={photos.map((p) => ({ id: p.id, uri: p.uri }))}
+                    onAdd={handleAddPhoto}
+                    onRemove={handleRemovePhoto}
                   />
                 </View>
 
@@ -478,33 +544,29 @@ export default function NewSessionScreen() {
                   className="text-ink-mute"
                   style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
                 >
-                  EXERCÍCIOS{pendingExercises.length > 0 ? ` · ${pendingExercises.length}` : ""}
+                  EXERCÍCIOS{recorder.selectedExercises.length > 0 ? ` · ${recorder.selectedExercises.length}` : ""}
                 </Text>
 
-                {pendingExercises.length > 0 && (
-                  <View style={{ gap: 8, marginBottom: 10 }}>
-                    {pendingExercises.map((item) => (
-                      <View
-                        key={item.exercise.id}
-                        className="flex-row items-center justify-between px-4 py-3 rounded-2xl bg-surface-card"
-                        style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text className="text-ink text-sm font-medium">{item.exercise.name}</Text>
-                          {item.targets && (
-                            <Text className="text-ink-mute text-xs mt-0.5">{describeTarget(item.targets)}</Text>
-                          )}
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => removePendingExercise(item.exercise.id)}
-                          hitSlop={8}
-                          style={{ padding: 4 }}
-                        >
-                          <MaterialCommunityIcons name="close" size={16} color="#928d80" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
+                {recorder.selectedExercises.map((exercise) =>
+                  exercise.modality === "corrida" ? (
+                    <RunLogger
+                      key={exercise.id}
+                      exerciseId={exercise.id}
+                      exerciseName={exercise.name}
+                      sessionId={recorder.sessionId!}
+                      targets={recorder.targetsByExerciseId[exercise.id]}
+                      onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
+                    />
+                  ) : (
+                    <SetLogger
+                      key={exercise.id}
+                      exerciseId={exercise.id}
+                      exerciseName={exercise.name}
+                      sessionId={recorder.sessionId!}
+                      targets={recorder.targetsByExerciseId[exercise.id]}
+                      onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
+                    />
+                  )
                 )}
 
                 <TouchableOpacity
@@ -529,7 +591,7 @@ export default function NewSessionScreen() {
 
                 <TouchableOpacity
                   className="py-3 rounded-xl items-center bg-brand-500"
-                  onPress={handleStart}
+                  onPress={handleFinish}
                   activeOpacity={0.55}
                 >
                   <Text className="text-white text-sm font-semibold">Concluir</Text>
@@ -543,13 +605,7 @@ export default function NewSessionScreen() {
       <ExercisePickerModal
         visible={pickerVisible}
         modality={modality}
-        onConfirm={(exs) => {
-          setPendingExercises((prev) => {
-            const existingIds = new Set(prev.map((p) => p.exercise.id));
-            const fresh = exs.filter((e) => !existingIds.has(e.id)).map((exercise) => ({ exercise }));
-            return [...prev, ...fresh];
-          });
-        }}
+        onConfirm={(exs) => recorder.addExercisesToSession(exs)}
         onClose={() => setPickerVisible(false)}
       />
 
