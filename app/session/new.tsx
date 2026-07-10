@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -16,6 +16,7 @@ import { useRoutine } from "@/hooks/useRoutine";
 import { useSessionRecorder } from "@/hooks/useSessionRecorder";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
+import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { MODALITIES, modalityConfig, modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
 import { getExercises } from "@/db/queries";
 import { dateToISO, todayISO } from "@/utils/cycle";
@@ -73,8 +74,30 @@ export default function NewSessionScreen() {
   const [nameFocused, setNameFocused] = useState(false);
   const [notes, setNotes] = useState("");
   const [photoUris, setPhotoUris] = useState<string[]>([]);
+  const [pendingExercises, setPendingExercises] = useState<
+    { exercise: Exercise; targets?: RoutineUnitExercise }[]
+  >([]);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   const split = splitId != null ? r.splits.find((s) => s.id === splitId) ?? null : null;
+
+  // The wizard's own exercise list starts from whatever the routine resolved for
+  // this day, and stays editable from here on — no separate "add exercises" screen.
+  useEffect(() => {
+    const modalityExercises = getExercises({ modality });
+    const exerciseById = new Map<number, Exercise>(modalityExercises.map((e) => [e.id, e]));
+    const items = resolvedExercises
+      .map((t) => {
+        const exercise = exerciseById.get(t.exercise_id);
+        return exercise ? { exercise, targets: t } : null;
+      })
+      .filter((x): x is { exercise: Exercise; targets: RoutineUnitExercise } => x != null);
+    setPendingExercises(items);
+  }, [resolvedExercises, modality]);
+
+  const removePendingExercise = (exerciseId: number) => {
+    setPendingExercises((prev) => prev.filter((p) => p.exercise.id !== exerciseId));
+  };
 
   const applyEntryForSplit = (targetSplit: RoutineSplit, forDate: string) => {
     const entry = r.scheduleForDate(forDate).planned.find((p) => p.split.id === targetSplit.id) ?? null;
@@ -148,15 +171,6 @@ export default function NewSessionScreen() {
   };
 
   const handleStart = () => {
-    const modalityExercises = getExercises({ modality });
-    const exerciseById = new Map<number, Exercise>(modalityExercises.map((e) => [e.id, e]));
-    const items = resolvedExercises
-      .map((t) => {
-        const exercise = exerciseById.get(t.exercise_id);
-        return exercise ? { exercise, targets: t } : null;
-      })
-      .filter((x): x is { exercise: Exercise; targets: RoutineUnitExercise } => x != null);
-
     recorder.startResolvedSession({
       date,
       modality,
@@ -166,7 +180,7 @@ export default function NewSessionScreen() {
       name: name.trim() || null,
       notes: notes.trim() || null,
       photoUris,
-      exercises: items,
+      exercises: pendingExercises,
     });
     router.replace("/session/record");
   };
@@ -395,16 +409,21 @@ export default function NewSessionScreen() {
             )}
 
             {step === "details" && (
-              <View style={{ alignItems: "center" }}>
-                <View style={STEP_ICON_CIRCLE}>
-                  <MaterialCommunityIcons name="notebook-outline" size={26} color="#26241f" />
-                </View>
-
-                <View
-                  className="flex-row items-center self-center px-3 py-1.5 rounded-full mb-6"
-                  style={{ backgroundColor: "#ebe7df", gap: 6 }}
-                >
-                  <MaterialCommunityIcons name={modalityConfig(modality).icon as MciName} size={14} color="#5c594f" />
+              <View>
+                {/* Compact modality context — was the big centered icon+badge, now tucked in the corner */}
+                <View className="flex-row items-center mb-6" style={{ gap: 8 }}>
+                  <View
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: "#ebe7df",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <MaterialCommunityIcons name="notebook-outline" size={15} color="#26241f" />
+                  </View>
                   <Text className="text-ink-soft text-xs font-medium">
                     {modalityLabel(modality)}
                     {split ? ` · ${split.name}` : " · livre"}
@@ -413,39 +432,82 @@ export default function NewSessionScreen() {
                   </Text>
                 </View>
 
+                <View style={{ alignItems: "center" }}>
+                  <Text
+                    className="text-ink-mute text-center"
+                    style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 6 }}
+                  >
+                    NOME DA SESSÃO
+                  </Text>
+                  <TextInput
+                    value={name}
+                    onChangeText={setName}
+                    onFocus={() => setNameFocused(true)}
+                    onBlur={() => setNameFocused(false)}
+                    placeholder="Ex.: Treino de pernas pesado"
+                    placeholderTextColor="#bdb8aa"
+                    className="font-display text-ink text-center"
+                    style={{
+                      width: "100%",
+                      fontSize: 22,
+                      fontWeight: "600",
+                      letterSpacing: -0.3,
+                      paddingVertical: 8,
+                      marginBottom: 4,
+                      borderBottomWidth: 1.5,
+                      borderBottomColor: nameFocused ? "#26241f" : "#ddd8ce",
+                    }}
+                  />
+                  <Text
+                    className="text-ink-faint text-center italic"
+                    style={{ fontSize: 11, marginBottom: 24 }}
+                  >
+                    opcional
+                  </Text>
+                </View>
+
                 <Text
-                  className="text-ink-mute text-center"
-                  style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 6 }}
+                  className="text-ink-mute"
+                  style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
                 >
-                  NOME DA SESSÃO
-                </Text>
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  onFocus={() => setNameFocused(true)}
-                  onBlur={() => setNameFocused(false)}
-                  placeholder="Ex.: Treino de pernas pesado"
-                  placeholderTextColor="#bdb8aa"
-                  className="font-display text-ink text-center"
-                  style={{
-                    width: "100%",
-                    fontSize: 22,
-                    fontWeight: "600",
-                    letterSpacing: -0.3,
-                    paddingVertical: 8,
-                    marginBottom: 4,
-                    borderBottomWidth: 1.5,
-                    borderBottomColor: nameFocused ? "#26241f" : "#ddd8ce",
-                  }}
-                />
-                <Text
-                  className="text-ink-faint text-center italic"
-                  style={{ fontSize: 11, marginBottom: 20 }}
-                >
-                  opcional
+                  EXERCÍCIOS{pendingExercises.length > 0 ? ` · ${pendingExercises.length}` : ""}
                 </Text>
 
-                <View style={{ width: "100%", marginBottom: 16 }}>
+                {pendingExercises.length > 0 && (
+                  <View style={{ gap: 8, marginBottom: 10 }}>
+                    {pendingExercises.map((item) => (
+                      <View
+                        key={item.exercise.id}
+                        className="flex-row items-center justify-between px-4 py-3 rounded-2xl bg-surface-card"
+                        style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text className="text-ink text-sm font-medium">{item.exercise.name}</Text>
+                          {item.targets && (
+                            <Text className="text-ink-mute text-xs mt-0.5">{describeTarget(item.targets)}</Text>
+                          )}
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => removePendingExercise(item.exercise.id)}
+                          hitSlop={8}
+                          style={{ padding: 4 }}
+                        >
+                          <MaterialCommunityIcons name="close" size={16} color="#928d80" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  className="py-3 rounded-xl items-center mb-6"
+                  style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                  onPress={() => setPickerVisible(true)}
+                >
+                  <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
+                </TouchableOpacity>
+
+                <View style={{ marginBottom: 16 }}>
                   <PhotoAttachment
                     photos={photoUris.map((uri, i) => ({ id: i, uri }))}
                     onAdd={(uri) => setPhotoUris((prev) => [...prev, uri])}
@@ -462,12 +524,11 @@ export default function NewSessionScreen() {
                   numberOfLines={3}
                   textAlignVertical="top"
                   className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-6"
-                  style={{ width: "100%", borderWidth: 1, borderColor: "#ddd8ce" }}
+                  style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
                 />
 
                 <TouchableOpacity
                   className="py-3 rounded-xl items-center bg-brand-500"
-                  style={{ width: "100%" }}
                   onPress={handleStart}
                 >
                   <Text className="text-white text-sm font-semibold">Iniciar sessão</Text>
@@ -477,6 +538,19 @@ export default function NewSessionScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
+
+      <ExercisePickerModal
+        visible={pickerVisible}
+        modality={modality}
+        onConfirm={(exs) => {
+          setPendingExercises((prev) => {
+            const existingIds = new Set(prev.map((p) => p.exercise.id));
+            const fresh = exs.filter((e) => !existingIds.has(e.id)).map((exercise) => ({ exercise }));
+            return [...prev, ...fresh];
+          });
+        }}
+        onClose={() => setPickerVisible(false)}
+      />
 
       <Modal visible={dateModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setDateModalVisible(false)}>
         <SafeAreaView className="flex-1 bg-surface">
