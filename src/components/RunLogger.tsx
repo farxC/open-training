@@ -120,13 +120,6 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
         />
       ))}
 
-      <TouchableOpacity
-        className="mt-2 py-2.5 rounded-lg items-center"
-        style={{ borderWidth: 1, borderColor: '#c9c3b6', borderStyle: 'dashed' }}
-        onPress={handleAdd}
-      >
-        <Text className="text-ink text-sm">+ Add Run</Text>
-      </TouchableOpacity>
     </View>
   );
 }
