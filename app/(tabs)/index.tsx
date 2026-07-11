@@ -28,7 +28,7 @@ export default function FeedScreen() {
         </Text>
         <View className="flex-row items-center">
           <View className="flex-1">
-            <Text className="text-ink font-display font-semibold text-3xl" style={{ letterSpacing: -0.6 }}>Open Training Project</Text>
+            <Text className="text-ink font-display font-semibold text-3xl" style={{ letterSpacing: -0.6 }}>Open Training</Text>
             <Text className="text-ink-mute text-xs mt-0.5">
               {sessions.length > 0
                 ? `${sessions.length} session${sessions.length !== 1 ? "s" : ""} logged`

@@ -30,6 +30,7 @@ Given that, this plan's automated tests target the **pure merge/validation logic
 ## File Structure
 
 New files:
+
 - `src/utils/uuid.ts` — `generateUuid()`, a 32-hex-char random identifier used as the merge key for new rows.
 - `src/db/importExport.ts` — export/import payload types, `validateExportPayload`, `planExerciseMerge`, `planSessionMerge`, `buildExportPayload`, `applyImport`.
 - `src/db/exportFile.ts` / `src/db/exportFile.web.ts` — platform-specific "write + hand off" for the export file (native: `expo-file-system` + `expo-sharing`; web: `Blob` + `<a download>`).
@@ -37,6 +38,7 @@ New files:
 - `app/settings.tsx` — the Settings screen (Export/Import buttons).
 
 Modified files:
+
 - `package.json` / `package-lock.json` — add `expo-sharing`, `expo-document-picker`, `expo-file-system`.
 - `src/db/client.web.ts` — add a `withTransactionSync` method (missing today; `applyImport` needs it on both platforms).
 - `src/db/schema.ts` — bump `SCHEMA_VERSION` to 9; add `uuid TEXT UNIQUE` to the four top-level `CREATE TABLE` statements.
@@ -50,9 +52,11 @@ Modified files:
 ## Task 1: Add file-handling dependencies
 
 **Files:**
+
 - Modify: `package.json`, `package-lock.json`
 
 **Interfaces:**
+
 - Produces: `expo-sharing`, `expo-document-picker`, `expo-file-system` importable from any file in the project.
 
 - [x] **Step 1: Install SDK-compatible versions**
@@ -76,10 +80,12 @@ git commit -m "chore: add expo-sharing, expo-document-picker, expo-file-system"
 ## Task 2: `generateUuid()` utility
 
 **Files:**
+
 - Create: `src/utils/uuid.ts`
 - Test: `src/utils/uuid.test.ts`
 
 **Interfaces:**
+
 - Produces: `generateUuid(): string` — a 32-character lowercase hex string, used as the merge-identity key written to the new `uuid` columns.
 
 - [x] **Step 1: Write the failing test**
@@ -137,9 +143,11 @@ git commit -m "feat(utils): add generateUuid for export/import merge keys"
 ## Task 3: Add the missing transaction method to the web SQL client
 
 **Files:**
+
 - Modify: `src/db/client.web.ts`
 
 **Interfaces:**
+
 - Consumes: nothing new — wraps the existing internal `requireDb()`/`persist()` helpers already in this file.
 - Produces: `db.withTransactionSync(task: () => void): void` on the web driver, matching the method already present on the native driver (`expo-sqlite`'s `SQLiteDatabase.withTransactionSync`). `applyImport` (Task 10) depends on this existing on **both** platforms.
 
@@ -199,10 +207,12 @@ git commit -m "fix(db): add withTransactionSync to the web sql.js client"
 ## Task 4: Schema v9 — add `uuid` columns
 
 **Files:**
+
 - Modify: `src/db/schema.ts`
 - Modify: `src/db/migrations.ts`
 
 **Interfaces:**
+
 - Produces: an `exercises.uuid`, `sessions.uuid`, `routine_splits.uuid`, `training_programs.uuid` column on every database (fresh installs via `CREATE TABLE`, upgrades via `ALTER TABLE`), all populated (never `NULL` after migration).
 
 **Important constraint discovered while planning this task:** SQLite's `ALTER TABLE ... ADD COLUMN` does **not** allow a `UNIQUE` constraint on the new column (only `CREATE TABLE` does). So the four `CREATE_TABLES` DDL statements get `uuid TEXT UNIQUE` (fresh installs are unaffected), but `migrations.ts`'s `ensureColumn` calls for upgrades must add plain `uuid TEXT` (no `UNIQUE`) — uniqueness on upgraded databases is guaranteed by `generateUuid()`'s collision odds, not enforced by SQLite. This is intentional, not an oversight — do not attempt to add `UNIQUE` via a separate `CREATE UNIQUE INDEX`; that's unnecessary complexity for a merge key that's never queried by uniqueness constraint, only by equality lookup.
@@ -280,26 +290,34 @@ Add `uuid TEXT UNIQUE` as the last column in each of these four `CREATE_TABLES` 
 In `src/db/migrations.ts`, add four more `ensureColumn` calls alongside the existing ones (after the `sets` distance/duration/pace ones):
 
 ```ts
-  ensureColumn("sets", "distance_km", "REAL");
-  ensureColumn("sets", "duration_sec", "INTEGER");
-  ensureColumn("sets", "pace_sec", "INTEGER");
-  ensureColumn("exercises", "uuid", "TEXT");
-  ensureColumn("sessions", "uuid", "TEXT");
-  ensureColumn("routine_splits", "uuid", "TEXT");
-  ensureColumn("training_programs", "uuid", "TEXT");
+ensureColumn("sets", "distance_km", "REAL");
+ensureColumn("sets", "duration_sec", "INTEGER");
+ensureColumn("sets", "pace_sec", "INTEGER");
+ensureColumn("exercises", "uuid", "TEXT");
+ensureColumn("sessions", "uuid", "TEXT");
+ensureColumn("routine_splits", "uuid", "TEXT");
+ensureColumn("training_programs", "uuid", "TEXT");
 ```
 
 Then, after the existing photo_uri backfill block (`INSERT INTO session_photos ...`), add a uuid backfill. It must run unconditionally every launch (like the photo backfill above it) — the `WHERE uuid IS NULL` guard makes it naturally idempotent, matching this file's existing self-healing pattern:
 
 ```ts
-  // Backfill: rows created before schema v9 (export/import) have no uuid — the merge
-  // key import uses to tell "already have this" from "new". Generated in pure SQL via
-  // randomblob so it works identically on both the native and sql.js (web) drivers,
-  // and one row at a time so each gets a distinct value.
-  db.execSync("UPDATE exercises SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
-  db.execSync("UPDATE sessions SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
-  db.execSync("UPDATE routine_splits SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
-  db.execSync("UPDATE training_programs SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
+// Backfill: rows created before schema v9 (export/import) have no uuid — the merge
+// key import uses to tell "already have this" from "new". Generated in pure SQL via
+// randomblob so it works identically on both the native and sql.js (web) drivers,
+// and one row at a time so each gets a distinct value.
+db.execSync(
+  "UPDATE exercises SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL",
+);
+db.execSync(
+  "UPDATE sessions SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL",
+);
+db.execSync(
+  "UPDATE routine_splits SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL",
+);
+db.execSync(
+  "UPDATE training_programs SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL",
+);
 ```
 
 - [x] **Step 3: Typecheck**
@@ -317,11 +335,13 @@ git commit -m "feat(db): add uuid columns to exercises, sessions, splits, progra
 ## Task 5: Wire `uuid` through types, create-functions, and reads
 
 **Files:**
+
 - Modify: `src/types/exercise.ts`, `src/types/session.ts`, `src/types/routine.ts`
 - Modify: `src/db/queries.ts`
 - Modify: `src/hooks/useExercises.ts`
 
 **Interfaces:**
+
 - Consumes: `generateUuid()` from `src/utils/uuid.ts` (Task 2).
 - Produces: `Exercise.uuid`, `Session.uuid`, `RoutineSplit.uuid`, `TrainingProgram.uuid` (all `string`); `createExercise(ex: Omit<Exercise, "id" | "uuid">): { id: number; uuid: string }` (return type changed — was `number`); `createSession`/`createSplit`/`createProgram` keep returning `number` but now also persist a generated `uuid`.
 
@@ -407,11 +427,14 @@ import { generateUuid } from "../utils/uuid";
 Replace `createExercise`:
 
 ```ts
-export function createExercise(ex: Omit<Exercise, "id" | "uuid">): { id: number; uuid: string } {
+export function createExercise(ex: Omit<Exercise, "id" | "uuid">): {
+  id: number;
+  uuid: string;
+} {
   const uuid = generateUuid();
   const result = db.runSync(
     "INSERT INTO exercises (name, muscle_group, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [ex.name, ex.muscle_group, ex.equipment, ex.type, 1, ex.modality, uuid]
+    [ex.name, ex.muscle_group, ex.equipment, ex.type, 1, ex.modality, uuid],
   );
   return { id: result.lastInsertRowId, uuid };
 }
@@ -429,7 +452,7 @@ export function createSession(
     split_id?: number | null;
     unit_id?: number | null;
     program_week_id?: number | null;
-  }
+  },
 ): number {
   const result = db.runSync(
     `INSERT INTO sessions (date, name, notes, modality, split_id, unit_id, program_week_id, uuid)
@@ -443,7 +466,7 @@ export function createSession(
       opts?.unit_id ?? null,
       opts?.program_week_id ?? null,
       generateUuid(),
-    ]
+    ],
   );
   return result.lastInsertRowId;
 }
@@ -484,7 +507,7 @@ export function getSessions(): SessionSummary[] {
     LEFT JOIN sets st ON st.session_id = s.id
     LEFT JOIN exercises e ON e.id = st.exercise_id
     GROUP BY s.id
-    ORDER BY s.date DESC`
+    ORDER BY s.date DESC`,
   );
   return rows.map((r) => ({
     ...r,
@@ -501,7 +524,7 @@ export function getSessionById(id: number): Session | null {
     `SELECT id, date, name, notes, duration_seconds, photo_uri, uuid,
             modality, split_id, unit_id, program_week_id
      FROM sessions WHERE id = ?`,
-    [id]
+    [id],
   );
 }
 ```
@@ -509,11 +532,17 @@ export function getSessionById(id: number): Session | null {
 Replace `createSplit`:
 
 ```ts
-export function createSplit(s: { name: string; mode: SplitMode; modality: Modality }): number {
-  const count = db.getAllSync<{ id: number }>("SELECT id FROM routine_splits").length;
+export function createSplit(s: {
+  name: string;
+  mode: SplitMode;
+  modality: Modality;
+}): number {
+  const count = db.getAllSync<{ id: number }>(
+    "SELECT id FROM routine_splits",
+  ).length;
   const result = db.runSync(
     `INSERT INTO routine_splits (name, mode, modality, anchor_date, rest_weekdays, "order", uuid) VALUES (?, ?, ?, NULL, '', ?, ?)`,
-    [s.name, s.mode, s.modality, count, generateUuid()]
+    [s.name, s.mode, s.modality, count, generateUuid()],
   );
   return result.lastInsertRowId;
 }
@@ -536,7 +565,9 @@ interface SplitRow {
 
 ```ts
 export function getSplits(): RoutineSplit[] {
-  const rows = db.getAllSync<SplitRow>(`SELECT * FROM routine_splits ORDER BY "order"`);
+  const rows = db.getAllSync<SplitRow>(
+    `SELECT * FROM routine_splits ORDER BY "order"`,
+  );
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -553,14 +584,18 @@ export function getSplits(): RoutineSplit[] {
 Replace `createProgram`:
 
 ```ts
-export function createProgram(p: { split_id: number; name: string; total_weeks: number }): number {
+export function createProgram(p: {
+  split_id: number;
+  name: string;
+  total_weeks: number;
+}): number {
   const count = db.getAllSync<{ id: number }>(
     "SELECT id FROM training_programs WHERE split_id = ?",
-    [p.split_id]
+    [p.split_id],
   ).length;
   const result = db.runSync(
     `INSERT INTO training_programs (split_id, name, total_weeks, is_active, "order", uuid) VALUES (?, ?, ?, 0, ?, ?)`,
-    [p.split_id, p.name, p.total_weeks, count, generateUuid()]
+    [p.split_id, p.name, p.total_weeks, count, generateUuid()],
   );
   return result.lastInsertRowId;
 }
@@ -613,7 +648,7 @@ interface Filter {
 
 export function useExercises(filter?: Filter) {
   const [exercises, setExercises] = useState<Exercise[]>(() =>
-    getExercises(filter)
+    getExercises(filter),
   );
 
   const refresh = useCallback(() => {
@@ -626,7 +661,7 @@ export function useExercises(filter?: Filter) {
       refresh();
       return { ...ex, id, uuid, is_custom: 1 };
     },
-    [refresh]
+    [refresh],
   );
 
   return { exercises, refresh, createCustom };
@@ -648,10 +683,12 @@ git commit -m "feat(db): generate and expose uuid on exercises, sessions, splits
 ## Task 6: Export payload types + `validateExportPayload`
 
 **Files:**
+
 - Create: `src/db/importExport.ts`
 - Test: `src/db/importExport.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Modality`, `SplitMode` from `@/types`.
 - Produces: `ExportPayload` and its nested types (`ExportedExercise`, `ExportedSet`, `ExportedSession`, `ExportedUnitExercise`, `ExportedUnit`, `ExportedSplit`, `ExportedProgramEntry`, `ExportedProgramWeek`, `ExportedProgram`); `CURRENT_EXPORT_FORMAT_VERSION = 1`; `validateExportPayload(data: unknown): ExportPayload` (throws `Error` with a user-facing Portuguese message on anything invalid).
 
@@ -659,7 +696,10 @@ git commit -m "feat(db): generate and expose uuid on exercises, sessions, splits
 
 ```ts
 // src/db/importExport.test.ts
-import { validateExportPayload, CURRENT_EXPORT_FORMAT_VERSION } from "./importExport";
+import {
+  validateExportPayload,
+  CURRENT_EXPORT_FORMAT_VERSION,
+} from "./importExport";
 
 function validPayload() {
   return {
@@ -685,8 +725,15 @@ describe("validateExportPayload", () => {
   });
 
   it("rejects an unknown exportFormatVersion", () => {
-    expect(() => validateExportPayload({ ...validPayload(), exportFormatVersion: 2 })).toThrow();
-    expect(() => validateExportPayload({ ...validPayload(), exportFormatVersion: undefined })).toThrow();
+    expect(() =>
+      validateExportPayload({ ...validPayload(), exportFormatVersion: 2 }),
+    ).toThrow();
+    expect(() =>
+      validateExportPayload({
+        ...validPayload(),
+        exportFormatVersion: undefined,
+      }),
+    ).toThrow();
   });
 
   it("rejects a payload missing a data section", () => {
@@ -824,12 +871,14 @@ export interface ExportPayload {
 /** Throws with a user-facing (pt-BR) message on anything that isn't a well-formed export file. */
 export function validateExportPayload(data: unknown): ExportPayload {
   if (typeof data !== "object" || data === null) {
-    throw new Error("Arquivo de backup inválido: conteúdo não é um objeto JSON.");
+    throw new Error(
+      "Arquivo de backup inválido: conteúdo não é um objeto JSON.",
+    );
   }
   const payload = data as Partial<ExportPayload>;
   if (payload.exportFormatVersion !== CURRENT_EXPORT_FORMAT_VERSION) {
     throw new Error(
-      `Arquivo de backup em formato não suportado (versão ${String(payload.exportFormatVersion)}).`
+      `Arquivo de backup em formato não suportado (versão ${String(payload.exportFormatVersion)}).`,
     );
   }
   if (
@@ -838,7 +887,9 @@ export function validateExportPayload(data: unknown): ExportPayload {
     !Array.isArray(payload.routineSplits) ||
     !Array.isArray(payload.trainingPrograms)
   ) {
-    throw new Error("Arquivo de backup inválido: uma ou mais seções de dados estão ausentes.");
+    throw new Error(
+      "Arquivo de backup inválido: uma ou mais seções de dados estão ausentes.",
+    );
   }
   return payload as ExportPayload;
 }
@@ -859,10 +910,12 @@ git commit -m "feat(db): add export payload types and validateExportPayload"
 ## Task 7: `planExerciseMerge`
 
 **Files:**
+
 - Modify: `src/db/importExport.ts`
 - Modify: `src/db/importExport.test.ts`
 
 **Interfaces:**
+
 - Produces: `ExerciseMergePlan { toInsert: ExportedExercise[]; matchedIds: Map<string, number> }`; `planExerciseMerge(existing: { id: number; uuid: string | null; name: string }[], imported: ExportedExercise[]): ExerciseMergePlan`.
 
 - [x] **Step 1: Write the failing test**
@@ -902,8 +955,13 @@ describe("planExerciseMerge", () => {
   });
 
   it("queues an exercise with no local match for insertion", () => {
-    const plan = planExerciseMerge([], [exercise({ uuid: "ex-uuid-3", name: "Novo exercício" })]);
-    expect(plan.toInsert).toEqual([exercise({ uuid: "ex-uuid-3", name: "Novo exercício" })]);
+    const plan = planExerciseMerge(
+      [],
+      [exercise({ uuid: "ex-uuid-3", name: "Novo exercício" })],
+    );
+    expect(plan.toInsert).toEqual([
+      exercise({ uuid: "ex-uuid-3", name: "Novo exercício" }),
+    ]);
     expect(plan.matchedIds.size).toBe(0);
   });
 
@@ -912,7 +970,9 @@ describe("planExerciseMerge", () => {
       { id: 1, uuid: "ex-uuid-1", name: "Old name" },
       { id: 2, uuid: null, name: "Supino reto" },
     ];
-    const plan = planExerciseMerge(existing, [exercise({ name: "Supino reto" })]);
+    const plan = planExerciseMerge(existing, [
+      exercise({ name: "Supino reto" }),
+    ]);
     expect(plan.matchedIds.get("ex-uuid-1")).toBe(1);
   });
 });
@@ -936,9 +996,11 @@ export interface ExerciseMergePlan {
 
 export function planExerciseMerge(
   existing: { id: number; uuid: string | null; name: string }[],
-  imported: ExportedExercise[]
+  imported: ExportedExercise[],
 ): ExerciseMergePlan {
-  const idByUuid = new Map(existing.filter((e) => e.uuid).map((e) => [e.uuid as string, e.id]));
+  const idByUuid = new Map(
+    existing.filter((e) => e.uuid).map((e) => [e.uuid as string, e.id]),
+  );
   const idByName = new Map(existing.map((e) => [e.name, e.id]));
   const toInsert: ExportedExercise[] = [];
   const matchedIds = new Map<string, number>();
@@ -976,10 +1038,12 @@ git commit -m "feat(db): add planExerciseMerge for import merge-by-uuid-then-nam
 ## Task 8: `planSessionMerge`
 
 **Files:**
+
 - Modify: `src/db/importExport.ts`
 - Modify: `src/db/importExport.test.ts`
 
 **Interfaces:**
+
 - Produces: `planSessionMerge(existingUuids: Set<string>, imported: ExportedSession[]): ExportedSession[]` — the subset of `imported` whose `uuid` is not already present (this is also the shape used for `routineSplits`/`trainingPrograms` skip-checks in `applyImport`, Task 10, but those are simple enough to inline there — only sessions get a named, tested helper here since it's the case the spec's "re-importing the same file" edge case hinges on).
 
 - [x] **Step 1: Write the failing test**
@@ -1035,7 +1099,7 @@ Append to `src/db/importExport.ts`:
 ```ts
 export function planSessionMerge(
   existingUuids: Set<string>,
-  imported: ExportedSession[]
+  imported: ExportedSession[],
 ): ExportedSession[] {
   return imported.filter((s) => !existingUuids.has(s.uuid));
 }
@@ -1056,9 +1120,11 @@ git commit -m "feat(db): add planSessionMerge for idempotent session re-import"
 ## Task 9: `buildExportPayload`
 
 **Files:**
+
 - Modify: `src/db/importExport.ts`
 
 **Interfaces:**
+
 - Consumes: `db` from `./client`; `SCHEMA_VERSION` from `./schema`.
 - Produces: `buildExportPayload(): ExportPayload`.
 
@@ -1100,7 +1166,9 @@ export function buildExportPayload(): ExportPayload {
     notes: string | null;
     duration_seconds: number | null;
     modality: Modality;
-  }>("SELECT id, uuid, date, name, notes, duration_seconds, modality FROM sessions");
+  }>(
+    "SELECT id, uuid, date, name, notes, duration_seconds, modality FROM sessions",
+  );
 
   const sessions: ExportedSession[] = sessionRows.map((s) => {
     const sets = db.getAllSync<{
@@ -1117,7 +1185,7 @@ export function buildExportPayload(): ExportPayload {
     }>(
       `SELECT exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec
        FROM sets WHERE session_id = ?`,
-      [s.id]
+      [s.id],
     );
     return {
       uuid: s.uuid,
@@ -1155,7 +1223,7 @@ export function buildExportPayload(): ExportPayload {
   const routineSplits: ExportedSplit[] = splitRows.map((sp) => {
     const units = db.getAllSync<{ id: number; ordinal: number; label: string }>(
       "SELECT id, ordinal, label FROM routine_units WHERE split_id = ? ORDER BY ordinal",
-      [sp.id]
+      [sp.id],
     );
     return {
       uuid: sp.uuid,
@@ -1164,7 +1232,10 @@ export function buildExportPayload(): ExportPayload {
       modality: sp.modality,
       anchor_date: sp.anchor_date,
       rest_weekdays: sp.rest_weekdays
-        ? sp.rest_weekdays.split(",").map(Number).filter((n) => !Number.isNaN(n))
+        ? sp.rest_weekdays
+            .split(",")
+            .map(Number)
+            .filter((n) => !Number.isNaN(n))
         : [],
       order: sp.order,
       units: units.map((u) => {
@@ -1188,7 +1259,7 @@ export function buildExportPayload(): ExportPayload {
                   target_distance_km, target_duration_min, run_type, target_pace_sec,
                   interval_reps, interval_work_sec, interval_work_km, interval_rest_sec
            FROM routine_unit_exercises WHERE unit_id = ? ORDER BY "order"`,
-          [u.id]
+          [u.id],
         );
         return {
           ordinal: u.ordinal,
@@ -1231,15 +1302,19 @@ export function buildExportPayload(): ExportPayload {
   const trainingPrograms: ExportedProgram[] = programRows.map((p) => {
     const unitOrdinalById = new Map(
       db
-        .getAllSync<{ id: number; ordinal: number }>(
-          "SELECT id, ordinal FROM routine_units WHERE split_id = ?",
-          [p.split_id]
-        )
-        .map((u) => [u.id, u.ordinal])
+        .getAllSync<{
+          id: number;
+          ordinal: number;
+        }>("SELECT id, ordinal FROM routine_units WHERE split_id = ?", [p.split_id])
+        .map((u) => [u.id, u.ordinal]),
     );
-    const weeks = db.getAllSync<{ id: number; week_number: number; label: string | null }>(
+    const weeks = db.getAllSync<{
+      id: number;
+      week_number: number;
+      label: string | null;
+    }>(
       "SELECT id, week_number, label FROM program_weeks WHERE program_id = ? ORDER BY week_number",
-      [p.id]
+      [p.id],
     );
     return {
       uuid: p.uuid,
@@ -1271,7 +1346,7 @@ export function buildExportPayload(): ExportPayload {
                   target_distance_km, target_duration_min, run_type, target_pace_sec,
                   interval_reps, interval_work_sec, interval_work_km, interval_rest_sec
            FROM program_entries WHERE week_id = ?`,
-          [w.id]
+          [w.id],
         );
         return {
           week_number: w.week_number,
@@ -1326,13 +1401,15 @@ git commit -m "feat(db): add buildExportPayload"
 ## Task 10: `applyImport`
 
 **Files:**
+
 - Modify: `src/db/importExport.ts`
 
 **Interfaces:**
+
 - Consumes: `db` from `./client` (specifically `db.withTransactionSync`, added in Task 3 for the web driver); `planExerciseMerge`, `planSessionMerge` (Tasks 7–8).
 - Produces: `ImportSummary { exercisesAdded: number; sessionsAdded: number; splitsAdded: number; programsAdded: number }`; `applyImport(payload: ExportPayload): ImportSummary`.
 
-No automated test — same reasoning as Task 9. This is the highest-risk untested function in the plan (it's the one that writes the user's data), which is exactly why every state-changing branch inside it delegates its *decision* (insert vs. skip vs. match) to the already-tested pure planners — this function's own job is reduced to "loop and call `db.runSync`," minimizing what's left unverified by the test suite.
+No automated test — same reasoning as Task 9. This is the highest-risk untested function in the plan (it's the one that writes the user's data), which is exactly why every state-changing branch inside it delegates its _decision_ (insert vs. skip vs. match) to the already-tested pure planners — this function's own job is reduced to "loop and call `db.runSync`," minimizing what's left unverified by the test suite.
 
 - [x] **Step 1: Implement `applyImport`**
 
@@ -1356,15 +1433,28 @@ export function applyImport(payload: ExportPayload): ImportSummary {
 
   db.withTransactionSync(() => {
     // 1. Exercises
-    const existingExercises = db.getAllSync<{ id: number; uuid: string | null; name: string }>(
-      "SELECT id, uuid, name FROM exercises"
+    const existingExercises = db.getAllSync<{
+      id: number;
+      uuid: string | null;
+      name: string;
+    }>("SELECT id, uuid, name FROM exercises");
+    const exercisePlan = planExerciseMerge(
+      existingExercises,
+      payload.exercises,
     );
-    const exercisePlan = planExerciseMerge(existingExercises, payload.exercises);
     const exerciseIdByUuid = new Map(exercisePlan.matchedIds);
     for (const ex of exercisePlan.toInsert) {
       const result = db.runSync(
         "INSERT INTO exercises (name, muscle_group, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [ex.name, ex.muscle_group, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid]
+        [
+          ex.name,
+          ex.muscle_group,
+          ex.equipment,
+          ex.type,
+          ex.is_custom,
+          ex.modality,
+          ex.uuid,
+        ],
       );
       exerciseIdByUuid.set(ex.uuid, result.lastInsertRowId);
       summary.exercisesAdded++;
@@ -1373,17 +1463,25 @@ export function applyImport(payload: ExportPayload): ImportSummary {
     // 2. Routine splits (+ units + unit exercises) — matched-by-uuid splits are skipped
     // whole (their units/exercises are assumed to already match too), same as sessions.
     const existingSplits = db.getAllSync<{ id: number; uuid: string | null }>(
-      "SELECT id, uuid FROM routine_splits"
+      "SELECT id, uuid FROM routine_splits",
     );
     const splitIdByUuid = new Map(
-      existingSplits.filter((s) => s.uuid).map((s) => [s.uuid as string, s.id])
+      existingSplits.filter((s) => s.uuid).map((s) => [s.uuid as string, s.id]),
     );
     for (const split of payload.routineSplits) {
       if (splitIdByUuid.has(split.uuid)) continue;
 
       const result = db.runSync(
         `INSERT INTO routine_splits (name, mode, modality, anchor_date, rest_weekdays, "order", uuid) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [split.name, split.mode, split.modality, split.anchor_date, split.rest_weekdays.join(","), split.order, split.uuid]
+        [
+          split.name,
+          split.mode,
+          split.modality,
+          split.anchor_date,
+          split.rest_weekdays.join(","),
+          split.order,
+          split.uuid,
+        ],
       );
       const splitId = result.lastInsertRowId;
       splitIdByUuid.set(split.uuid, splitId);
@@ -1392,7 +1490,7 @@ export function applyImport(payload: ExportPayload): ImportSummary {
       for (const unit of split.units) {
         const unitResult = db.runSync(
           "INSERT INTO routine_units (split_id, ordinal, label) VALUES (?, ?, ?)",
-          [splitId, unit.ordinal, unit.label]
+          [splitId, unit.ordinal, unit.label],
         );
         const unitId = unitResult.lastInsertRowId;
         for (const ue of unit.exercises) {
@@ -1405,10 +1503,22 @@ export function applyImport(payload: ExportPayload): ImportSummary {
                 interval_reps, interval_work_sec, interval_work_km, interval_rest_sec)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              unitId, exerciseId, ue.order, ue.target_sets, ue.target_reps, ue.target_reps_max,
-              ue.target_weight_kg, ue.target_distance_km, ue.target_duration_min, ue.run_type,
-              ue.target_pace_sec, ue.interval_reps, ue.interval_work_sec, ue.interval_work_km, ue.interval_rest_sec,
-            ]
+              unitId,
+              exerciseId,
+              ue.order,
+              ue.target_sets,
+              ue.target_reps,
+              ue.target_reps_max,
+              ue.target_weight_kg,
+              ue.target_distance_km,
+              ue.target_duration_min,
+              ue.run_type,
+              ue.target_pace_sec,
+              ue.interval_reps,
+              ue.interval_work_sec,
+              ue.interval_work_km,
+              ue.interval_rest_sec,
+            ],
           );
         }
       }
@@ -1419,13 +1529,22 @@ export function applyImport(payload: ExportPayload): ImportSummary {
       db
         .getAllSync<{ uuid: string | null }>("SELECT uuid FROM sessions")
         .map((r) => r.uuid)
-        .filter((u): u is string => u !== null)
+        .filter((u): u is string => u !== null),
     );
-    const sessionsToInsert = planSessionMerge(existingSessionUuids, payload.sessions);
+    const sessionsToInsert = planSessionMerge(
+      existingSessionUuids,
+      payload.sessions,
+    );
     for (const session of sessionsToInsert) {
       const result = db.runSync(
         "INSERT INTO sessions (date, name, notes, modality, uuid) VALUES (?, ?, ?, ?, ?)",
-        [session.date, session.name, session.notes, session.modality, session.uuid]
+        [
+          session.date,
+          session.name,
+          session.notes,
+          session.modality,
+          session.uuid,
+        ],
       );
       const sessionId = result.lastInsertRowId;
       for (const set of session.sets) {
@@ -1435,9 +1554,18 @@ export function applyImport(payload: ExportPayload): ImportSummary {
           `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            sessionId, exerciseId, set.set_number, set.reps, set.weight_kg, set.rpe, set.rir,
-            set.notes, set.distance_km, set.duration_sec, set.pace_sec,
-          ]
+            sessionId,
+            exerciseId,
+            set.set_number,
+            set.reps,
+            set.weight_kg,
+            set.rpe,
+            set.rir,
+            set.notes,
+            set.distance_km,
+            set.duration_sec,
+            set.pace_sec,
+          ],
         );
       }
       summary.sessionsAdded++;
@@ -1445,10 +1573,12 @@ export function applyImport(payload: ExportPayload): ImportSummary {
 
     // 4. Training programs (+ weeks + entries)
     const existingPrograms = db.getAllSync<{ id: number; uuid: string | null }>(
-      "SELECT id, uuid FROM training_programs"
+      "SELECT id, uuid FROM training_programs",
     );
     const programIdByUuid = new Map(
-      existingPrograms.filter((p) => p.uuid).map((p) => [p.uuid as string, p.id])
+      existingPrograms
+        .filter((p) => p.uuid)
+        .map((p) => [p.uuid as string, p.id]),
     );
     for (const program of payload.trainingPrograms) {
       if (programIdByUuid.has(program.uuid)) continue;
@@ -1457,20 +1587,26 @@ export function applyImport(payload: ExportPayload): ImportSummary {
 
       const unitIdByOrdinal = new Map(
         db
-          .getAllSync<{ id: number; ordinal: number }>(
-            "SELECT id, ordinal FROM routine_units WHERE split_id = ?",
-            [splitId]
-          )
-          .map((u) => [u.ordinal, u.id])
+          .getAllSync<{
+            id: number;
+            ordinal: number;
+          }>("SELECT id, ordinal FROM routine_units WHERE split_id = ?", [splitId])
+          .map((u) => [u.ordinal, u.id]),
       );
 
       const result = db.runSync(
         `INSERT INTO training_programs (split_id, name, total_weeks, is_active, "order", setup_week_number, started_at, uuid)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          splitId, program.name, program.total_weeks, program.is_active ? 1 : 0, program.order,
-          program.setup_week_number, program.started_at, program.uuid,
-        ]
+          splitId,
+          program.name,
+          program.total_weeks,
+          program.is_active ? 1 : 0,
+          program.order,
+          program.setup_week_number,
+          program.started_at,
+          program.uuid,
+        ],
       );
       const programId = result.lastInsertRowId;
       summary.programsAdded++;
@@ -1478,7 +1614,7 @@ export function applyImport(payload: ExportPayload): ImportSummary {
       for (const week of program.weeks) {
         const weekResult = db.runSync(
           "INSERT INTO program_weeks (program_id, week_number, label) VALUES (?, ?, ?)",
-          [programId, week.week_number, week.label]
+          [programId, week.week_number, week.label],
         );
         const weekId = weekResult.lastInsertRowId;
         for (const entry of week.entries) {
@@ -1492,11 +1628,22 @@ export function applyImport(payload: ExportPayload): ImportSummary {
                 interval_reps, interval_work_sec, interval_work_km, interval_rest_sec)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              weekId, unitId, exerciseId, entry.target_sets, entry.target_reps, entry.target_reps_max,
-              entry.target_weight_kg, entry.target_distance_km, entry.target_duration_min, entry.run_type,
-              entry.target_pace_sec, entry.interval_reps, entry.interval_work_sec, entry.interval_work_km,
+              weekId,
+              unitId,
+              exerciseId,
+              entry.target_sets,
+              entry.target_reps,
+              entry.target_reps_max,
+              entry.target_weight_kg,
+              entry.target_distance_km,
+              entry.target_duration_min,
+              entry.run_type,
+              entry.target_pace_sec,
+              entry.interval_reps,
+              entry.interval_work_sec,
+              entry.interval_work_km,
               entry.interval_rest_sec,
-            ]
+            ],
           );
         }
       }
@@ -1522,10 +1669,12 @@ git commit -m "feat(db): add applyImport — transactional merge of an export pa
 ## Task 11: File I/O layer (export + import, native + web)
 
 **Files:**
+
 - Create: `src/db/exportFile.ts`, `src/db/exportFile.web.ts`
 - Create: `src/db/importFile.ts`, `src/db/importFile.web.ts`
 
 **Interfaces:**
+
 - Consumes: `buildExportPayload` from `./importExport` (Task 9); `expo-file-system`, `expo-sharing`, `expo-document-picker` (Task 1).
 - Produces: `exportBackup(): Promise<void>` (both platforms); `pickImportFile(): Promise<string | null>` (both platforms — `null` means the user canceled the picker).
 
@@ -1577,7 +1726,9 @@ import * as FileSystem from "expo-file-system";
 
 /** Returns the picked file's contents, or null if the user canceled. */
 export async function pickImportFile(): Promise<string | null> {
-  const result = await DocumentPicker.getDocumentAsync({ type: "application/json" });
+  const result = await DocumentPicker.getDocumentAsync({
+    type: "application/json",
+  });
   if (result.canceled || !result.assets[0]) return null;
   return FileSystem.readAsStringAsync(result.assets[0].uri);
 }
@@ -1590,7 +1741,9 @@ import * as DocumentPicker from "expo-document-picker";
 
 /** Returns the picked file's contents, or null if the user canceled. */
 export async function pickImportFile(): Promise<string | null> {
-  const result = await DocumentPicker.getDocumentAsync({ type: "application/json" });
+  const result = await DocumentPicker.getDocumentAsync({
+    type: "application/json",
+  });
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
   if (asset.file) return asset.file.text();
@@ -1614,11 +1767,13 @@ git commit -m "feat(db): add native/web file I/O for export and import"
 ## Task 12: Settings screen
 
 **Files:**
+
 - Create: `app/settings.tsx`
 - Create: `src/utils/notify.ts`, `src/utils/notify.web.ts`
 - Modify: `app/_layout.tsx`
 
 **Interfaces:**
+
 - Consumes: `exportBackup` (`@/db/exportFile`), `pickImportFile` (`@/db/importFile`), `applyImport` + `validateExportPayload` (`@/db/importExport`), `ScreenHeader` (`@/components/ScreenHeader`).
 - Produces: `notify(title: string, message: string): void` (both platforms); the `/settings` route.
 
@@ -1649,7 +1804,13 @@ export function notify(title: string, message: string): void {
 ```tsx
 // app/settings.tsx
 import { useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { exportBackup } from "@/db/exportFile";
 import { pickImportFile } from "@/db/importFile";
@@ -1664,7 +1825,10 @@ export default function SettingsScreen() {
     try {
       await exportBackup();
     } catch (err) {
-      notify("Erro ao exportar", err instanceof Error ? err.message : String(err));
+      notify(
+        "Erro ao exportar",
+        err instanceof Error ? err.message : String(err),
+      );
     } finally {
       setBusy(null);
     }
@@ -1679,10 +1843,13 @@ export default function SettingsScreen() {
       const summary = applyImport(payload);
       notify(
         "Importação concluída",
-        `${summary.exercisesAdded} exercícios novos\n${summary.sessionsAdded} sessões novas\n${summary.splitsAdded} rotinas novas\n${summary.programsAdded} programas novos`
+        `${summary.exercisesAdded} exercícios novos\n${summary.sessionsAdded} sessões novas\n${summary.splitsAdded} rotinas novas\n${summary.programsAdded} programas novos`,
       );
     } catch (err) {
-      notify("Erro ao importar", err instanceof Error ? err.message : String(err));
+      notify(
+        "Erro ao importar",
+        err instanceof Error ? err.message : String(err),
+      );
     } finally {
       setBusy(null);
     }
@@ -1694,7 +1861,12 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Text
           className="text-ink-mute"
-          style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
+          style={{
+            fontSize: 10,
+            fontWeight: "700",
+            letterSpacing: 1.2,
+            marginBottom: 10,
+          }}
         >
           DADOS
         </Text>
@@ -1705,11 +1877,16 @@ export default function SettingsScreen() {
           onPress={handleExport}
           disabled={busy !== null}
         >
-          <Text className="text-ink font-semibold text-base">Exportar dados</Text>
-          <Text className="text-ink-mute text-xs mt-1">
-            Gera um arquivo com todo o seu histórico de treinos, exercícios e rotinas.
+          <Text className="text-ink font-semibold text-base">
+            Exportar dados
           </Text>
-          {busy === "export" && <ActivityIndicator style={{ marginTop: 8 }} color="#26241f" />}
+          <Text className="text-ink-mute text-xs mt-1">
+            Gera um arquivo com todo o seu histórico de treinos, exercícios e
+            rotinas.
+          </Text>
+          {busy === "export" && (
+            <ActivityIndicator style={{ marginTop: 8 }} color="#26241f" />
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1718,11 +1895,16 @@ export default function SettingsScreen() {
           onPress={handleImport}
           disabled={busy !== null}
         >
-          <Text className="text-ink font-semibold text-base">Importar dados</Text>
-          <Text className="text-ink-mute text-xs mt-1">
-            Sessões, exercícios e rotinas do arquivo serão adicionados aos seus dados atuais.
+          <Text className="text-ink font-semibold text-base">
+            Importar dados
           </Text>
-          {busy === "import" && <ActivityIndicator style={{ marginTop: 8 }} color="#26241f" />}
+          <Text className="text-ink-mute text-xs mt-1">
+            Sessões, exercícios e rotinas do arquivo serão adicionados aos seus
+            dados atuais.
+          </Text>
+          {busy === "import" && (
+            <ActivityIndicator style={{ marginTop: 8 }} color="#26241f" />
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -1759,9 +1941,11 @@ git commit -m "feat(settings): add Settings screen with export/import actions"
 ## Task 13: Gear icon entry point in the Feed header
 
 **Files:**
+
 - Modify: `app/(tabs)/index.tsx`
 
 **Interfaces:**
+
 - Consumes: `router` (`expo-router`, already imported in this file), `MaterialCommunityIcons` (`@expo/vector-icons/MaterialCommunityIcons`, new import in this file).
 
 No automated test — this codebase has no test coverage on `app/(tabs)/*.tsx` screens. Verified via `npx tsc --noEmit`.
@@ -1777,37 +1961,52 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 Add a gear button just before the existing "+" button, inside the same `flex-row items-center` container:
 
 ```tsx
-        <View className="flex-row items-center">
-          <View className="flex-1">
-            <Text className="text-ink font-display font-semibold text-3xl" style={{ letterSpacing: -0.6 }}>Open Training Project</Text>
-            <Text className="text-ink-mute text-xs mt-0.5">
-              {sessions.length > 0
-                ? `${sessions.length} session${sessions.length !== 1 ? "s" : ""} logged`
-                : "No sessions yet"}
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="w-10 h-10 rounded-full items-center justify-center"
-            onPress={() => router.push("/settings")}
-            style={{ marginRight: 8 }}
-            hitSlop={8}
-          >
-            <MaterialCommunityIcons name="cog-outline" size={22} color="#5c594f" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="bg-ink w-11 h-11 rounded-full items-center justify-center"
-            onPress={() => router.push("/session/new")}
-            style={{
-              shadowColor: '#26241f',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 12,
-              elevation: 8,
-            }}
-          >
-            <Text style={{ color: '#ffffff', fontSize: 24, fontWeight: '300', lineHeight: 28, marginTop: -1 }}>+</Text>
-          </TouchableOpacity>
-        </View>
+<View className="flex-row items-center">
+  <View className="flex-1">
+    <Text
+      className="text-ink font-display font-semibold text-3xl"
+      style={{ letterSpacing: -0.6 }}
+    >
+      Open Training{" "}
+    </Text>
+    <Text className="text-ink-mute text-xs mt-0.5">
+      {sessions.length > 0
+        ? `${sessions.length} session${sessions.length !== 1 ? "s" : ""} logged`
+        : "No sessions yet"}
+    </Text>
+  </View>
+  <TouchableOpacity
+    className="w-10 h-10 rounded-full items-center justify-center"
+    onPress={() => router.push("/settings")}
+    style={{ marginRight: 8 }}
+    hitSlop={8}
+  >
+    <MaterialCommunityIcons name="cog-outline" size={22} color="#5c594f" />
+  </TouchableOpacity>
+  <TouchableOpacity
+    className="bg-ink w-11 h-11 rounded-full items-center justify-center"
+    onPress={() => router.push("/session/new")}
+    style={{
+      shadowColor: "#26241f",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      elevation: 8,
+    }}
+  >
+    <Text
+      style={{
+        color: "#ffffff",
+        fontSize: 24,
+        fontWeight: "300",
+        lineHeight: 28,
+        marginTop: -1,
+      }}
+    >
+      +
+    </Text>
+  </TouchableOpacity>
+</View>
 ```
 
 - [x] **Step 2: Typecheck**
