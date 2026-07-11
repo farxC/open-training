@@ -4,6 +4,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AppModalHost } from "@/components/AppModal";
 import { SessionRecorderProvider } from "@/context/SessionRecorderContext";
 import { initDatabase } from "@/db/client";
 import { runMigrations } from "@/db/migrations";
@@ -50,6 +51,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SessionRecorderProvider>
+          <AppModalHost />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="settings" />
