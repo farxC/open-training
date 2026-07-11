@@ -33,6 +33,8 @@ export function getSessions(): SessionSummary[] {
     name: string | null;
     notes: string | null;
     duration_seconds: number | null;
+    start_time: string | null;
+    end_time: string | null;
     photo_uri: string | null;
     uuid: string;
     modality: Modality;
@@ -45,7 +47,7 @@ export function getSessions(): SessionSummary[] {
     exercise_names_raw: string | null;
   }>(
     `SELECT
-      s.id, s.date, s.name, s.notes, s.duration_seconds, s.photo_uri, s.uuid,
+      s.id, s.date, s.name, s.notes, s.duration_seconds, s.start_time, s.end_time, s.photo_uri, s.uuid,
       s.modality, s.split_id, s.unit_id, s.program_week_id,
       COALESCE(
         (SELECT uri FROM session_photos WHERE session_id = s.id ORDER BY "order", id LIMIT 1),
@@ -68,7 +70,7 @@ export function getSessions(): SessionSummary[] {
 
 export function getSessionById(id: number): Session | null {
   return db.getFirstSync<Session>(
-    `SELECT id, date, name, notes, duration_seconds, photo_uri, uuid,
+    `SELECT id, date, name, notes, duration_seconds, start_time, end_time, photo_uri, uuid,
             modality, split_id, unit_id, program_week_id
      FROM sessions WHERE id = ?`,
     [id]
@@ -136,7 +138,7 @@ export function createSession(
 
 export function updateSession(
   id: number,
-  patch: Partial<Pick<Session, "name" | "notes" | "duration_seconds">>
+  patch: Partial<Pick<Session, "name" | "notes" | "duration_seconds" | "start_time" | "end_time">>
 ): void {
   const fields = Object.keys(patch) as (keyof typeof patch)[];
   if (fields.length === 0) return;

@@ -13,8 +13,16 @@ import {
 import type { Exercise, Modality, RoutineUnitExercise, WorkoutSet } from "@/types";
 
 export function useSessionRecorder() {
-  const { state, start, addExercise, addExercises, removeExercise, finish, discard } =
-    useRecorderContext();
+  const {
+    state,
+    start,
+    startTimer: dispatchStartTimer,
+    addExercise,
+    addExercises,
+    removeExercise,
+    finish,
+    discard,
+  } = useRecorderContext();
 
   const startResolvedSession = useCallback(
     (payload: {
@@ -99,19 +107,24 @@ export function useSessionRecorder() {
     deleteSet(setId);
   }, []);
 
+  const startTimer = useCallback(() => {
+    if (!state.sessionId) return;
+    const now = new Date();
+    updateSession(state.sessionId, { start_time: now.toISOString() });
+    dispatchStartTimer(now);
+  }, [state.sessionId, dispatchStartTimer]);
+
   const finishSession = useCallback(
-    (notes?: string) => {
-      if (!state.sessionId || !state.startTime) return;
-      const duration = Math.round(
-        (Date.now() - state.startTime.getTime()) / 1000
-      );
+    (durationSeconds: number, notes?: string) => {
+      if (!state.sessionId) return;
       updateSession(state.sessionId, {
         notes: notes ?? null,
-        duration_seconds: duration,
+        duration_seconds: durationSeconds,
+        end_time: new Date().toISOString(),
       });
       finish();
     },
-    [state.sessionId, state.startTime, finish]
+    [state.sessionId, finish]
   );
 
   const discardSession = useCallback(() => {
@@ -124,6 +137,7 @@ export function useSessionRecorder() {
   return {
     ...state,
     startResolvedSession,
+    startTimer,
     addExerciseToSession,
     addExercisesToSession,
     removeExerciseFromSession,

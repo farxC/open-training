@@ -6,6 +6,8 @@ export interface Session {
   name: string | null;
   notes: string | null;
   duration_seconds: number | null;
+  start_time: string | null;
+  end_time: string | null;
   /** @deprecated superseded by session_photos (multi-photo). Read-only; new code must not write it. */
   photo_uri: string | null;
   modality: Modality;

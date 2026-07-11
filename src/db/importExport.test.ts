@@ -91,6 +91,8 @@ function session(overrides: Partial<ExportedSession> = {}): ExportedSession {
     name: null,
     notes: null,
     duration_seconds: null,
+    start_time: null,
+    end_time: null,
     modality: "musculacao",
     sets: [],
     ...overrides,

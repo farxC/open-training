@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -18,6 +18,8 @@ export const CREATE_TABLES: string[] = [
     name TEXT,
     notes TEXT,
     duration_seconds INTEGER,
+    start_time TEXT,
+    end_time TEXT,
     photo_uri TEXT,
     modality TEXT NOT NULL DEFAULT 'musculacao',
     split_id INTEGER REFERENCES routine_splits(id) ON DELETE SET NULL,

@@ -19,6 +19,8 @@ import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
+import { SessionTimer } from "@/components/SessionTimer";
+import { SessionFinishModal } from "@/components/SessionFinishModal";
 import { MODALITIES, modalityConfig, modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
 import {
   getExercises,
@@ -84,6 +86,8 @@ export default function NewSessionScreen() {
   const [notes, setNotes] = useState("");
   const [photos, setPhotos] = useState<SessionPhoto[]>([]);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [finishModalVisible, setFinishModalVisible] = useState(false);
+  const [finishInitialDuration, setFinishInitialDuration] = useState(0);
 
   const split = splitId != null ? r.splits.find((s) => s.id === splitId) ?? null : null;
 
@@ -220,7 +224,16 @@ export default function NewSessionScreen() {
       notify("Nenhum exercício", "Adicione ao menos um exercício antes de concluir.");
       return;
     }
-    recorder.finishSession(notes);
+    const elapsed = recorder.startTime
+      ? Math.max(0, Math.round((Date.now() - recorder.startTime.getTime()) / 1000))
+      : 0;
+    setFinishInitialDuration(elapsed);
+    setFinishModalVisible(true);
+  };
+
+  const handleConfirmFinish = (durationSeconds: number) => {
+    recorder.finishSession(durationSeconds, notes);
+    setFinishModalVisible(false);
     router.replace("/");
   };
 
@@ -483,6 +496,10 @@ export default function NewSessionScreen() {
 
             {step === "details" && (
               <View>
+                <View style={{ marginBottom: 16 }}>
+                  <SessionTimer startTime={recorder.startTime} onStart={recorder.startTimer} />
+                </View>
+
                 {/* Compact modality context — was the big centered icon+badge, now tucked in the corner */}
                 <View className="flex-row items-center mb-6" style={{ gap: 8 }}>
                   <View
@@ -618,6 +635,13 @@ export default function NewSessionScreen() {
         modality={modality}
         onConfirm={(exs) => recorder.addExercisesToSession(exs)}
         onClose={() => setPickerVisible(false)}
+      />
+
+      <SessionFinishModal
+        visible={finishModalVisible}
+        initialDurationSec={finishInitialDuration}
+        onCancel={() => setFinishModalVisible(false)}
+        onConfirm={handleConfirmFinish}
       />
 
       <Modal visible={dateModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setDateModalVisible(false)}>

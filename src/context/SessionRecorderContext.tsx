@@ -19,12 +19,12 @@ type RecorderAction =
   | {
       type: "START";
       sessionId: number;
-      startTime: Date;
       modality: Modality;
       splitId: number | null;
       unitId: number | null;
       programWeekId: number | null;
     }
+  | { type: "START_TIMER"; startTime: Date }
   | { type: "ADD_EXERCISE"; exercise: Exercise }
   | { type: "ADD_EXERCISES"; items: StartExercise[] }
   | { type: "REMOVE_EXERCISE"; exerciseId: number }
@@ -48,7 +48,7 @@ function reducer(state: RecorderState, action: RecorderAction): RecorderState {
     case "START":
       return {
         sessionId: action.sessionId,
-        startTime: action.startTime,
+        startTime: null,
         selectedExercises: [],
         targetsByExerciseId: {},
         isRecording: true,
@@ -57,6 +57,8 @@ function reducer(state: RecorderState, action: RecorderAction): RecorderState {
         unitId: action.unitId,
         programWeekId: action.programWeekId,
       };
+    case "START_TIMER":
+      return { ...state, startTime: action.startTime };
     case "ADD_EXERCISE":
       if (state.selectedExercises.some((e) => e.id === action.exercise.id)) {
         return state;
@@ -102,6 +104,7 @@ interface RecorderContextValue {
     unitId: number | null,
     programWeekId: number | null
   ) => void;
+  startTimer: (startTime: Date) => void;
   addExercise: (exercise: Exercise) => void;
   addExercises: (items: StartExercise[]) => void;
   removeExercise: (exerciseId: number) => void;
@@ -126,10 +129,14 @@ export function SessionRecorderProvider({
       unitId: number | null,
       programWeekId: number | null
     ) => {
-      dispatch({ type: "START", sessionId, startTime: new Date(), modality, splitId, unitId, programWeekId });
+      dispatch({ type: "START", sessionId, modality, splitId, unitId, programWeekId });
     },
     []
   );
+
+  const startTimer = useCallback((startTime: Date) => {
+    dispatch({ type: "START_TIMER", startTime });
+  }, []);
 
   const addExercise = useCallback((exercise: Exercise) => {
     dispatch({ type: "ADD_EXERCISE", exercise });
@@ -153,7 +160,7 @@ export function SessionRecorderProvider({
 
   return (
     <SessionRecorderContext.Provider
-      value={{ state, start, addExercise, addExercises, removeExercise, finish, discard }}
+      value={{ state, start, startTimer, addExercise, addExercises, removeExercise, finish, discard }}
     >
       {children}
     </SessionRecorderContext.Provider>

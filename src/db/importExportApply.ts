@@ -50,8 +50,10 @@ export function buildExportPayload(): ExportPayload {
     name: string | null;
     notes: string | null;
     duration_seconds: number | null;
+    start_time: string | null;
+    end_time: string | null;
     modality: Modality;
-  }>("SELECT id, uuid, date, name, notes, duration_seconds, modality FROM sessions");
+  }>("SELECT id, uuid, date, name, notes, duration_seconds, start_time, end_time, modality FROM sessions");
 
   const sessions: ExportedSession[] = sessionRows.map((s) => {
     const sets = db.getAllSync<{
@@ -76,6 +78,8 @@ export function buildExportPayload(): ExportPayload {
       name: s.name,
       notes: s.notes,
       duration_seconds: s.duration_seconds,
+      start_time: s.start_time,
+      end_time: s.end_time,
       modality: s.modality,
       sets: sets.map((st) => ({
         exercise_uuid: exerciseUuidById.get(st.exercise_id) ?? "",
@@ -344,8 +348,8 @@ export function applyImport(payload: ExportPayload): ImportSummary {
     const sessionsToInsert = planSessionMerge(existingSessionUuids, payload.sessions);
     for (const session of sessionsToInsert) {
       const result = db.runSync(
-        "INSERT INTO sessions (date, name, notes, modality, uuid) VALUES (?, ?, ?, ?, ?)",
-        [session.date, session.name, session.notes, session.modality, session.uuid]
+        "INSERT INTO sessions (date, name, notes, modality, uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [session.date, session.name, session.notes, session.modality, session.uuid, session.start_time, session.end_time]
       );
       const sessionId = result.lastInsertRowId;
       for (const set of session.sets) {

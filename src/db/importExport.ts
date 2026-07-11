@@ -31,6 +31,8 @@ export interface ExportedSession {
   name: string | null;
   notes: string | null;
   duration_seconds: number | null;
+  start_time: string | null;
+  end_time: string | null;
   modality: Modality;
   sets: ExportedSet[];
 }

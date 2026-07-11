@@ -45,6 +45,8 @@ export function runMigrations(): void {
   ensureColumn("sessions", "split_id", "INTEGER REFERENCES routine_splits(id) ON DELETE SET NULL");
   ensureColumn("sessions", "unit_id", "INTEGER REFERENCES routine_units(id) ON DELETE SET NULL");
   ensureColumn("sessions", "program_week_id", "INTEGER REFERENCES program_weeks(id) ON DELETE SET NULL");
+  ensureColumn("sessions", "start_time", "TEXT");
+  ensureColumn("sessions", "end_time", "TEXT");
   ensureColumn("sets", "distance_km", "REAL");
   ensureColumn("sets", "duration_sec", "INTEGER");
   ensureColumn("sets", "pace_sec", "INTEGER");
