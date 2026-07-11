@@ -1,5 +1,10 @@
-import { validateExportPayload, CURRENT_EXPORT_FORMAT_VERSION, planExerciseMerge } from "./importExport";
-import type { ExportedExercise } from "./importExport";
+import {
+  validateExportPayload,
+  CURRENT_EXPORT_FORMAT_VERSION,
+  planExerciseMerge,
+  planSessionMerge,
+} from "./importExport";
+import type { ExportedExercise, ExportedSession } from "./importExport";
 
 function validPayload() {
   return {
@@ -76,5 +81,37 @@ describe("planExerciseMerge", () => {
     ];
     const plan = planExerciseMerge(existing, [exercise({ name: "Supino reto" })]);
     expect(plan.matchedIds.get("ex-uuid-1")).toBe(1);
+  });
+});
+
+function session(overrides: Partial<ExportedSession> = {}): ExportedSession {
+  return {
+    uuid: "session-uuid-1",
+    date: "2026-07-01",
+    name: null,
+    notes: null,
+    duration_seconds: null,
+    modality: "musculacao",
+    sets: [],
+    ...overrides,
+  };
+}
+
+describe("planSessionMerge", () => {
+  it("keeps a session whose uuid isn't present locally", () => {
+    const result = planSessionMerge(new Set(), [session()]);
+    expect(result).toEqual([session()]);
+  });
+
+  it("skips a session whose uuid is already present locally (idempotent re-import)", () => {
+    const result = planSessionMerge(new Set(["session-uuid-1"]), [session()]);
+    expect(result).toEqual([]);
+  });
+
+  it("filters a mixed batch correctly", () => {
+    const a = session({ uuid: "a" });
+    const b = session({ uuid: "b" });
+    const result = planSessionMerge(new Set(["a"]), [a, b]);
+    expect(result).toEqual([b]);
   });
 });

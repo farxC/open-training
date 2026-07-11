@@ -167,3 +167,10 @@ export function planExerciseMerge(
 
   return { toInsert, matchedIds };
 }
+
+export function planSessionMerge(
+  existingUuids: Set<string>,
+  imported: ExportedSession[]
+): ExportedSession[] {
+  return imported.filter((s) => !existingUuids.has(s.uuid));
+}
