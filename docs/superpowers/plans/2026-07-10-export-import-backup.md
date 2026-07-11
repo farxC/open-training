@@ -1,6 +1,6 @@
 # Export/Import (Backup) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Let a user export their full open-training dataset (sessions, exercises, routine splits, training programs) to a JSON file, and import that file back in — merging into whatever is already on the device — so data survives a device migration or an app reinstall.
 
@@ -55,18 +55,18 @@ Modified files:
 **Interfaces:**
 - Produces: `expo-sharing`, `expo-document-picker`, `expo-file-system` importable from any file in the project.
 
-- [ ] **Step 1: Install SDK-compatible versions**
+- [x] **Step 1: Install SDK-compatible versions**
 
 Run: `npx expo install expo-sharing expo-document-picker expo-file-system`
 
 Expected: `package.json` gains three new entries under `dependencies` (SDK-52-compatible versions, e.g. `expo-document-picker": "~13.0.3"`, `"expo-file-system": "~18.0.12"`, `"expo-sharing": "~13.0.1"` — exact patch versions are whatever `expo install` resolves; do not hand-edit them).
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run: `grep -n "expo-sharing\|expo-document-picker\|expo-file-system" package.json`
 Expected: three matching lines under `dependencies`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add package.json package-lock.json
@@ -82,7 +82,7 @@ git commit -m "chore: add expo-sharing, expo-document-picker, expo-file-system"
 **Interfaces:**
 - Produces: `generateUuid(): string` — a 32-character lowercase hex string, used as the merge-identity key written to the new `uuid` columns.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/utils/uuid.test.ts
@@ -100,12 +100,12 @@ describe("generateUuid", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/utils/uuid.test.ts`
 Expected: FAIL — `Cannot find module './uuid'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/utils/uuid.ts
@@ -122,12 +122,12 @@ export function generateUuid(): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/utils/uuid.test.ts`
 Expected: PASS (2 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/utils/uuid.ts src/utils/uuid.test.ts
@@ -145,7 +145,7 @@ git commit -m "feat(utils): add generateUuid for export/import merge keys"
 
 No automated test: this file has no existing test coverage (it's a thin driver shim, same as the rest of `client.web.ts`), and it cannot be exercised under Jest (see "Testing strategy" above — WASM instantiation fails in this test environment). Correctness is verified by `npx tsc --noEmit` (return/parameter types must match the native driver's signature) and by manual exercise of Import on web once the full feature is wired up.
 
-- [ ] **Step 1: Add `withTransactionSync` to the exported `db` object**
+- [x] **Step 1: Add `withTransactionSync` to the exported `db` object**
 
 In `src/db/client.web.ts`, add a new method to the `db` object (after `prepareSync`, closing the object):
 
@@ -184,12 +184,12 @@ In `src/db/client.web.ts`, add a new method to the `db` object (after `prepareSy
 
 (This replaces the file's final `};` — the new method is added as a sibling of `prepareSync`, and the closing `};` of the `db` object moves to after it.)
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no new errors introduced by this file.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/db/client.web.ts
@@ -209,7 +209,7 @@ git commit -m "fix(db): add withTransactionSync to the web sql.js client"
 
 No automated test for this task — migrations are untested elsewhere in this codebase today (see "Testing strategy"), and cannot be run against a real `db` in Jest either way.
 
-- [ ] **Step 1: Add `uuid TEXT UNIQUE` to the four `CREATE_TABLES` entries**
+- [x] **Step 1: Add `uuid TEXT UNIQUE` to the four `CREATE_TABLES` entries**
 
 In `src/db/schema.ts`, bump the version:
 
@@ -275,7 +275,7 @@ Add `uuid TEXT UNIQUE` as the last column in each of these four `CREATE_TABLES` 
   )`,
 ```
 
-- [ ] **Step 2: Add `ensureColumn` calls and a uuid backfill in `migrations.ts`**
+- [x] **Step 2: Add `ensureColumn` calls and a uuid backfill in `migrations.ts`**
 
 In `src/db/migrations.ts`, add four more `ensureColumn` calls alongside the existing ones (after the `sets` distance/duration/pace ones):
 
@@ -302,12 +302,12 @@ Then, after the existing photo_uri backfill block (`INSERT INTO session_photos .
   db.execSync("UPDATE training_programs SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
 ```
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no new errors (this task doesn't touch any TS types yet — that's Task 5).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/db/schema.ts src/db/migrations.ts
@@ -329,7 +329,7 @@ This task is one unit because splitting it would leave the project in a non-comp
 
 No automated test: these are thin data-layer changes over the same `db` singleton already excluded from Jest coverage (see "Testing strategy"). Verified via `npx tsc --noEmit`.
 
-- [ ] **Step 1: Add `uuid` to the four types**
+- [x] **Step 1: Add `uuid` to the four types**
 
 In `src/types/exercise.ts`:
 
@@ -396,7 +396,7 @@ export interface TrainingProgram {
 }
 ```
 
-- [ ] **Step 2: Persist `uuid` on create, in `src/db/queries.ts`**
+- [x] **Step 2: Persist `uuid` on create, in `src/db/queries.ts`**
 
 Add the import at the top of the file:
 
@@ -598,7 +598,7 @@ function mapProgram(r: TrainingProgramRow): TrainingProgram {
 }
 ```
 
-- [ ] **Step 3: Adapt `useExercises.ts` to `createExercise`'s new return shape**
+- [x] **Step 3: Adapt `useExercises.ts` to `createExercise`'s new return shape**
 
 ```ts
 // src/hooks/useExercises.ts
@@ -633,12 +633,12 @@ export function useExercises(filter?: Filter) {
 }
 ```
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors. (If any other call site references `createExercise`/`createSession`/`createSplit`/`createProgram` with a shape now missing `uuid` handling, this is where it would surface — there should be none beyond what this task already touched, since `uuid` is generated internally and no other caller destructures `createExercise`'s return value.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/types/exercise.ts src/types/session.ts src/types/routine.ts src/db/queries.ts src/hooks/useExercises.ts
@@ -655,7 +655,7 @@ git commit -m "feat(db): generate and expose uuid on exercises, sessions, splits
 - Consumes: `Modality`, `SplitMode` from `@/types`.
 - Produces: `ExportPayload` and its nested types (`ExportedExercise`, `ExportedSet`, `ExportedSession`, `ExportedUnitExercise`, `ExportedUnit`, `ExportedSplit`, `ExportedProgramEntry`, `ExportedProgramWeek`, `ExportedProgram`); `CURRENT_EXPORT_FORMAT_VERSION = 1`; `validateExportPayload(data: unknown): ExportPayload` (throws `Error` with a user-facing Portuguese message on anything invalid).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/db/importExport.test.ts
@@ -696,12 +696,12 @@ describe("validateExportPayload", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/db/importExport.test.ts`
 Expected: FAIL — `Cannot find module './importExport'`
 
-- [ ] **Step 3: Write the payload types and `validateExportPayload`**
+- [x] **Step 3: Write the payload types and `validateExportPayload`**
 
 ```ts
 // src/db/importExport.ts
@@ -844,12 +844,12 @@ export function validateExportPayload(data: unknown): ExportPayload {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/db/importExport.test.ts`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/db/importExport.ts src/db/importExport.test.ts
@@ -865,7 +865,7 @@ git commit -m "feat(db): add export payload types and validateExportPayload"
 **Interfaces:**
 - Produces: `ExerciseMergePlan { toInsert: ExportedExercise[]; matchedIds: Map<string, number> }`; `planExerciseMerge(existing: { id: number; uuid: string | null; name: string }[], imported: ExportedExercise[]): ExerciseMergePlan`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/db/importExport.test.ts`:
 
@@ -918,12 +918,12 @@ describe("planExerciseMerge", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/db/importExport.test.ts`
 Expected: FAIL — `planExerciseMerge` is not exported yet.
 
-- [ ] **Step 3: Implement `planExerciseMerge`**
+- [x] **Step 3: Implement `planExerciseMerge`**
 
 Append to `src/db/importExport.ts`:
 
@@ -961,12 +961,12 @@ export function planExerciseMerge(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/db/importExport.test.ts`
 Expected: PASS (8 tests total)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/db/importExport.ts src/db/importExport.test.ts
@@ -982,7 +982,7 @@ git commit -m "feat(db): add planExerciseMerge for import merge-by-uuid-then-nam
 **Interfaces:**
 - Produces: `planSessionMerge(existingUuids: Set<string>, imported: ExportedSession[]): ExportedSession[]` — the subset of `imported` whose `uuid` is not already present (this is also the shape used for `routineSplits`/`trainingPrograms` skip-checks in `applyImport`, Task 10, but those are simple enough to inline there — only sessions get a named, tested helper here since it's the case the spec's "re-importing the same file" edge case hinges on).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/db/importExport.test.ts`:
 
@@ -1023,12 +1023,12 @@ describe("planSessionMerge", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/db/importExport.test.ts`
 Expected: FAIL — `planSessionMerge` is not exported yet.
 
-- [ ] **Step 3: Implement `planSessionMerge`**
+- [x] **Step 3: Implement `planSessionMerge`**
 
 Append to `src/db/importExport.ts`:
 
@@ -1041,12 +1041,12 @@ export function planSessionMerge(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/db/importExport.test.ts`
 Expected: PASS (11 tests total)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/db/importExport.ts src/db/importExport.test.ts
@@ -1064,7 +1064,7 @@ git commit -m "feat(db): add planSessionMerge for idempotent session re-import"
 
 No automated test — reads directly from the live `db` singleton, which is excluded from Jest coverage (see "Testing strategy"). Verified via `npx tsc --noEmit` and, once Task 11 wires it to a button, by exercising Export in the running app.
 
-- [ ] **Step 1: Implement `buildExportPayload`**
+- [x] **Step 1: Implement `buildExportPayload`**
 
 Append to `src/db/importExport.ts` (add `import { db } from "./client";` and `import { SCHEMA_VERSION } from "./schema";` to the top of the file, alongside the existing `Modality, SplitMode` import):
 
@@ -1311,12 +1311,12 @@ export function buildExportPayload(): ExportPayload {
 
 Note: session photos are deliberately **not** included — `session_photos.uri` points at a local file path or blob URL that has no meaning on another device (see the design spec's "Photos are out of scope" decision). A restored session simply has no cover photo until the user re-adds one.
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/db/importExport.ts
@@ -1334,7 +1334,7 @@ git commit -m "feat(db): add buildExportPayload"
 
 No automated test — same reasoning as Task 9. This is the highest-risk untested function in the plan (it's the one that writes the user's data), which is exactly why every state-changing branch inside it delegates its *decision* (insert vs. skip vs. match) to the already-tested pure planners — this function's own job is reduced to "loop and call `db.runSync`," minimizing what's left unverified by the test suite.
 
-- [ ] **Step 1: Implement `applyImport`**
+- [x] **Step 1: Implement `applyImport`**
 
 Append to `src/db/importExport.ts`:
 
@@ -1507,12 +1507,12 @@ export function applyImport(payload: ExportPayload): ImportSummary {
 }
 ```
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/db/importExport.ts
@@ -1531,7 +1531,7 @@ git commit -m "feat(db): add applyImport — transactional merge of an export pa
 
 No automated test — these are platform-glue files with no pure logic to isolate, matching the existing untested `PhotoAttachment.tsx`/`PhotoAttachment.web.tsx` pair. Verified via `npx tsc --noEmit` and manual exercise once wired into the Settings screen (Task 12).
 
-- [ ] **Step 1: Native export — `src/db/exportFile.ts`**
+- [x] **Step 1: Native export — `src/db/exportFile.ts`**
 
 ```ts
 import * as FileSystem from "expo-file-system";
@@ -1549,7 +1549,7 @@ export async function exportBackup(): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Web export — `src/db/exportFile.web.ts`**
+- [x] **Step 2: Web export — `src/db/exportFile.web.ts`**
 
 ```ts
 import { buildExportPayload } from "./importExport";
@@ -1569,7 +1569,7 @@ export async function exportBackup(): Promise<void> {
 }
 ```
 
-- [ ] **Step 3: Native import — `src/db/importFile.ts`**
+- [x] **Step 3: Native import — `src/db/importFile.ts`**
 
 ```ts
 import * as DocumentPicker from "expo-document-picker";
@@ -1583,7 +1583,7 @@ export async function pickImportFile(): Promise<string | null> {
 }
 ```
 
-- [ ] **Step 4: Web import — `src/db/importFile.web.ts`**
+- [x] **Step 4: Web import — `src/db/importFile.web.ts`**
 
 ```ts
 import * as DocumentPicker from "expo-document-picker";
@@ -1599,12 +1599,12 @@ export async function pickImportFile(): Promise<string | null> {
 }
 ```
 
-- [ ] **Step 5: Typecheck**
+- [x] **Step 5: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/db/exportFile.ts src/db/exportFile.web.ts src/db/importFile.ts src/db/importFile.web.ts
@@ -1624,7 +1624,7 @@ git commit -m "feat(db): add native/web file I/O for export and import"
 
 No automated test for the screen component itself — this codebase has no component-level tests anywhere (`app/*.tsx` files are all untested; verification for screens is manual, per the project's established pattern). `notify.ts`/`notify.web.ts` are thin platform glue like Task 11's files, same rationale.
 
-- [ ] **Step 1: Cross-platform alert helper**
+- [x] **Step 1: Cross-platform alert helper**
 
 `react-native-web`'s `Alert.alert` is a no-op stub (confirmed in `node_modules/react-native-web/dist/exports/Alert/index.js` — `static alert() {}`), so a raw `Alert.alert(...)` call would silently do nothing in the browser. Split it like `PhotoAttachment`:
 
@@ -1644,7 +1644,7 @@ export function notify(title: string, message: string): void {
 }
 ```
 
-- [ ] **Step 2: Settings screen**
+- [x] **Step 2: Settings screen**
 
 ```tsx
 // app/settings.tsx
@@ -1730,7 +1730,7 @@ export default function SettingsScreen() {
 }
 ```
 
-- [ ] **Step 3: Register the route**
+- [x] **Step 3: Register the route**
 
 In `app/_layout.tsx`, add a plain (non-modal) screen inside the `<Stack>` — placement among the other `Stack.Screen` entries doesn't matter, add it right after `<Stack.Screen name="(tabs)" />`:
 
@@ -1744,12 +1744,12 @@ In `app/_layout.tsx`, add a plain (non-modal) screen inside the `<Stack>` — pl
             />
 ```
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/settings.tsx app/_layout.tsx src/utils/notify.ts src/utils/notify.web.ts
@@ -1766,7 +1766,7 @@ git commit -m "feat(settings): add Settings screen with export/import actions"
 
 No automated test — this codebase has no test coverage on `app/(tabs)/*.tsx` screens. Verified via `npx tsc --noEmit`.
 
-- [ ] **Step 1: Add the gear icon**
+- [x] **Step 1: Add the gear icon**
 
 In `app/(tabs)/index.tsx`, add the icon import:
 
@@ -1810,12 +1810,12 @@ Add a gear button just before the existing "+" button, inside the same `flex-row
         </View>
 ```
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add "app/(tabs)/index.tsx"
@@ -1826,22 +1826,22 @@ git commit -m "feat(feed): add settings gear icon to the header"
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Typecheck the whole project**
+- [x] **Step 1: Typecheck the whole project**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 2: Lint the whole project**
+- [x] **Step 2: Lint the whole project**
 
 Run: `npx eslint .`
 Expected: no errors (warnings for pre-existing `no-console` usages elsewhere are fine — do not fix unrelated files).
 
-- [ ] **Step 3: Run the full test suite**
+- [x] **Step 3: Run the full test suite**
 
 Run: `npx jest --ci`
 Expected: all suites pass, including the new `src/utils/uuid.test.ts` and `src/db/importExport.test.ts` (11+ tests across both), alongside the pre-existing `src/data/modalities.test.ts` and `src/utils/cycle.test.ts`.
 
-- [ ] **Step 4: Confirm no stray files**
+- [x] **Step 4: Confirm no stray files**
 
 Run: `git status --short`
 Expected: clean (everything from Tasks 1–13 already committed); if anything is untracked/modified, investigate before declaring the plan complete — do not leave uncommitted work.
@@ -1851,3 +1851,10 @@ Expected: clean (everything from Tasks 1–13 already committed); if anything is
 - **Spec coverage:** every section of `docs/superpowers/specs/2026-07-10-export-import-backup-design.md` maps to a task — schema v9 (Task 4), export flow (Tasks 9, 11, 12), import/merge flow (Tasks 7, 8, 10, 11, 12), UI (Task 12 + 13), edge cases (re-import same file → Task 8's uuid-skip test; exercise renamed post-export → Task 7's "prefers uuid match over name match" test; unknown `exportFormatVersion` → Task 6's tests). The one gap: the spec's "round-trip test" and general DB-level automated tests are not implemented, for the empirically-verified reason in "Testing strategy" above — flagged, not silently dropped.
 - **Placeholder scan:** no TBD/TODO; every step has complete, copy-pasteable code.
 - **Type consistency:** `createExercise`'s new return shape (`{ id, uuid }`) is used consistently in Task 5 (both the function and its one caller, `useExercises.ts`); `ExportedExercise`/`ExportedSession`/etc. field names match exactly between `buildExportPayload` (Task 9, produces them) and `applyImport` (Task 10, consumes them) and the merge planners (Tasks 7–8); `withTransactionSync` (Task 3) is called with the exact same signature (`(task: () => void): void`) `applyImport` (Task 10) expects.
+
+## Deviations Found During Execution
+
+- **`createExercise`'s caller wasn't the only stub-object site.** `app/routine/new-split.tsx` constructs two local `RoutineSplit` placeholder objects (to satisfy `addUnit`'s parameter type before the real split reloads from DB) that a plain grep for `createSplit(` didn't surface. `npx tsc --noEmit` caught both; fixed by adding `uuid: ""` (never read — `addUnit` only reads `id`/`mode`/`name`/`modality`). Same for `src/data/exercises.ts`'s `SEED_EXERCISES`/`SEED_RUNNING_EXERCISES` literals, which are inserted via raw SQL in `migrations.ts` and never go through `createExercise` — their type annotation needed `| "uuid"` added to the `Omit`.
+- **`buildExportPayload`/`applyImport` were split into a new file, `src/db/importExportApply.ts`, not left in `importExport.ts` as originally planned.** Reason: `importExport.ts` importing `db` from `./client` (needed by those two functions) makes `./client`'s module-level `SQLite.openDatabaseSync(...)` call run the instant anything imports `importExport.ts` — including the test file, which broke the already-passing `validateExportPayload`/`planExerciseMerge`/`planSessionMerge` tests. `importExport.ts` now holds only pure types/logic (no `db` import); `importExportApply.ts` holds the two db-touching functions and re-exports nothing back. `exportFile.ts`/`exportFile.web.ts`/`app/settings.tsx` import from whichever file actually has what they need.
+- **`npx eslint .` cannot run in this repo as-is** — `eslint` isn't a `package.json` dependency (only the `"lint": "eslint ."` script exists), so `npx eslint` resolves an incompatible global v10 that doesn't understand this project's legacy `.eslintrc.js`. Pre-existing, unrelated to this feature — not fixed here (out of scope). `npx tsc --noEmit` and `npx jest --ci` both pass cleanly.
+- **Concurrent unrelated work in the same working tree**: `src/components/VolumeChart.tsx` (modified), `VolumeChart.web.tsx` / `VolumeChartImpl.tsx` (new, untracked), `tsconfig.json` (modified), and `docs/superpowers/plans/2026-07-10-run-pace-input.md` (untracked) appeared during this session without this plan ever touching them. Left as-is and excluded from every commit above via explicit file lists (never `git add -A`).
