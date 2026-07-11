@@ -1,4 +1,5 @@
-import { validateExportPayload, CURRENT_EXPORT_FORMAT_VERSION } from "./importExport";
+import { validateExportPayload, CURRENT_EXPORT_FORMAT_VERSION, planExerciseMerge } from "./importExport";
+import type { ExportedExercise } from "./importExport";
 
 function validPayload() {
   return {
@@ -31,5 +32,49 @@ describe("validateExportPayload", () => {
   it("rejects a payload missing a data section", () => {
     const { exercises, ...rest } = validPayload();
     expect(() => validateExportPayload(rest)).toThrow();
+  });
+});
+
+function exercise(overrides: Partial<ExportedExercise> = {}): ExportedExercise {
+  return {
+    uuid: "ex-uuid-1",
+    name: "Supino reto",
+    muscle_group: "chest",
+    equipment: "barbell",
+    type: "compound",
+    is_custom: 0,
+    modality: "musculacao",
+    ...overrides,
+  };
+}
+
+describe("planExerciseMerge", () => {
+  it("matches an existing exercise by uuid", () => {
+    const existing = [{ id: 5, uuid: "ex-uuid-1", name: "Supino reto" }];
+    const plan = planExerciseMerge(existing, [exercise()]);
+    expect(plan.toInsert).toEqual([]);
+    expect(plan.matchedIds.get("ex-uuid-1")).toBe(5);
+  });
+
+  it("falls back to matching by name when uuid is unknown", () => {
+    const existing = [{ id: 5, uuid: null, name: "Supino reto" }];
+    const plan = planExerciseMerge(existing, [exercise({ uuid: "ex-uuid-2" })]);
+    expect(plan.toInsert).toEqual([]);
+    expect(plan.matchedIds.get("ex-uuid-2")).toBe(5);
+  });
+
+  it("queues an exercise with no local match for insertion", () => {
+    const plan = planExerciseMerge([], [exercise({ uuid: "ex-uuid-3", name: "Novo exercício" })]);
+    expect(plan.toInsert).toEqual([exercise({ uuid: "ex-uuid-3", name: "Novo exercício" })]);
+    expect(plan.matchedIds.size).toBe(0);
+  });
+
+  it("prefers a uuid match over a name match", () => {
+    const existing = [
+      { id: 1, uuid: "ex-uuid-1", name: "Old name" },
+      { id: 2, uuid: null, name: "Supino reto" },
+    ];
+    const plan = planExerciseMerge(existing, [exercise({ name: "Supino reto" })]);
+    expect(plan.matchedIds.get("ex-uuid-1")).toBe(1);
   });
 });

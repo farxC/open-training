@@ -135,3 +135,35 @@ export function validateExportPayload(data: unknown): ExportPayload {
   }
   return payload as ExportPayload;
 }
+
+export interface ExerciseMergePlan {
+  toInsert: ExportedExercise[];
+  /** Imported exercise uuid -> local exercise id (already present, either by uuid or by name). */
+  matchedIds: Map<string, number>;
+}
+
+export function planExerciseMerge(
+  existing: { id: number; uuid: string | null; name: string }[],
+  imported: ExportedExercise[]
+): ExerciseMergePlan {
+  const idByUuid = new Map(existing.filter((e) => e.uuid).map((e) => [e.uuid as string, e.id]));
+  const idByName = new Map(existing.map((e) => [e.name, e.id]));
+  const toInsert: ExportedExercise[] = [];
+  const matchedIds = new Map<string, number>();
+
+  for (const ex of imported) {
+    const byUuid = idByUuid.get(ex.uuid);
+    if (byUuid !== undefined) {
+      matchedIds.set(ex.uuid, byUuid);
+      continue;
+    }
+    const byName = idByName.get(ex.name);
+    if (byName !== undefined) {
+      matchedIds.set(ex.uuid, byName);
+      continue;
+    }
+    toInsert.push(ex);
+  }
+
+  return { toInsert, matchedIds };
+}
