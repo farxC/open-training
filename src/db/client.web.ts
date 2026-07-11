@@ -97,4 +97,20 @@ export const db = {
       },
     };
   },
+
+  // Matches expo-sqlite's SQLiteDatabase.withTransactionSync — BEGIN/COMMIT wrapping a
+  // synchronous task, ROLLBACK and rethrow on failure. Needed so import can run as one
+  // atomic unit on both the native and web drivers.
+  withTransactionSync(task: () => void): void {
+    const d = requireDb();
+    d.run("BEGIN");
+    try {
+      task();
+      d.run("COMMIT");
+      persist();
+    } catch (err) {
+      d.run("ROLLBACK");
+      throw err;
+    }
+  },
 };
