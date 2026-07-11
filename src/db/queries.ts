@@ -88,7 +88,22 @@ export function getSessionWithSets(id: number): SessionWithSets | null {
     [id]
   );
 
-  return { ...session, sets, photos: getSessionPhotos(id) };
+  const ctx = db.getFirstSync<{ split_name: string | null; unit_label: string | null }>(
+    `SELECT rs.name AS split_name, ru.label AS unit_label
+     FROM sessions s
+     LEFT JOIN routine_splits rs ON rs.id = s.split_id
+     LEFT JOIN routine_units ru ON ru.id = s.unit_id
+     WHERE s.id = ?`,
+    [id]
+  );
+
+  return {
+    ...session,
+    sets,
+    photos: getSessionPhotos(id),
+    split_name: ctx?.split_name ?? null,
+    unit_label: ctx?.unit_label ?? null,
+  };
 }
 
 export function createSession(

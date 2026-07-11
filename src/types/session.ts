@@ -40,6 +40,8 @@ export interface WorkoutSet {
 export interface SessionWithSets extends Session {
   sets: (WorkoutSet & { exercise_name: string })[];
   photos: SessionPhoto[];
+  split_name: string | null;
+  unit_label: string | null;
 }
 
 export interface SessionSummary extends Session {
