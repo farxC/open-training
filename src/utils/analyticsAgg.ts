@@ -62,8 +62,8 @@ export function bucketSum(
  * Counts consecutive calendar days ending at `todayISO_` (defaults to the real
  * today, via cycle.ts todayISO()) for which `datesDesc[i]` (distinct session
  * dates, descending) equals `todayISO_` minus `i` days. Breaks on the first
- * gap — mirrors src/db/queries.ts getStreakDays exactly, just as a pure
- * function taking the dates array (so it's deterministic in tests).
+ * gap. Deterministic in tests since it takes the dates array directly rather
+ * than reading from the DB.
  */
 export function computeStreak(datesDesc: string[], todayISO_: string = todayISO()): number {
   let streak = 0;

@@ -621,56 +621,6 @@ export function deleteProgramEntry(id: number): void {
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
-export function getVolumeByWeek(weeks = 12): { week: string; volume_kg: number }[] {
-  return db.getAllSync<{ week: string; volume_kg: number }>(
-    `SELECT strftime('%Y-%W', s.date) AS week,
-            CAST(SUM(st.reps * st.weight_kg) AS REAL) AS volume_kg
-     FROM sessions s
-     JOIN sets st ON st.session_id = s.id
-     GROUP BY week
-     ORDER BY week DESC
-     LIMIT ?`,
-    [weeks]
-  );
-}
-
-export function getPRs(): {
-  exercise_id: number;
-  exercise_name: string;
-  max_weight_kg: number;
-  max_reps_at_max: number;
-}[] {
-  return db.getAllSync(
-    `SELECT
-       st.exercise_id,
-       e.name AS exercise_name,
-       MAX(st.weight_kg) AS max_weight_kg,
-       st.reps AS max_reps_at_max
-     FROM sets st
-     JOIN exercises e ON e.id = st.exercise_id
-     WHERE st.weight_kg = (
-       SELECT MAX(st2.weight_kg) FROM sets st2 WHERE st2.exercise_id = st.exercise_id
-     )
-     GROUP BY st.exercise_id
-     ORDER BY e.name`
-  );
-}
-
-export function getSessionFrequencyByMuscle(
-  days = 84
-): { muscle_group: string; count: number }[] {
-  return db.getAllSync<{ muscle_group: string; count: number }>(
-    `SELECT e.muscle_group, COUNT(DISTINCT s.id) AS count
-     FROM sessions s
-     JOIN sets st ON st.session_id = s.id
-     JOIN exercises e ON e.id = st.exercise_id
-     WHERE s.date >= date('now', '-' || ? || ' days')
-     GROUP BY e.muscle_group
-     ORDER BY count DESC`,
-    [days]
-  );
-}
-
 export function getSetsInRange(
   modality: Modality,
   startISO: string,
@@ -756,36 +706,3 @@ export function getSessionDatesByModality(modality: Modality): string[] {
   return rows.map((r) => r.date);
 }
 
-export function getRecentSessionDates(n: number): string[] {
-  const rows = db.getAllSync<{ date: string }>(
-    "SELECT DISTINCT date FROM sessions ORDER BY date DESC LIMIT ?",
-    [n]
-  );
-  return rows.map((r) => r.date);
-}
-
-export function getStreakDays(): number {
-  const rows = db.getAllSync<{ date: string }>(
-    "SELECT DISTINCT date FROM sessions ORDER BY date DESC"
-  );
-  if (rows.length === 0) return 0;
-
-  let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  for (let i = 0; i < rows.length; i++) {
-    const sessionDate = new Date(rows[i].date);
-    sessionDate.setHours(0, 0, 0, 0);
-    const expected = new Date(today);
-    expected.setDate(today.getDate() - i);
-
-    if (sessionDate.getTime() === expected.getTime()) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-}
