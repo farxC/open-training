@@ -415,3 +415,170 @@ export function buildExportPayload(): ExportPayload {
     trainingPrograms,
   };
 }
+
+export interface ImportSummary {
+  exercisesAdded: number;
+  sessionsAdded: number;
+  splitsAdded: number;
+  programsAdded: number;
+}
+
+export function applyImport(payload: ExportPayload): ImportSummary {
+  const summary: ImportSummary = {
+    exercisesAdded: 0,
+    sessionsAdded: 0,
+    splitsAdded: 0,
+    programsAdded: 0,
+  };
+
+  db.withTransactionSync(() => {
+    // 1. Exercises
+    const existingExercises = db.getAllSync<{ id: number; uuid: string | null; name: string }>(
+      "SELECT id, uuid, name FROM exercises"
+    );
+    const exercisePlan = planExerciseMerge(existingExercises, payload.exercises);
+    const exerciseIdByUuid = new Map(exercisePlan.matchedIds);
+    for (const ex of exercisePlan.toInsert) {
+      const result = db.runSync(
+        "INSERT INTO exercises (name, muscle_group, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [ex.name, ex.muscle_group, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid]
+      );
+      exerciseIdByUuid.set(ex.uuid, result.lastInsertRowId);
+      summary.exercisesAdded++;
+    }
+
+    // 2. Routine splits (+ units + unit exercises) — matched-by-uuid splits are skipped
+    // whole (their units/exercises are assumed to already match too), same as sessions.
+    const existingSplits = db.getAllSync<{ id: number; uuid: string | null }>(
+      "SELECT id, uuid FROM routine_splits"
+    );
+    const splitIdByUuid = new Map(
+      existingSplits.filter((s) => s.uuid).map((s) => [s.uuid as string, s.id])
+    );
+    for (const split of payload.routineSplits) {
+      if (splitIdByUuid.has(split.uuid)) continue;
+
+      const result = db.runSync(
+        `INSERT INTO routine_splits (name, mode, modality, anchor_date, rest_weekdays, "order", uuid) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [split.name, split.mode, split.modality, split.anchor_date, split.rest_weekdays.join(","), split.order, split.uuid]
+      );
+      const splitId = result.lastInsertRowId;
+      splitIdByUuid.set(split.uuid, splitId);
+      summary.splitsAdded++;
+
+      for (const unit of split.units) {
+        const unitResult = db.runSync(
+          "INSERT INTO routine_units (split_id, ordinal, label) VALUES (?, ?, ?)",
+          [splitId, unit.ordinal, unit.label]
+        );
+        const unitId = unitResult.lastInsertRowId;
+        for (const ue of unit.exercises) {
+          const exerciseId = exerciseIdByUuid.get(ue.exercise_uuid);
+          if (exerciseId === undefined) continue;
+          db.runSync(
+            `INSERT INTO routine_unit_exercises
+               (unit_id, exercise_id, "order", target_sets, target_reps, target_reps_max, target_weight_kg,
+                target_distance_km, target_duration_min, run_type, target_pace_sec,
+                interval_reps, interval_work_sec, interval_work_km, interval_rest_sec)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              unitId, exerciseId, ue.order, ue.target_sets, ue.target_reps, ue.target_reps_max,
+              ue.target_weight_kg, ue.target_distance_km, ue.target_duration_min, ue.run_type,
+              ue.target_pace_sec, ue.interval_reps, ue.interval_work_sec, ue.interval_work_km, ue.interval_rest_sec,
+            ]
+          );
+        }
+      }
+    }
+
+    // 3. Sessions
+    const existingSessionUuids = new Set(
+      db
+        .getAllSync<{ uuid: string | null }>("SELECT uuid FROM sessions")
+        .map((r) => r.uuid)
+        .filter((u): u is string => u !== null)
+    );
+    const sessionsToInsert = planSessionMerge(existingSessionUuids, payload.sessions);
+    for (const session of sessionsToInsert) {
+      const result = db.runSync(
+        "INSERT INTO sessions (date, name, notes, modality, uuid) VALUES (?, ?, ?, ?, ?)",
+        [session.date, session.name, session.notes, session.modality, session.uuid]
+      );
+      const sessionId = result.lastInsertRowId;
+      for (const set of session.sets) {
+        const exerciseId = exerciseIdByUuid.get(set.exercise_uuid);
+        if (exerciseId === undefined) continue;
+        db.runSync(
+          `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            sessionId, exerciseId, set.set_number, set.reps, set.weight_kg, set.rpe, set.rir,
+            set.notes, set.distance_km, set.duration_sec, set.pace_sec,
+          ]
+        );
+      }
+      summary.sessionsAdded++;
+    }
+
+    // 4. Training programs (+ weeks + entries)
+    const existingPrograms = db.getAllSync<{ id: number; uuid: string | null }>(
+      "SELECT id, uuid FROM training_programs"
+    );
+    const programIdByUuid = new Map(
+      existingPrograms.filter((p) => p.uuid).map((p) => [p.uuid as string, p.id])
+    );
+    for (const program of payload.trainingPrograms) {
+      if (programIdByUuid.has(program.uuid)) continue;
+      const splitId = splitIdByUuid.get(program.split_uuid);
+      if (splitId === undefined) continue; // split this program belongs to wasn't in the file or failed to match
+
+      const unitIdByOrdinal = new Map(
+        db
+          .getAllSync<{ id: number; ordinal: number }>(
+            "SELECT id, ordinal FROM routine_units WHERE split_id = ?",
+            [splitId]
+          )
+          .map((u) => [u.ordinal, u.id])
+      );
+
+      const result = db.runSync(
+        `INSERT INTO training_programs (split_id, name, total_weeks, is_active, "order", setup_week_number, started_at, uuid)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          splitId, program.name, program.total_weeks, program.is_active ? 1 : 0, program.order,
+          program.setup_week_number, program.started_at, program.uuid,
+        ]
+      );
+      const programId = result.lastInsertRowId;
+      summary.programsAdded++;
+
+      for (const week of program.weeks) {
+        const weekResult = db.runSync(
+          "INSERT INTO program_weeks (program_id, week_number, label) VALUES (?, ?, ?)",
+          [programId, week.week_number, week.label]
+        );
+        const weekId = weekResult.lastInsertRowId;
+        for (const entry of week.entries) {
+          const exerciseId = exerciseIdByUuid.get(entry.exercise_uuid);
+          const unitId = unitIdByOrdinal.get(entry.unit_ordinal);
+          if (exerciseId === undefined || unitId === undefined) continue;
+          db.runSync(
+            `INSERT INTO program_entries
+               (week_id, unit_id, exercise_id, target_sets, target_reps, target_reps_max, target_weight_kg,
+                target_distance_km, target_duration_min, run_type, target_pace_sec,
+                interval_reps, interval_work_sec, interval_work_km, interval_rest_sec)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              weekId, unitId, exerciseId, entry.target_sets, entry.target_reps, entry.target_reps_max,
+              entry.target_weight_kg, entry.target_distance_km, entry.target_duration_min, entry.run_type,
+              entry.target_pace_sec, entry.interval_reps, entry.interval_work_sec, entry.interval_work_km,
+              entry.interval_rest_sec,
+            ]
+          );
+        }
+      }
+    }
+  });
+
+  return summary;
+}
