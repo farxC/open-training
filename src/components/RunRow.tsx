@@ -15,7 +15,8 @@ export function RunRow({ set, onChange, onDelete }: Props) {
 
   const handleDistanceChange = (v: string) => {
     const distance = parseFloat(v.replace(",", ".")) || 0;
-    onChange({ distance_km: distance, duration_sec: continuousDurationSec(distance, set.pace_sec) });
+    const duration_sec = set.pace_sec != null ? continuousDurationSec(distance, set.pace_sec) : set.duration_sec;
+    onChange({ distance_km: distance, duration_sec });
   };
 
   const handlePaceChange = (v: string) => {
