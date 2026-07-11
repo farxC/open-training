@@ -12,6 +12,7 @@ export interface Session {
   split_id: number | null;
   unit_id: number | null;
   program_week_id: number | null;
+  uuid: string;
 }
 
 export interface SessionPhoto {

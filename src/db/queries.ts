@@ -1,5 +1,6 @@
 import { db } from "./client";
 import { todayISO } from "../utils/cycle";
+import { generateUuid } from "../utils/uuid";
 import type {
   Exercise,
   MuscleGroup,
@@ -30,6 +31,7 @@ export function getSessions(): SessionSummary[] {
     notes: string | null;
     duration_seconds: number | null;
     photo_uri: string | null;
+    uuid: string;
     modality: Modality;
     split_id: number | null;
     unit_id: number | null;
@@ -40,7 +42,7 @@ export function getSessions(): SessionSummary[] {
     exercise_names_raw: string | null;
   }>(
     `SELECT
-      s.id, s.date, s.name, s.notes, s.duration_seconds, s.photo_uri,
+      s.id, s.date, s.name, s.notes, s.duration_seconds, s.photo_uri, s.uuid,
       s.modality, s.split_id, s.unit_id, s.program_week_id,
       COALESCE(
         (SELECT uri FROM session_photos WHERE session_id = s.id ORDER BY "order", id LIMIT 1),
@@ -63,7 +65,7 @@ export function getSessions(): SessionSummary[] {
 
 export function getSessionById(id: number): Session | null {
   return db.getFirstSync<Session>(
-    `SELECT id, date, name, notes, duration_seconds, photo_uri,
+    `SELECT id, date, name, notes, duration_seconds, photo_uri, uuid,
             modality, split_id, unit_id, program_week_id
      FROM sessions WHERE id = ?`,
     [id]
@@ -98,8 +100,8 @@ export function createSession(
   }
 ): number {
   const result = db.runSync(
-    `INSERT INTO sessions (date, name, notes, modality, split_id, unit_id, program_week_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (date, name, notes, modality, split_id, unit_id, program_week_id, uuid)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       date,
       opts?.name ?? null,
@@ -108,6 +110,7 @@ export function createSession(
       opts?.split_id ?? null,
       opts?.unit_id ?? null,
       opts?.program_week_id ?? null,
+      generateUuid(),
     ]
   );
   return result.lastInsertRowId;
@@ -225,12 +228,13 @@ export function getExercises(filter?: {
   );
 }
 
-export function createExercise(ex: Omit<Exercise, "id">): number {
+export function createExercise(ex: Omit<Exercise, "id" | "uuid">): { id: number; uuid: string } {
+  const uuid = generateUuid();
   const result = db.runSync(
-    "INSERT INTO exercises (name, muscle_group, equipment, type, is_custom, modality) VALUES (?, ?, ?, ?, ?, ?)",
-    [ex.name, ex.muscle_group, ex.equipment, ex.type, 1, ex.modality]
+    "INSERT INTO exercises (name, muscle_group, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    [ex.name, ex.muscle_group, ex.equipment, ex.type, 1, ex.modality, uuid]
   );
-  return result.lastInsertRowId;
+  return { id: result.lastInsertRowId, uuid };
 }
 
 export function getExerciseSets(exerciseId: number): (WorkoutSet & { date: string })[] {
@@ -254,6 +258,7 @@ interface SplitRow {
   anchor_date: string | null;
   rest_weekdays: string;
   order: number;
+  uuid: string;
 }
 
 function parseRest(csv: string): number[] {
@@ -270,14 +275,15 @@ export function getSplits(): RoutineSplit[] {
     anchor_date: r.anchor_date,
     rest_weekdays: parseRest(r.rest_weekdays),
     order: r.order,
+    uuid: r.uuid,
   }));
 }
 
 export function createSplit(s: { name: string; mode: SplitMode; modality: Modality }): number {
   const count = db.getAllSync<{ id: number }>("SELECT id FROM routine_splits").length;
   const result = db.runSync(
-    `INSERT INTO routine_splits (name, mode, modality, anchor_date, rest_weekdays, "order") VALUES (?, ?, ?, NULL, '', ?)`,
-    [s.name, s.mode, s.modality, count]
+    `INSERT INTO routine_splits (name, mode, modality, anchor_date, rest_weekdays, "order", uuid) VALUES (?, ?, ?, NULL, '', ?, ?)`,
+    [s.name, s.mode, s.modality, count, generateUuid()]
   );
   return result.lastInsertRowId;
 }
@@ -449,6 +455,7 @@ interface TrainingProgramRow {
   order: number;
   setup_week_number: number | null;
   started_at: string | null;
+  uuid: string;
 }
 
 function mapProgram(r: TrainingProgramRow): TrainingProgram {
@@ -461,6 +468,7 @@ function mapProgram(r: TrainingProgramRow): TrainingProgram {
     order: r.order,
     setup_week_number: r.setup_week_number,
     started_at: r.started_at,
+    uuid: r.uuid,
   };
 }
 
@@ -483,8 +491,8 @@ export function createProgram(p: { split_id: number; name: string; total_weeks: 
     [p.split_id]
   ).length;
   const result = db.runSync(
-    `INSERT INTO training_programs (split_id, name, total_weeks, is_active, "order") VALUES (?, ?, ?, 0, ?)`,
-    [p.split_id, p.name, p.total_weeks, count]
+    `INSERT INTO training_programs (split_id, name, total_weeks, is_active, "order", uuid) VALUES (?, ?, ?, 0, ?, ?)`,
+    [p.split_id, p.name, p.total_weeks, count, generateUuid()]
   );
   return result.lastInsertRowId;
 }

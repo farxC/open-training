@@ -17,10 +17,10 @@ export function useExercises(filter?: Filter) {
   }, [filter]);
 
   const createCustom = useCallback(
-    (ex: Omit<Exercise, "id">): Exercise => {
-      const id = createExercise(ex);
+    (ex: Omit<Exercise, "id" | "uuid">): Exercise => {
+      const { id, uuid } = createExercise(ex);
       refresh();
-      return { ...ex, id, is_custom: 1 };
+      return { ...ex, id, uuid, is_custom: 1 };
     },
     [refresh]
   );

@@ -33,4 +33,5 @@ export interface Exercise {
   type: ExerciseType;
   is_custom: 0 | 1;
   modality: Modality;
+  uuid: string;
 }

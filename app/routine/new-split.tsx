@@ -84,7 +84,8 @@ export default function NewSplitScreen() {
     const splitId = r.addSplit(name, "cyclic", modality);
     if (cyclicRestDays.length > 0) r.setRestWeekdays(splitId, cyclicRestDays);
     if (cyclicAnchorDate) r.setSplitAnchorDate(splitId, cyclicAnchorDate);
-    // r.splits hasn't re-rendered with the new split yet — addUnit only needs these fields.
+    // r.splits hasn't re-rendered with the new split yet — addUnit only needs these fields
+    // (uuid is never read here; the real one lives in the row just inserted).
     const split: RoutineSplit = {
       id: splitId,
       name,
@@ -93,6 +94,7 @@ export default function NewSplitScreen() {
       anchor_date: cyclicAnchorDate,
       rest_weekdays: cyclicRestDays,
       order: 0,
+      uuid: "",
     };
     for (let i = 0; i < cyclicDayKeys.length; i++) r.addUnit(split);
 
@@ -106,7 +108,8 @@ export default function NewSplitScreen() {
 
   const createWeeklyCorridaSplit = () => {
     const splitId = r.addSplit(name, "weekly", "corrida");
-    // r.splits hasn't re-rendered with the new split yet — addUnit only needs these fields.
+    // r.splits hasn't re-rendered with the new split yet — addUnit only needs these fields
+    // (uuid is never read here; the real one lives in the row just inserted).
     const split: RoutineSplit = {
       id: splitId,
       name,
@@ -115,6 +118,7 @@ export default function NewSplitScreen() {
       anchor_date: null,
       rest_weekdays: [],
       order: 0,
+      uuid: "",
     };
     for (const wd of selectedDays) {
       r.addUnit(split, { ordinal: wd, label: WD_SHORT[wd] });

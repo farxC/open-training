@@ -2,11 +2,11 @@ import type { Exercise } from "@/types";
 
 // Modality is assigned at insert time: everything in SEED_EXERCISES is "musculacao";
 // SEED_RUNNING_EXERCISES is "corrida".
-export const SEED_RUNNING_EXERCISES: Omit<Exercise, "id" | "modality">[] = [
+export const SEED_RUNNING_EXERCISES: Omit<Exercise, "id" | "modality" | "uuid">[] = [
   { name: "Correr", muscle_group: "cardio", equipment: "bodyweight", type: "compound", is_custom: 0 },
 ];
 
-export const SEED_EXERCISES: Omit<Exercise, "id" | "modality">[] = [
+export const SEED_EXERCISES: Omit<Exercise, "id" | "modality" | "uuid">[] = [
   // Chest
   { name: "Barbell Bench Press", muscle_group: "chest", equipment: "barbell", type: "compound", is_custom: 0 },
   { name: "Incline Barbell Bench Press", muscle_group: "chest", equipment: "barbell", type: "compound", is_custom: 0 },

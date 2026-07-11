@@ -10,6 +10,7 @@ export interface RoutineSplit {
   anchor_date: string | null;
   rest_weekdays: number[]; // 0=Sun..6=Sat (cyclic only)
   order: number;
+  uuid: string;
 }
 
 export interface RoutineUnit {
@@ -62,6 +63,7 @@ export interface TrainingProgram {
   setup_week_number: number | null;
   /** Date (YYYY-MM-DD) this program was first activated; anchors "current week" math. Null until activated. */
   started_at: string | null;
+  uuid: string;
 }
 
 export interface ProgramWeek {
