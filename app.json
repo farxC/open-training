@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.opentraining.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1a1a2e"
       }
@@ -28,7 +29,8 @@
         {
           "photosPermission": "The app accesses your photos to attach to workout sessions."
         }
-      ]
+      ],
+      "./plugins/withAndroidReleaseSigning"
     ],
     "experiments": {
       "typedRoutes": true

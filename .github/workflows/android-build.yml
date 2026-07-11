@@ -1,0 +1,95 @@
+name: Android Release Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch: {}
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Java (Temurin 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Prebuild Android project
+        run: |
+          rm -rf android
+          npx expo prebuild --platform android --no-install
+
+      - name: Detect required Android SDK components
+        id: sdk-versions
+        run: |
+          COMPILE_SDK=$(grep -oE "android\.compileSdkVersion'\) \?: '[0-9]+" android/build.gradle | grep -oE '[0-9]+$')
+          BUILD_TOOLS=$(grep -oE "android\.buildToolsVersion'\) \?: '[0-9.]+" android/build.gradle | grep -oE '[0-9.]+$')
+          echo "compile_sdk=$COMPILE_SDK" >> "$GITHUB_OUTPUT"
+          echo "build_tools=$BUILD_TOOLS" >> "$GITHUB_OUTPUT"
+          echo "Detected compileSdkVersion=$COMPILE_SDK buildToolsVersion=$BUILD_TOOLS"
+
+      - name: Ensure required Android SDK platform/build-tools are installed
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-${{ steps.sdk-versions.outputs.compile_sdk }}" \
+            "build-tools;${{ steps.sdk-versions.outputs.build_tools }}"
+
+      - name: Decode release keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          ANDROID_RELEASE_STORE_FILE: release.keystore
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Remove keystore from disk
+        if: always()
+        run: rm -f android/app/release.keystore
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-training-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/release/app-release.apk
+          generate_release_notes: true
