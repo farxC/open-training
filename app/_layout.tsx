@@ -52,6 +52,7 @@ export default function RootLayout() {
         <SessionRecorderProvider>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="settings" />
             <Stack.Screen
               name="session/new"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
