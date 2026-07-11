@@ -17,6 +17,12 @@ function achievedInRange(dateISO: string | null, range: DateRange): boolean {
   return dateISO != null && dateISO >= range.start && dateISO <= range.end;
 }
 
+function formatBrazilianDateFormat (date: string | null): string{
+  if (date == null) return ''
+  const dateFormat = new Date(date + "T00:00:00")
+  return new Intl.DateTimeFormat("pt-BR").format(dateFormat)
+}
+
 interface RunningRecordCard {
   key: string;
   icon: string;
@@ -33,7 +39,7 @@ function buildRunningCards(records: RunningRecords, range: DateRange): RunningRe
       icon: "map-marker-distance",
       label: "Maior distância",
       value: `${records.longest_distance_km.toFixed(1)} km`,
-      sub: records.longest_distance_on ?? undefined,
+      sub: formatBrazilianDateFormat(records.longest_distance_on) ?? undefined,
       isNew: achievedInRange(records.longest_distance_on, range),
     },
     records.fastest_pace_sec != null && {
@@ -41,7 +47,7 @@ function buildRunningCards(records: RunningRecords, range: DateRange): RunningRe
       icon: "speedometer",
       label: "Pace mais rápido",
       value: formatPaceSec(records.fastest_pace_sec) ?? "—",
-      sub: records.fastest_pace_on ?? undefined,
+      sub: formatBrazilianDateFormat(records.fastest_pace_on) ?? undefined,
       isNew: achievedInRange(records.fastest_pace_on, range),
     },
     records.longest_duration_sec != null && {
@@ -49,7 +55,7 @@ function buildRunningCards(records: RunningRecords, range: DateRange): RunningRe
       icon: "timer-outline",
       label: "Maior duração",
       value: formatClock(records.longest_duration_sec),
-      sub: records.longest_duration_on ?? undefined,
+      sub: formatBrazilianDateFormat(records.longest_duration_on) ?? undefined,
       isNew: achievedInRange(records.longest_duration_on, range),
     },
   ];
