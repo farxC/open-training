@@ -3,7 +3,8 @@ import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "rea
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { exportBackup } from "@/db/exportFile";
 import { pickImportFile } from "@/db/importFile";
-import { applyImport, validateExportPayload } from "@/db/importExport";
+import { validateExportPayload } from "@/db/importExport";
+import { applyImport } from "@/db/importExportApply";
 import { notify } from "@/utils/notify";
 
 export default function SettingsScreen() {

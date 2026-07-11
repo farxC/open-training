@@ -1,6 +1,6 @@
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { buildExportPayload } from "./importExport";
+import { buildExportPayload } from "./importExportApply";
 
 export async function exportBackup(): Promise<void> {
   const payload = buildExportPayload();
