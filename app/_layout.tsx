@@ -7,13 +7,17 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessionRecorderProvider } from "@/context/SessionRecorderContext";
 import { initDatabase } from "@/db/client";
 import { runMigrations } from "@/db/migrations";
+import { ensureSkiaReady } from "@/skia/ensureSkiaReady";
 
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    initDatabase()
+    // Skia's CanvasKit (WASM) runtime has no native equivalent to wait on — it's a
+    // web-only async init, a no-op on native — so it waits alongside the DB the same
+    // way. Without it, charts (VolumeChart) silently fail to draw once data exists.
+    Promise.all([initDatabase(), ensureSkiaReady()])
       .then(() => {
         runMigrations();
         setDbReady(true);
