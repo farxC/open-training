@@ -3,6 +3,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { SessionCard } from "@/components/SessionCard";
 import { useSessions } from "@/hooks/useSessions";
 import type { SessionSummary } from "@/types";
@@ -34,6 +35,14 @@ export default function FeedScreen() {
                 : "No sessions yet"}
             </Text>
           </View>
+          <TouchableOpacity
+            className="w-10 h-10 rounded-full items-center justify-center"
+            onPress={() => router.push("/settings")}
+            style={{ marginRight: 8 }}
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons name="cog-outline" size={22} color="#5c594f" />
+          </TouchableOpacity>
           <TouchableOpacity
             className="bg-ink w-11 h-11 rounded-full items-center justify-center"
             onPress={() => router.push("/session/new")}
