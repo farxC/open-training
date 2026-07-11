@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -8,7 +8,8 @@ export const CREATE_TABLES: string[] = [
     equipment TEXT NOT NULL,
     type TEXT NOT NULL,
     is_custom INTEGER NOT NULL DEFAULT 0,
-    modality TEXT NOT NULL DEFAULT 'musculacao'
+    modality TEXT NOT NULL DEFAULT 'musculacao',
+    uuid TEXT UNIQUE
   )`,
 
   `CREATE TABLE IF NOT EXISTS sessions (
@@ -21,7 +22,8 @@ export const CREATE_TABLES: string[] = [
     modality TEXT NOT NULL DEFAULT 'musculacao',
     split_id INTEGER REFERENCES routine_splits(id) ON DELETE SET NULL,
     unit_id INTEGER REFERENCES routine_units(id) ON DELETE SET NULL,
-    program_week_id INTEGER REFERENCES program_weeks(id) ON DELETE SET NULL
+    program_week_id INTEGER REFERENCES program_weeks(id) ON DELETE SET NULL,
+    uuid TEXT UNIQUE
   )`,
 
   `CREATE TABLE IF NOT EXISTS session_photos (
@@ -53,7 +55,8 @@ export const CREATE_TABLES: string[] = [
     modality TEXT NOT NULL DEFAULT 'musculacao',
     anchor_date TEXT,
     rest_weekdays TEXT NOT NULL DEFAULT '',
-    "order" INTEGER NOT NULL DEFAULT 0
+    "order" INTEGER NOT NULL DEFAULT 0,
+    uuid TEXT UNIQUE
   )`,
 
   `CREATE TABLE IF NOT EXISTS routine_units (
@@ -101,7 +104,8 @@ export const CREATE_TABLES: string[] = [
     is_active INTEGER NOT NULL DEFAULT 0,
     "order" INTEGER NOT NULL DEFAULT 0,
     setup_week_number INTEGER,
-    started_at TEXT
+    started_at TEXT,
+    uuid TEXT UNIQUE
   )`,
 
   `CREATE TABLE IF NOT EXISTS program_weeks (

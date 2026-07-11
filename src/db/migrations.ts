@@ -48,6 +48,10 @@ export function runMigrations(): void {
   ensureColumn("sets", "distance_km", "REAL");
   ensureColumn("sets", "duration_sec", "INTEGER");
   ensureColumn("sets", "pace_sec", "INTEGER");
+  ensureColumn("exercises", "uuid", "TEXT");
+  ensureColumn("sessions", "uuid", "TEXT");
+  ensureColumn("routine_splits", "uuid", "TEXT");
+  ensureColumn("training_programs", "uuid", "TEXT");
 
   // Backfill: programs already active before this column existed have no anchor for
   // "which week are we in" — start counting from today rather than showing nothing.
@@ -64,6 +68,15 @@ export function runMigrations(): void {
      WHERE photo_uri IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM session_photos WHERE session_id = sessions.id)`
   );
+
+  // Backfill: rows created before schema v9 (export/import) have no uuid — the merge
+  // key import uses to tell "already have this" from "new". Generated in pure SQL via
+  // randomblob so it works identically on both the native and sql.js (web) drivers,
+  // and one row at a time so each gets a distinct value.
+  db.execSync("UPDATE exercises SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
+  db.execSync("UPDATE sessions SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
+  db.execSync("UPDATE routine_splits SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
+  db.execSync("UPDATE training_programs SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
 
   const row = db.getFirstSync<{ value: string }>(
     "SELECT value FROM user_meta WHERE key = 'schema_version'"
