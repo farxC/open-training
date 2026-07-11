@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { formatClock, formatPaceSec, parseClock } from "@/data/modalities";
+import { continuousDurationSec, formatClock, parseClock } from "@/data/modalities";
 import type { WorkoutSet } from "@/types";
 
 interface Props {
@@ -10,26 +10,21 @@ interface Props {
   onDelete: () => void;
 }
 
-function computePace(distanceKm: number | null, durationSec: number | null): number | null {
-  if (!distanceKm || !durationSec || distanceKm <= 0 || durationSec <= 0) return null;
-  return durationSec / distanceKm;
-}
-
 export function RunRow({ set, onChange, onDelete }: Props) {
-  const [durationText, setDurationText] = useState(formatClock(set.duration_sec));
+  const [paceText, setPaceText] = useState(formatClock(set.pace_sec));
 
   const handleDistanceChange = (v: string) => {
     const distance = parseFloat(v.replace(",", ".")) || 0;
-    onChange({ distance_km: distance, pace_sec: computePace(distance, set.duration_sec) });
+    onChange({ distance_km: distance, duration_sec: continuousDurationSec(distance, set.pace_sec) });
   };
 
-  const handleDurationChange = (v: string) => {
-    setDurationText(v);
-    const duration = parseClock(v);
-    onChange({ duration_sec: duration, pace_sec: computePace(set.distance_km, duration) });
+  const handlePaceChange = (v: string) => {
+    setPaceText(v);
+    const pace = parseClock(v);
+    onChange({ pace_sec: pace, duration_sec: continuousDurationSec(set.distance_km, pace) });
   };
 
-  const pace = formatPaceSec(set.pace_sec);
+  const duration = formatClock(set.duration_sec);
 
   return (
     <View style={{ borderBottomWidth: 1, borderBottomColor: '#ddd8ce', paddingVertical: 10 }}>
@@ -50,16 +45,17 @@ export function RunRow({ set, onChange, onDelete }: Props) {
           <Text className="text-ink-mute text-xs">km</Text>
         </View>
 
-        <Text className="text-ink-faint text-sm">em</Text>
+        <Text className="text-ink-faint text-sm">a</Text>
 
         <View className="flex-1 flex-row items-center bg-surface-elevated rounded-lg px-2.5 py-1.5">
           <TextInput
             className="text-ink flex-1 text-center text-sm"
-            value={durationText}
+            value={paceText}
             placeholder="mm:ss"
             placeholderTextColor="#bdb8aa"
-            onChangeText={handleDurationChange}
+            onChangeText={handlePaceChange}
           />
+          <Text className="text-ink-mute text-xs">/km</Text>
         </View>
 
         <TouchableOpacity onPress={onDelete} style={{ padding: 4 }}>
@@ -67,9 +63,9 @@ export function RunRow({ set, onChange, onDelete }: Props) {
         </TouchableOpacity>
       </View>
 
-      {pace && (
+      {duration && (
         <Text className="text-ink-mute text-xs mt-1.5" style={{ paddingLeft: 28 }}>
-          Pace: {pace}
+          Duração: {duration}
         </Text>
       )}
     </View>

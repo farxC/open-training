@@ -106,7 +106,7 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
           <Text className="text-ink-mute text-xs text-center" style={{ width: 20 }}>#</Text>
           <Text className="text-ink-mute text-xs flex-1 text-center">Distância</Text>
           <Text className="text-ink-mute text-xs" style={{ width: 20 }} />
-          <Text className="text-ink-mute text-xs flex-1 text-center">Duração</Text>
+          <Text className="text-ink-mute text-xs flex-1 text-center">Pace</Text>
           <Text style={{ width: 20 }} />
         </View>
       )}
