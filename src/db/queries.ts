@@ -19,6 +19,9 @@ import type {
   TrainingProgram,
   ProgramWeek,
   ProgramEntry,
+  AnalyticsSetRow,
+  StrengthRecord,
+  RunningRecords,
 } from "../types";
 
 // ─── Sessions ────────────────────────────────────────────────────────────────
@@ -666,6 +669,91 @@ export function getSessionFrequencyByMuscle(
      ORDER BY count DESC`,
     [days]
   );
+}
+
+export function getSetsInRange(
+  modality: Modality,
+  startISO: string,
+  endISO: string
+): AnalyticsSetRow[] {
+  return db.getAllSync<AnalyticsSetRow>(
+    `SELECT st.session_id, s.date, st.exercise_id, e.name AS exercise_name,
+            e.muscle_group, st.reps, st.weight_kg, st.distance_km, st.duration_sec, st.pace_sec
+     FROM sessions s
+     JOIN sets st ON st.session_id = s.id
+     JOIN exercises e ON e.id = st.exercise_id
+     WHERE s.modality = ? AND s.date >= ? AND s.date <= ?
+     ORDER BY s.date ASC, st.set_number ASC`,
+    [modality, startISO, endISO]
+  );
+}
+
+export function getStrengthRecords(): StrengthRecord[] {
+  return db.getAllSync<StrengthRecord>(
+    `SELECT st.exercise_id,
+            e.name AS exercise_name,
+            st.weight_kg AS max_weight_kg,
+            st.reps AS reps_at_max,
+            s.date AS achieved_on
+     FROM sets st
+     JOIN sessions s ON s.id = st.session_id
+     JOIN exercises e ON e.id = st.exercise_id
+     WHERE s.modality = 'musculacao'
+       AND st.weight_kg > 0
+       AND st.weight_kg = (
+         SELECT MAX(st2.weight_kg) FROM sets st2
+         JOIN sessions s2 ON s2.id = st2.session_id
+         WHERE st2.exercise_id = st.exercise_id AND s2.modality = 'musculacao'
+       )
+     GROUP BY st.exercise_id
+     ORDER BY max_weight_kg DESC`
+  );
+}
+
+export function getRunningRecords(): RunningRecords {
+  const longestDistance = db.getFirstSync<{ v: number; on: string }>(
+    `SELECT st.distance_km AS v, s.date AS "on"
+     FROM sets st
+     JOIN sessions s ON s.id = st.session_id
+     WHERE s.modality = 'corrida' AND st.distance_km IS NOT NULL AND st.distance_km > 0
+     ORDER BY st.distance_km DESC
+     LIMIT 1`
+  );
+
+  const fastestPace = db.getFirstSync<{ v: number; on: string }>(
+    `SELECT st.pace_sec AS v, s.date AS "on"
+     FROM sets st
+     JOIN sessions s ON s.id = st.session_id
+     WHERE s.modality = 'corrida' AND st.pace_sec IS NOT NULL AND st.pace_sec > 0
+     ORDER BY st.pace_sec ASC
+     LIMIT 1`
+  );
+
+  const longestDuration = db.getFirstSync<{ v: number; on: string }>(
+    `SELECT st.duration_sec AS v, s.date AS "on"
+     FROM sets st
+     JOIN sessions s ON s.id = st.session_id
+     WHERE s.modality = 'corrida' AND st.duration_sec IS NOT NULL AND st.duration_sec > 0
+     ORDER BY st.duration_sec DESC
+     LIMIT 1`
+  );
+
+  return {
+    longest_distance_km: longestDistance?.v ?? null,
+    longest_distance_on: longestDistance?.on ?? null,
+    fastest_pace_sec: fastestPace?.v ?? null,
+    fastest_pace_on: fastestPace?.on ?? null,
+    longest_duration_sec: longestDuration?.v ?? null,
+    longest_duration_on: longestDuration?.on ?? null,
+  };
+}
+
+export function getSessionDatesByModality(modality: Modality): string[] {
+  const rows = db.getAllSync<{ date: string }>(
+    "SELECT DISTINCT date FROM sessions WHERE modality = ? ORDER BY date DESC",
+    [modality]
+  );
+  return rows.map((r) => r.date);
 }
 
 export function getRecentSessionDates(n: number): string[] {
