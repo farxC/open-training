@@ -27,6 +27,10 @@ interface Props<T extends string> {
 
 const PAD = 4;
 const SEG_W = 150; // per-segment width when not stretched
+// Segments sit flush against each other (no gap), so the thumb's Android elevation
+// shadow bleeds into the neighboring option unless it's inset a bit narrower than
+// the segment itself.
+const THUMB_INSET = 3;
 
 /**
  * A tactile segmented toggle: a recessed warm track with a raised white thumb
@@ -52,8 +56,8 @@ export function ModalityToggle<T extends string>({
   const seg = trackW > 0 ? (trackW - PAD * 2) / options.length : 0;
 
   const thumbStyle = useAnimatedStyle(() => ({
-    width: seg,
-    transform: [{ translateX: PAD + progress.value * seg }],
+    width: Math.max(seg - THUMB_INSET * 2, 0),
+    transform: [{ translateX: PAD + progress.value * seg + THUMB_INSET }],
   }));
 
   return (
@@ -83,7 +87,7 @@ export function ModalityToggle<T extends string>({
               shadowOpacity: 0.1,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 2 },
-              elevation: 2,
+              elevation: 1,
             },
             thumbStyle,
           ]}
@@ -92,42 +96,39 @@ export function ModalityToggle<T extends string>({
 
       {options.map((opt) => {
         const active = opt.key === value;
+        const color = active ? "#26241f" : "#928d80";
         return (
           <Pressable
             key={opt.key}
             onPress={() => onChange(opt.key)}
-            style={({ hovered }: { hovered?: boolean }) => ({
+            style={{
               flex: stretch ? 1 : undefined,
               width: stretch ? undefined : SEG_W,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
-              gap: 7,
               paddingVertical: 11,
-              opacity: !active && hovered ? 0.85 : 1,
-            })}
-          >
-            {({ hovered }: { hovered?: boolean }) => {
-              const color = active ? "#26241f" : hovered ? "#5c594f" : "#928d80";
-              return (
-                <>
-                  {opt.icon ? (
-                    <MaterialCommunityIcons name={opt.icon as MciName} size={18} color={color} />
-                  ) : null}
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontSize: 14,
-                      fontWeight: active ? "700" : "600",
-                      color,
-                      letterSpacing: -0.1,
-                    }}
-                  >
-                    {opt.label}
-                  </Text>
-                </>
-              );
             }}
+          >
+            {opt.icon ? (
+              <MaterialCommunityIcons
+                name={opt.icon as MciName}
+                size={18}
+                color={color}
+                style={{ marginRight: 7 }}
+              />
+            ) : null}
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 14,
+                fontWeight: active ? "700" : "600",
+                color,
+                letterSpacing: -0.1,
+              }}
+            >
+              {opt.label}
+            </Text>
           </Pressable>
         );
       })}
