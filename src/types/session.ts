@@ -37,6 +37,8 @@ export interface WorkoutSet {
   distance_km: number | null;
   duration_sec: number | null;
   pace_sec: number | null;
+  /** True failure (couldn't complete the set), distinct from RIR 0 which is just "maybe". */
+  failure: 0 | 1;
 }
 
 export interface SessionWithSets extends Session {

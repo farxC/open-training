@@ -50,6 +50,7 @@ export function runMigrations(): void {
   ensureColumn("sets", "distance_km", "REAL");
   ensureColumn("sets", "duration_sec", "INTEGER");
   ensureColumn("sets", "pace_sec", "INTEGER");
+  ensureColumn("sets", "failure", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn("exercises", "uuid", "TEXT");
   ensureColumn("sessions", "uuid", "TEXT");
   ensureColumn("routine_splits", "uuid", "TEXT");

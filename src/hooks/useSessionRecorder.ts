@@ -91,6 +91,7 @@ export function useSessionRecorder() {
         distance_km: null,
         duration_sec: null,
         pace_sec: null,
+        failure: 0,
       });
     },
     [state.sessionId]

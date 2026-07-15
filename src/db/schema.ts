@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -47,7 +47,8 @@ export const CREATE_TABLES: string[] = [
     notes TEXT,
     distance_km REAL,
     duration_sec INTEGER,
-    pace_sec INTEGER
+    pace_sec INTEGER,
+    failure INTEGER NOT NULL DEFAULT 0
   )`,
 
   `CREATE TABLE IF NOT EXISTS routine_splits (

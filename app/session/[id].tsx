@@ -47,8 +47,8 @@ function groupByExercise(
   return groups;
 }
 
-function intensityColor(rpe: number | null, rir: number | null): string {
-  if (rir === 0 || (rpe != null && rpe >= 9)) return "#bf3b30";
+function intensityColor(rpe: number | null, rir: number | null, failure: 0 | 1): string {
+  if (failure || (rpe != null && rpe >= 9)) return "#bf3b30";
   if ((rir != null && rir <= 1) || (rpe != null && rpe >= 8)) return "#b9791f";
   return "#928d80";
 }
@@ -262,7 +262,7 @@ export default function SessionDetailScreen() {
                   {/* Sets */}
                   <View style={{ paddingHorizontal: 14 }}>
                     {sets.map((s, i) => {
-                      const hasIntensity = s.rpe != null || s.rir != null;
+                      const hasIntensity = s.rpe != null || s.rir != null || !!s.failure;
                       return (
                         <View
                           key={s.id}
@@ -310,13 +310,14 @@ export default function SessionDetailScreen() {
                                   width: 6,
                                   height: 6,
                                   borderRadius: 3,
-                                  backgroundColor: intensityColor(s.rpe, s.rir),
+                                  backgroundColor: intensityColor(s.rpe, s.rir, s.failure),
                                 }}
                               />
                               <Text className="text-ink-soft" style={{ fontSize: 11 }}>
                                 {s.rpe != null ? `RPE ${s.rpe}` : ""}
                                 {s.rpe != null && s.rir != null ? " · " : ""}
-                                {s.rir != null ? `RIR ${s.rir}${s.rir === 0 ? " (falha)" : ""}` : ""}
+                                {s.rir != null ? `RIR ${s.rir}` : ""}
+                                {s.failure ? `${s.rpe != null || s.rir != null ? " · " : ""}Falha` : ""}
                               </Text>
                             </View>
                           )}

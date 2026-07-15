@@ -86,7 +86,10 @@ export function getSessionWithSets(id: number): SessionWithSets | null {
      FROM sets st
      JOIN exercises e ON e.id = st.exercise_id
      WHERE st.session_id = ?
-     ORDER BY st.exercise_id, st.set_number`,
+     ORDER BY (
+       SELECT MIN(s2.id) FROM sets s2
+       WHERE s2.session_id = st.session_id AND s2.exercise_id = st.exercise_id
+     ), st.set_number`,
     [id]
   );
 
@@ -177,15 +180,20 @@ export function removeSessionPhoto(id: number): void {
 
 export function getSetsBySession(sessionId: number): WorkoutSet[] {
   return db.getAllSync<WorkoutSet>(
-    "SELECT * FROM sets WHERE session_id = ? ORDER BY exercise_id, set_number",
+    `SELECT * FROM sets st
+     WHERE st.session_id = ?
+     ORDER BY (
+       SELECT MIN(s2.id) FROM sets s2
+       WHERE s2.session_id = st.session_id AND s2.exercise_id = st.exercise_id
+     ), st.set_number`,
     [sessionId]
   );
 }
 
 export function addSet(set: Omit<WorkoutSet, "id">): number {
   const result = db.runSync(
-    `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec, failure)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       set.session_id,
       set.exercise_id,
@@ -198,6 +206,7 @@ export function addSet(set: Omit<WorkoutSet, "id">): number {
       set.distance_km ?? null,
       set.duration_sec ?? null,
       set.pace_sec ?? null,
+      set.failure ?? 0,
     ]
   );
   return result.lastInsertRowId;

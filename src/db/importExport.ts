@@ -23,6 +23,7 @@ export interface ExportedSet {
   distance_km: number | null;
   duration_sec: number | null;
   pace_sec: number | null;
+  failure: 0 | 1;
 }
 
 export interface ExportedSession {

@@ -5,7 +5,7 @@ import type { WorkoutSet } from "@/types";
 
 interface Props {
   set: WorkoutSet;
-  onChange: (patch: Partial<Pick<WorkoutSet, "reps" | "weight_kg" | "rpe" | "rir">>) => void;
+  onChange: (patch: Partial<Pick<WorkoutSet, "reps" | "weight_kg" | "rpe" | "rir" | "failure">>) => void;
   onDelete: () => void;
 }
 
@@ -159,6 +159,35 @@ export function SetRow({ set, onChange, onDelete }: Props) {
             }}
           />
         </View>
+
+        {/* Falha: a real failed rep, distinct from RIR 0 (which is just "maybe") */}
+        <TouchableOpacity
+          onPress={() => onChange({ failure: set.failure ? 0 : 1 })}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+            paddingVertical: 8,
+            paddingHorizontal: 10,
+            borderRadius: 8,
+            backgroundColor: set.failure ? "#bf3b30" : "#ebe7df",
+          }}
+        >
+          <MaterialCommunityIcons
+            name="close-octagon-outline"
+            size={13}
+            color={set.failure ? "#ffffff" : "#928d80"}
+          />
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: set.failure ? "#ffffff" : "#928d80",
+            }}
+          >
+            Falha
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

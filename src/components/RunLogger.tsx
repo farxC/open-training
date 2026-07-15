@@ -51,6 +51,7 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
         distance_km: null,
         duration_sec: null,
         pace_sec: null,
+        failure: 0,
       });
     }
     refreshSets();
@@ -70,6 +71,7 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
       distance_km: null,
       duration_sec: null,
       pace_sec: null,
+      failure: 0,
     });
     refreshSets();
   };

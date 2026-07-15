@@ -67,8 +67,9 @@ export function buildExportPayload(): ExportPayload {
       distance_km: number | null;
       duration_sec: number | null;
       pace_sec: number | null;
+      failure: 0 | 1;
     }>(
-      `SELECT exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec
+      `SELECT exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec, failure
        FROM sets WHERE session_id = ?`,
       [s.id]
     );
@@ -92,6 +93,7 @@ export function buildExportPayload(): ExportPayload {
         distance_km: st.distance_km,
         duration_sec: st.duration_sec,
         pace_sec: st.pace_sec,
+        failure: st.failure,
       })),
     };
   });
@@ -356,11 +358,11 @@ export function applyImport(payload: ExportPayload): ImportSummary {
         const exerciseId = exerciseIdByUuid.get(set.exercise_uuid);
         if (exerciseId === undefined) continue;
         db.runSync(
-          `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec, failure)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             sessionId, exerciseId, set.set_number, set.reps, set.weight_kg, set.rpe, set.rir,
-            set.notes, set.distance_km, set.duration_sec, set.pace_sec,
+            set.notes, set.distance_km, set.duration_sec, set.pace_sec, set.failure ?? 0,
           ]
         );
       }
