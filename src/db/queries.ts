@@ -141,7 +141,7 @@ export function createSession(
 
 export function updateSession(
   id: number,
-  patch: Partial<Pick<Session, "name" | "notes" | "duration_seconds" | "start_time" | "end_time">>
+  patch: Partial<Pick<Session, "name" | "notes" | "date" | "duration_seconds" | "start_time" | "end_time">>
 ): void {
   const fields = Object.keys(patch) as (keyof typeof patch)[];
   if (fields.length === 0) return;
@@ -174,6 +174,19 @@ export function addSessionPhoto(sessionId: number, uri: string, order?: number):
 
 export function removeSessionPhoto(id: number): void {
   db.runSync("DELETE FROM session_photos WHERE id = ?", [id]);
+}
+
+export function moveSessionPhoto(sessionId: number, id: number, direction: "up" | "down"): void {
+  const rows = db.getAllSync<{ id: number; order: number }>(
+    `SELECT id, "order" FROM session_photos WHERE session_id = ? ORDER BY "order", id`,
+    [sessionId]
+  );
+  const idx = rows.findIndex((r) => r.id === id);
+  if (idx < 0) return;
+  const swap = direction === "up" ? idx - 1 : idx + 1;
+  if (swap < 0 || swap >= rows.length) return;
+  db.runSync(`UPDATE session_photos SET "order" = ? WHERE id = ?`, [rows[swap].order, rows[idx].id]);
+  db.runSync(`UPDATE session_photos SET "order" = ? WHERE id = ?`, [rows[idx].order, rows[swap].id]);
 }
 
 // ─── Sets ─────────────────────────────────────────────────────────────────────
@@ -225,6 +238,10 @@ export function updateSet(
 
 export function deleteSet(id: number): void {
   db.runSync("DELETE FROM sets WHERE id = ?", [id]);
+}
+
+export function deleteSetsByExercise(sessionId: number, exerciseId: number): void {
+  db.runSync("DELETE FROM sets WHERE session_id = ? AND exercise_id = ?", [sessionId, exerciseId]);
 }
 
 // ─── Exercises ────────────────────────────────────────────────────────────────
