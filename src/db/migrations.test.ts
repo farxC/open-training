@@ -70,3 +70,56 @@ describe("runMigrations upgrade from frozen snapshots", () => {
     expect(exerciseCount!.count).toBe(3); // the unconditional 'Correr' seed matches the existing row by name — no duplicate
   });
 });
+
+describe("runMigrations against an already-current device", () => {
+  it("is a no-op: no rows added or removed, existing uuids untouched", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v11-snapshot.sql"));
+
+    runMigrations(dbHandle);
+
+    const exercises = dbHandle.getAllSync<{ id: number; uuid: string }>(
+      "SELECT id, uuid FROM exercises ORDER BY id",
+      []
+    );
+    expect(exercises).toEqual([
+      { id: 1, uuid: "fixed-uuid-ex-1" },
+      { id: 2, uuid: "fixed-uuid-ex-2" },
+      { id: 3, uuid: "fixed-uuid-ex-3" },
+    ]);
+
+    const sessionCount = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM sessions",
+      []
+    );
+    expect(sessionCount!.count).toBe(1);
+
+    const setCount = dbHandle.getFirstSync<{ count: number }>("SELECT COUNT(*) as count FROM sets", []);
+    expect(setCount!.count).toBe(3);
+  });
+
+  it("running migrations twice in a row is idempotent", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v11-snapshot.sql"));
+
+    runMigrations(dbHandle);
+    const afterFirstRun = dbHandle.getAllSync<{ id: number; uuid: string }>(
+      "SELECT id, uuid FROM exercises ORDER BY id",
+      []
+    );
+
+    runMigrations(dbHandle);
+    const afterSecondRun = dbHandle.getAllSync<{ id: number; uuid: string }>(
+      "SELECT id, uuid FROM exercises ORDER BY id",
+      []
+    );
+
+    expect(afterSecondRun).toEqual(afterFirstRun);
+
+    const exerciseCount = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM exercises",
+      []
+    );
+    expect(exerciseCount!.count).toBe(3);
+  });
+});
