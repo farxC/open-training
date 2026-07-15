@@ -62,7 +62,7 @@ It initializes `sql.js` (same package `client.web.ts` uses), creates a fresh `ne
 
 ```
 src/db/__fixtures__/
-  v9-snapshot.sql
+  v8-snapshot.sql
   v11-snapshot.sql
 ```
 
@@ -81,7 +81,7 @@ Snapshot files are never edited after being frozen — they represent a real dev
 The freeze ritual described below is prospective (triggered by future `SCHEMA_VERSION` bumps), so this design's initial implementation hand-creates two starter fixtures once, to establish the pattern and give the harness real coverage from day one:
 
 - **`v11-snapshot.sql`** — trivial: the *current* `CREATE_TABLES` shape (today's `schema.ts`), populated with representative rows. This is the baseline every future migration gets tested against immediately.
-- **`v9-snapshot.sql`** — reconstructed once from git history (`git show <commit-before-v10-migration>:src/db/schema.ts`), the schema version right before the uuid columns/backfill shipped. Chosen deliberately: it exercises a device that skipped two versions, and its upgrade path includes the uuid-backfill logic already in `runMigrations()` — a good early regression target.
+- **`v8-snapshot.sql`** — reconstructed once from git history (`git show 82a8b9b^:src/db/schema.ts`, the commit immediately before uuid columns/backfill shipped as schema v9). Chosen deliberately: it exercises a device that skipped several versions, and its upgrade path includes the uuid-backfill logic already in `runMigrations()` — a good early regression target.
 
 No other historical versions are reconstructed retroactively (see Out of Scope). Every fixture after these two comes from the prospective ritual below.
 
@@ -162,5 +162,5 @@ This design *is* the testing work — no separate test-the-tests layer. Verifica
 - **Automatic backup before migrating.** Considered during brainstorming; not built here. `src/db/importExport.ts` already provides a manual export the user can run before installing a new build. A future design could wire an automatic pre-migration snapshot using that same export format, but it's a separate piece of work.
 - **Transactional/atomic migrations.** Wrapping `runMigrations()` in a single transaction (so a mid-migration crash rolls back cleanly) was raised and deferred — today's migrations are additive/idempotent enough that partial-failure risk is low, and this harness's job is to catch bugs *before* they ship, which reduces the need for runtime rollback. Worth revisiting if migrations grow more transformative.
 - **Refactoring `client.web.ts`** to share adapter code with the test harness. The test adapter is intentionally standalone to avoid touching shipped production code.
-- **Historical reconstruction of every schema version since v1.** Only v9 and v11 are reconstructed as starting fixtures (see Bootstrapping above); versions before the export/import feature (pre-v9) are not retroactively reconstructed.
+- **Historical reconstruction of every schema version since v1.** Only v8 and v11 are reconstructed as starting fixtures (see Bootstrapping above); other historical versions are not retroactively reconstructed.
 - **Gating `make android-release` locally.** Only the CI `test` → `build` dependency is in scope.
