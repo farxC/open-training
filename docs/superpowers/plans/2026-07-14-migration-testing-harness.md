@@ -13,7 +13,7 @@
 - `runMigrations()`'s existing call site in `app/_layout.tsx` (`runMigrations()`, zero arguments) must keep working unchanged — the DI parameter must default to the current production `db` singleton.
 - `"order"` is a SQL reserved word — always double-quote it in any new DDL or query (already followed in existing fixtures below).
 - TypeScript strict mode is on (`tsconfig.json`: `"strict": true`) — all new code must type-check under `npx tsc --noEmit` with no new errors.
-- Jest test files are matched by `jest.config.js`'s `testMatch: ["**/*.test.ts", "**/*.test.tsx"]` — only files ending in `.test.ts` run as suites; helper/fixture files must NOT use that suffix.
+- Jest test files must end in `.test.ts`/`.test.tsx` to run as suites; helper/fixture files must NOT use that suffix. (Task 2b converts `jest.config.js` to a multi-project config — see that task for the exact matcher per project.)
 - Frozen fixture files (`src/db/__fixtures__/*.sql`), once committed, are never edited again — new schema states get a new file.
 - No new runtime dependencies — `sql.js` is already installed and used by `src/db/client.web.ts`.
 
@@ -210,7 +210,7 @@ git commit -m "refactor(db): inject DbHandle into runMigrations for testability"
 - Consumes: `DbHandle`, `BindParam` from `src/db/dbHandle.ts` (Task 1).
 - Produces: `createInMemoryDb(): Promise<DbHandle>`, consumed by `src/db/migrations.test.ts` in Tasks 3–4.
 
-This decode-and-adapt logic was verified end-to-end against the project's actual `src/db/sql-wasm.ts` asset (multi-statement `execSync`, parameterized `runSync`, `getAllSync`, `getFirstSync`, and `prepareSync`/`executeSync`/`finalizeSync` round-trips all confirmed working).
+This decode-and-adapt logic was verified end-to-end against the project's actual `src/db/sql-wasm.ts` asset (multi-statement `execSync`, parameterized `runSync`, `getAllSync`, `getFirstSync`, and `prepareSync`/`executeSync`/`finalizeSync` round-trips all confirmed working) — in a plain Node script, outside Jest. Running it under this project's actual `jest-expo`-based Jest config fails for an unrelated environment reason (see Task 2b immediately below, which fixes it) — write and implement the adapter in this task as specified, but do not expect the test to pass until Task 2b's config change lands.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -305,22 +305,79 @@ export async function createInMemoryDb(): Promise<DbHandle> {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run the test — expect a KNOWN environment failure, not a pass yet**
 
 Run: `npx jest src/db/__tests__/testDb.test.ts`
-Expected: PASS
+Expected: FAIL, with an error thrown from `node_modules/sql.js/dist/sql-wasm.js` inside `new SQL.Database()` (an empty `Error` from sql.js's internal `handleError`). This is a **known, root-caused issue**, not a bug in the code you just wrote — do not attempt to fix it by changing `testDb.ts`. Proceed to Task 2b, which fixes the actual cause (the test *environment*, not the adapter) and performs the real PASS verification and commit for both this task and Task 2b together.
 
-- [ ] **Step 5: Type-check**
+Do NOT run `npx tsc --noEmit` or commit yet — Task 2b finishes verification and commits both tasks' files in one commit.
+
+---
+
+### Task 2b: Isolate DB tests from the `jest-expo` preset (multi-project Jest config)
+
+**Files:**
+- Modify: `jest.config.js` (entire file)
+
+**Interfaces:** none (Jest configuration only; no code interfaces).
+
+**Root cause (confirmed empirically before this task was added to the plan):** `jest-expo`'s preset derives from `react-native/jest-preset`, which runs `react-native/jest/setup.js` as a `setupFiles` entry on every test file, regardless of `testEnvironment`. That file calls `Object.defineProperties(global, { window: { value: global, ... }, ... })`, making `global.window === global` true even under Jest's plain `node` test environment. `sql.js`'s Emscripten-generated glue code (`node_modules/sql.js/dist/sql-wasm.js`) uses this kind of global to decide whether it's running in a browser, and takes the wrong initialization path as a result — `new SQL.Database()` then fails with `sqlite3_open` returning an error whose message string comes back empty (`e.handleError` throws a bare `Error("")`). A per-file `@jest-environment node` docblock does NOT fix this, because `setupFiles` run before the test file is evaluated regardless of which environment class Jest instantiates for that file — the pollution happens too early to appear after only swapping the environment.
+
+The verified fix is to split Jest into two **projects**: the existing `jest-expo`-based suite (untouched for every test that isn't about the database), and a second project for `src/db/__tests__/**/*.test.ts` and `src/db/migrations.test.ts` that skips the `jest-expo`/`react-native` preset entirely (so `setup.js` never runs), using a plain `node` environment with a minimal Babel transform. This exact config below was run against the full existing suite (17 suites, 236 tests, spanning both projects) and confirmed every existing test still passes, plus the new `testDb.test.ts` passes under the `db` project.
+
+- [ ] **Step 1: Replace `jest.config.js` in full**
+
+```js
+module.exports = {
+  projects: [
+    {
+      displayName: "app",
+      preset: "jest-expo",
+      testMatch: ["**/*.test.ts", "**/*.test.tsx"],
+      testPathIgnorePatterns: [
+        "/node_modules/",
+        "<rootDir>/src/db/__tests__/",
+        "<rootDir>/src/db/migrations.test.ts",
+      ],
+    },
+    {
+      displayName: "db",
+      testEnvironment: "node",
+      testMatch: [
+        "<rootDir>/src/db/__tests__/**/*.test.ts",
+        "<rootDir>/src/db/migrations.test.ts",
+      ],
+      transform: {
+        "^.+\\.tsx?$": ["babel-jest", { configFile: "./babel.config.js" }],
+      },
+    },
+  ],
+};
+```
+
+- [ ] **Step 2: Run the previously-failing test to confirm the real fix**
+
+Run: `npx jest src/db/__tests__/testDb.test.ts`
+Expected: PASS — `db src/db/__tests__/testDb.test.ts`, 1 test passing.
+
+- [ ] **Step 3: Run the full suite to confirm no regression in existing (`app`-project) tests**
+
+Run: `npx jest`
+Expected: all suites across both projects PASS (no change in pass count for pre-existing suites; one new suite — `testDb.test.ts` — passing under the `db` project).
+
+- [ ] **Step 4: Type-check**
 
 Run: `npx tsc --noEmit`
 Expected: no errors
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit both Task 2 and Task 2b together**
 
 ```bash
-git add src/db/__tests__/testDb.ts src/db/__tests__/testDb.test.ts
-git commit -m "test(db): add in-memory sql.js adapter for migration testing"
+git add src/db/__tests__/testDb.ts src/db/__tests__/testDb.test.ts jest.config.js
+git commit -m "test(db): add in-memory sql.js adapter, isolate DB tests from jest-expo preset"
 ```
+
+(One commit is correct here: Task 2's adapter has no passing test without Task 2b's config fix, so splitting them into two commits would leave an intermediate commit with known-red tests.)
 
 ---
 
