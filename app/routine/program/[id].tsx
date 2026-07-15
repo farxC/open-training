@@ -12,7 +12,7 @@ import { strengthSummary } from "@/components/StrengthPlanTable";
 import { mergedTarget } from "@/utils/programEntry";
 import { addDays, todayISO, weekIndexSince } from "@/utils/cycle";
 import { getProgram, getProgramWeeks, getWeekEntries } from "@/db/queries";
-import { confirmAction, notify } from "@/utils/confirm";
+import { confirmAction, notify } from "@/components/AppModal";
 import type { ProgramEntry, ProgramWeek, RoutineUnitExercise } from "@/types";
 
 const SHORT_MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];

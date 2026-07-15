@@ -12,7 +12,7 @@ import { DatePickerModal } from "@/components/DatePickerModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useRoutine } from "@/hooks/useRoutine";
 import { modalityConfig, modalityLabel } from "@/data/modalities";
-import { confirmAction } from "@/utils/confirm";
+import { confirmAction } from "@/components/AppModal";
 import { getProgramWeeks } from "@/db/queries";
 import { todayISO, weekIndexSince } from "@/utils/cycle";
 import type { RoutineUnit, TrainingProgram } from "@/types";

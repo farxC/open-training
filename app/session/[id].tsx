@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSession } from "@/hooks/useSessions";
 import { deleteSession } from "@/db/queries";
-import { confirmAction } from "@/utils/confirm";
+import { confirmAction } from "@/components/AppModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
 import type { WorkoutSet } from "@/types";

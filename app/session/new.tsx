@@ -29,7 +29,7 @@ import {
   addSessionPhoto,
   removeSessionPhoto,
 } from "@/db/queries";
-import { confirmAction, notify } from "@/utils/confirm";
+import { confirmAction, notify } from "@/components/AppModal";
 import { dateToISO, todayISO } from "@/utils/cycle";
 import type { Exercise, Modality, RoutineSplit, RoutineUnit, RoutineUnitExercise, SessionPhoto } from "@/types";
 

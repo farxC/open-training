@@ -5,7 +5,7 @@ import { exportBackup } from "@/db/exportFile";
 import { pickImportFile } from "@/db/importFile";
 import { validateExportPayload } from "@/db/importExport";
 import { applyImport } from "@/db/importExportApply";
-import { notify } from "@/utils/notify";
+import { notify } from "@/components/AppModal";
 
 export default function SettingsScreen() {
   const [busy, setBusy] = useState<"export" | "import" | null>(null);
