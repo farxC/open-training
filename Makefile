@@ -5,10 +5,11 @@ APK_DEBUG := $(ANDROID_DIR)/app/build/outputs/apk/debug/app-debug.apk
 APK_RELEASE := $(ANDROID_DIR)/app/build/outputs/apk/release/app-release.apk
 
 # .env.local (already covered by .gitignore's `.env*.local` pattern) lets you
-# keep the 4 signing vars (+ optionally JAVA_HOME) on disk instead of
-# exporting them every session — copy .env.local.example to .env.local and
-# fill in real values. No quotes: this file is included as Make syntax, not
-# sourced as shell, so quote characters would end up inside the value.
+# keep the 4 signing vars (+ optionally JAVA_HOME/ANDROID_HOME) on disk
+# instead of exporting them every session — copy .env.local.example to
+# .env.local and fill in real values. No quotes: this file is included as
+# Make syntax, not sourced as shell, so quote characters would end up inside
+# the value.
 -include .env.local
 export ANDROID_RELEASE_STORE_FILE
 export ANDROID_RELEASE_STORE_PASSWORD
@@ -16,6 +17,12 @@ export ANDROID_RELEASE_KEY_ALIAS
 export ANDROID_RELEASE_KEY_PASSWORD
 export JAVA_HOME
 export ANDROID_HOME
+
+# Must come after -include so it sees ANDROID_HOME from .env.local. The
+# android-commandlinetools Homebrew cask doesn't symlink adb onto PATH (only
+# sdkmanager/avdmanager/etc) — resolve it via ANDROID_HOME instead of
+# assuming a global adb install.
+ADB := $(if $(ANDROID_HOME),$(ANDROID_HOME)/platform-tools/adb,adb)
 
 .PHONY: help
 help:
@@ -69,11 +76,11 @@ run:
 
 .PHONY: install-debug
 install-debug:
-	adb install -r $(APK_DEBUG)
+	$(ADB) install -r $(APK_DEBUG)
 
 .PHONY: install-release
 install-release:
-	adb install -r $(APK_RELEASE)
+	$(ADB) install -r $(APK_RELEASE)
 
 .PHONY: clean
 clean:
