@@ -20,6 +20,10 @@ module.exports = {
       transform: {
         "^.+\\.tsx?$": ["babel-jest", { configFile: "./babel.config.js" }],
       },
+      transformIgnorePatterns: ["node_modules/(?!(sql\\.js)/)"],
+      moduleNameMapper: {
+        "^expo-sqlite$": "<rootDir>/src/db/__tests__/mocks/expo-sqlite.js",
+      },
     },
   ],
 };
