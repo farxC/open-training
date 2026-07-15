@@ -11,11 +11,12 @@ interface Props {
   photos: Photo[];
   onAdd: (uri: string) => void;
   onRemove: (id: number) => void;
+  onMove?: (id: number, direction: "up" | "down") => void;
 }
 
 const TILE_SIZE = 92;
 
-export function PhotoAttachment({ photos, onAdd, onRemove }: Props) {
+export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
   const handlePick = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -37,7 +38,7 @@ export function PhotoAttachment({ photos, onAdd, onRemove }: Props) {
         FOTOS{photos.length > 0 ? ` · ${photos.length}` : ""}
       </Text>
       <View className="flex-row flex-wrap justify-center" style={{ gap: 10 }}>
-        {photos.map((photo) => (
+        {photos.map((photo, index) => (
           <View
             key={photo.id}
             className="relative overflow-hidden"
@@ -63,6 +64,43 @@ export function PhotoAttachment({ photos, onAdd, onRemove }: Props) {
             >
               <MaterialCommunityIcons name="close" size={13} color="#ffffff" />
             </TouchableOpacity>
+            {onMove && (
+              <View
+                className="absolute flex-row items-center justify-center"
+                style={{ bottom: 6, left: 6, right: 6, gap: 6 }}
+              >
+                <TouchableOpacity
+                  className="items-center justify-center"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: "rgba(38,36,31,0.72)",
+                    opacity: index === 0 ? 0.4 : 1,
+                  }}
+                  onPress={() => onMove(photo.id, "up")}
+                  disabled={index === 0}
+                  hitSlop={6}
+                >
+                  <MaterialCommunityIcons name="chevron-left" size={16} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="items-center justify-center"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: "rgba(38,36,31,0.72)",
+                    opacity: index === photos.length - 1 ? 0.4 : 1,
+                  }}
+                  onPress={() => onMove(photo.id, "down")}
+                  disabled={index === photos.length - 1}
+                  hitSlop={6}
+                >
+                  <MaterialCommunityIcons name="chevron-right" size={16} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         ))}
 
