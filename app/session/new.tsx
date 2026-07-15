@@ -24,6 +24,7 @@ import { SessionFinishModal } from "@/components/SessionFinishModal";
 import { MODALITIES, modalityConfig, modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
 import {
   getExercises,
+  getSessionById,
   updateSession,
   getSessionPhotos,
   addSessionPhoto,
@@ -69,22 +70,30 @@ export default function NewSessionScreen() {
   const r = useRoutine();
   const recorder = useSessionRecorder();
 
-  const [step, setStep] = useState<Step>("modality");
-  const [date, setDate] = useState(() => todayISO());
+  // A leftover session from a previous "New session" attempt that got dismissed
+  // without hitting Cancelar/Descartar (e.g. modal swipe-down) stays alive in
+  // SessionRecorderContext. Resume it directly instead of showing the modality
+  // picker again and silently reusing its (possibly different) modality/data.
+  const resumedSession = recorder.sessionId != null ? getSessionById(recorder.sessionId) : null;
+
+  const [step, setStep] = useState<Step>(() => (recorder.sessionId != null ? "details" : "modality"));
+  const [date, setDate] = useState(() => resumedSession?.date ?? todayISO());
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [dateModalMonth, setDateModalMonth] = useState(() => new Date());
 
-  const [modality, setModality] = useState<Modality>("musculacao");
-  const [splitId, setSplitId] = useState<number | null>(null);
+  const [modality, setModality] = useState<Modality>(() => recorder.modality ?? "musculacao");
+  const [splitId, setSplitId] = useState<number | null>(() => recorder.splitId ?? null);
   const [resolvedUnit, setResolvedUnit] = useState<RoutineUnit | null>(null);
   const [resolvedStatus, setResolvedStatus] = useState<"workout" | "rest">("rest");
-  const [programWeekId, setProgramWeekId] = useState<number | null>(null);
+  const [programWeekId, setProgramWeekId] = useState<number | null>(() => recorder.programWeekId ?? null);
   const [resolvedExercises, setResolvedExercises] = useState<RoutineUnitExercise[]>([]);
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => resumedSession?.name ?? "");
   const [nameFocused, setNameFocused] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [photos, setPhotos] = useState<SessionPhoto[]>([]);
+  const [notes, setNotes] = useState(() => resumedSession?.notes ?? "");
+  const [photos, setPhotos] = useState<SessionPhoto[]>(() =>
+    recorder.sessionId != null ? getSessionPhotos(recorder.sessionId) : []
+  );
   const [pickerVisible, setPickerVisible] = useState(false);
   const [finishModalVisible, setFinishModalVisible] = useState(false);
   const [finishInitialDuration, setFinishInitialDuration] = useState(0);
