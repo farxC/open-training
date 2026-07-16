@@ -112,10 +112,11 @@ export function UnitCard({
                 data={exercises}
                 keyExtractor={(re) => String(re.id)}
                 onReorder={(reordered) => onReorderExercises(reordered.map((re) => re.id))}
-                renderItem={({ item: re, dragHandle }) => (
+                renderItem={({ item: re, index, dragHandle }) => (
                   <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}>
                     <View className="flex-row items-center justify-between mb-2">
                       {dragHandle}
+                      <Text className="text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
                       <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
                       <TouchableOpacity onPress={() => onRemoveExercise(re.id)} className="px-2">
                         <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />

@@ -587,7 +587,7 @@ export default function NewSessionScreen() {
                   data={recorder.selectedExercises}
                   keyExtractor={(exercise) => String(exercise.id)}
                   onReorder={(reordered) => recorder.reorderExercisesInSession(reordered.map((e) => e.id))}
-                  renderItem={({ item: exercise, dragHandle }) =>
+                  renderItem={({ item: exercise, index, dragHandle }) =>
                     exercise.modality === "corrida" ? (
                       <RunLogger
                         exerciseId={exercise.id}
@@ -596,6 +596,7 @@ export default function NewSessionScreen() {
                         targets={recorder.targetsByExerciseId[exercise.id]}
                         onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
                         dragHandle={dragHandle}
+                        index={index}
                       />
                     ) : (
                       <SetLogger
@@ -605,6 +606,7 @@ export default function NewSessionScreen() {
                         targets={recorder.targetsByExerciseId[exercise.id]}
                         onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
                         dragHandle={dragHandle}
+                        index={index}
                       />
                     )
                   }

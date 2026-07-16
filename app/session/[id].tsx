@@ -263,7 +263,7 @@ export default function SessionDetailScreen() {
                   setExerciseGroups(reordered);
                   reorderSessionExercises(session.id, reordered.map((g) => g.id));
                 }}
-                renderItem={({ item: group, dragHandle }) =>
+                renderItem={({ item: group, index, dragHandle }) =>
                   isCorrida ? (
                     <RunLogger
                       exerciseId={group.id}
@@ -274,6 +274,7 @@ export default function SessionDetailScreen() {
                         setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
                       }}
                       dragHandle={dragHandle}
+                      index={index}
                     />
                   ) : (
                     <SetLogger
@@ -285,6 +286,7 @@ export default function SessionDetailScreen() {
                         setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
                       }}
                       dragHandle={dragHandle}
+                      index={index}
                     />
                   )
                 }
@@ -429,7 +431,7 @@ export default function SessionDetailScreen() {
               )}
 
               <View style={{ marginTop: 20 }}>
-                {Object.entries(grouped).map(([exerciseName, sets]) => {
+                {Object.entries(grouped).map(([exerciseName, sets], groupIndex) => {
                   const vol = sets.reduce((s, x) => s + x.reps * x.weight_kg, 0);
                   const isRunGroup = sets.some((s) => s.distance_km != null);
                   const dist = sets.reduce((s, x) => s + (x.distance_km ?? 0), 0);
@@ -455,6 +457,7 @@ export default function SessionDetailScreen() {
                           style={{ color: "#26241f", fontSize: 16, fontWeight: "600" }}
                           numberOfLines={1}
                         >
+                          <Text style={{ color: "#928d80", fontWeight: "500" }}>{groupIndex + 1}. </Text>
                           {exerciseName}
                         </Text>
                         <Text

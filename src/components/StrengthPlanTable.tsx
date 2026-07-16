@@ -141,10 +141,11 @@ export function StrengthPlanTable({
                   data={exercises}
                   keyExtractor={(ex) => String(ex.id)}
                   onReorder={(reordered) => onReorderExercises(unit.id, reordered.map((ex) => ex.id))}
-                  renderItem={({ item: ex, dragHandle }) => (
+                  renderItem={({ item: ex, index, dragHandle }) => (
                     <View className="py-2" style={{ borderTopWidth: 1, borderTopColor: "#ebe7df" }}>
                       <View className="flex-row items-center justify-between mb-2">
                         {dragHandle}
+                        <Text className="text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
                         <Text className="text-ink text-sm flex-1">{ex.exercise_name}</Text>
                         <TouchableOpacity onPress={() => onRemoveExercise(ex.id)} className="px-2">
                           <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />

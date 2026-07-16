@@ -7,6 +7,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 export interface DraggableListRenderInfo<T> {
   item: T;
+  index: number;
   isActive: boolean;
   dragHandle: React.ReactNode;
 }
@@ -62,13 +63,14 @@ export function DraggableList<T>({ data, keyExtractor, onReorder, renderItem }: 
 
   return (
     <View style={{ height: containerHeight }}>
-      {data.map((item) => {
+      {data.map((item, index) => {
         const key = keyExtractor(item);
         return (
           <Row
             key={key}
             itemKey={key}
             item={item}
+            index={index}
             order={order}
             heights={heights}
             activeKey={activeKey}
@@ -85,6 +87,7 @@ export function DraggableList<T>({ data, keyExtractor, onReorder, renderItem }: 
 function Row<T>({
   itemKey,
   item,
+  index,
   order,
   heights,
   activeKey,
@@ -94,6 +97,7 @@ function Row<T>({
 }: {
   itemKey: string;
   item: T;
+  index: number;
   order: ReturnType<typeof useSharedValue<string[]>>;
   heights: ReturnType<typeof useSharedValue<Record<string, number>>>;
   activeKey: ReturnType<typeof useSharedValue<string | null>>;
@@ -185,7 +189,7 @@ function Row<T>({
         }
       }}
     >
-      {renderItem({ item, isActive: isActiveState, dragHandle })}
+      {renderItem({ item, index, isActive: isActiveState, dragHandle })}
     </Animated.View>
   );
 }
