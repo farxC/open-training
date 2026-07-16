@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useReducer } from "react";
 import type { Exercise, Modality, RoutineUnitExercise } from "@/types";
 
-interface RecorderState {
+export interface RecorderState {
   sessionId: number | null;
   startTime: Date | null;
   selectedExercises: Exercise[];
@@ -15,7 +15,7 @@ interface RecorderState {
 
 type StartExercise = { exercise: Exercise; targets?: RoutineUnitExercise };
 
-type RecorderAction =
+export type RecorderAction =
   | {
       type: "START";
       sessionId: number;
@@ -28,6 +28,7 @@ type RecorderAction =
   | { type: "ADD_EXERCISE"; exercise: Exercise }
   | { type: "ADD_EXERCISES"; items: StartExercise[] }
   | { type: "REMOVE_EXERCISE"; exerciseId: number }
+  | { type: "REORDER_EXERCISES"; orderedExerciseIds: number[] }
   | { type: "FINISH" }
   | { type: "DISCARD" };
 
@@ -43,7 +44,7 @@ const initialState: RecorderState = {
   programWeekId: null,
 };
 
-function reducer(state: RecorderState, action: RecorderAction): RecorderState {
+export function reducer(state: RecorderState, action: RecorderAction): RecorderState {
   switch (action.type) {
     case "START":
       return {
@@ -87,6 +88,13 @@ function reducer(state: RecorderState, action: RecorderAction): RecorderState {
           (e) => e.id !== action.exerciseId
         ),
       };
+    case "REORDER_EXERCISES": {
+      const byId = new Map(state.selectedExercises.map((e) => [e.id, e]));
+      const reordered = action.orderedExerciseIds
+        .map((id) => byId.get(id))
+        .filter((e): e is Exercise => e !== undefined);
+      return { ...state, selectedExercises: reordered };
+    }
     case "FINISH":
     case "DISCARD":
       return initialState;
@@ -108,6 +116,7 @@ interface RecorderContextValue {
   addExercise: (exercise: Exercise) => void;
   addExercises: (items: StartExercise[]) => void;
   removeExercise: (exerciseId: number) => void;
+  reorderExercises: (orderedExerciseIds: number[]) => void;
   finish: () => void;
   discard: () => void;
 }
@@ -150,6 +159,10 @@ export function SessionRecorderProvider({
     dispatch({ type: "REMOVE_EXERCISE", exerciseId });
   }, []);
 
+  const reorderExercises = useCallback((orderedExerciseIds: number[]) => {
+    dispatch({ type: "REORDER_EXERCISES", orderedExerciseIds });
+  }, []);
+
   const finish = useCallback(() => {
     dispatch({ type: "FINISH" });
   }, []);
@@ -160,7 +173,7 @@ export function SessionRecorderProvider({
 
   return (
     <SessionRecorderContext.Provider
-      value={{ state, start, startTimer, addExercise, addExercises, removeExercise, finish, discard }}
+      value={{ state, start, startTimer, addExercise, addExercises, removeExercise, reorderExercises, finish, discard }}
     >
       {children}
     </SessionRecorderContext.Provider>

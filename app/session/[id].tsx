@@ -5,11 +5,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useSession } from "@/hooks/useSessions";
 import {
+  addSessionExercise,
   addSessionPhoto,
   deleteSession,
-  deleteSetsByExercise,
   moveSessionPhoto,
+  removeSessionExercise,
   removeSessionPhoto,
+  reorderSessionExercises,
   updateSession,
 } from "@/db/queries";
 import { confirmAction } from "@/components/AppModal";
@@ -19,6 +21,7 @@ import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
+import { DraggableList } from "@/components/DraggableList";
 import { modalityLabel, formatClock, formatPaceSec, parseClock } from "@/data/modalities";
 import { dateToISO } from "@/utils/cycle";
 import type { WorkoutSet } from "@/types";
@@ -253,31 +256,39 @@ export default function SessionDetailScreen() {
             />
 
             <View style={{ marginTop: 20 }}>
-              {exerciseGroups.map((group) =>
-                isCorrida ? (
-                  <RunLogger
-                    key={group.id}
-                    exerciseId={group.id}
-                    exerciseName={group.name}
-                    sessionId={session.id}
-                    onRemoveExercise={() => {
-                      deleteSetsByExercise(session.id, group.id);
-                      setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
-                    }}
-                  />
-                ) : (
-                  <SetLogger
-                    key={group.id}
-                    exerciseId={group.id}
-                    exerciseName={group.name}
-                    sessionId={session.id}
-                    onRemoveExercise={() => {
-                      deleteSetsByExercise(session.id, group.id);
-                      setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
-                    }}
-                  />
-                )
-              )}
+              <DraggableList
+                data={exerciseGroups}
+                keyExtractor={(group) => String(group.id)}
+                onReorder={(reordered) => {
+                  setExerciseGroups(reordered);
+                  reorderSessionExercises(session.id, reordered.map((g) => g.id));
+                }}
+                renderItem={({ item: group, dragHandle }) =>
+                  isCorrida ? (
+                    <RunLogger
+                      exerciseId={group.id}
+                      exerciseName={group.name}
+                      sessionId={session.id}
+                      onRemoveExercise={() => {
+                        removeSessionExercise(session.id, group.id);
+                        setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
+                      }}
+                      dragHandle={dragHandle}
+                    />
+                  ) : (
+                    <SetLogger
+                      exerciseId={group.id}
+                      exerciseName={group.name}
+                      sessionId={session.id}
+                      onRemoveExercise={() => {
+                        removeSessionExercise(session.id, group.id);
+                        setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
+                      }}
+                      dragHandle={dragHandle}
+                    />
+                  )
+                }
+              />
 
               <TouchableOpacity
                 className="py-3 rounded-xl items-center mb-6"
@@ -550,10 +561,9 @@ export default function SessionDetailScreen() {
         visible={pickerVisible}
         modality={session.modality}
         onConfirm={(exs) => {
-          setExerciseGroups((prev) => [
-            ...prev,
-            ...exs.filter((e) => !prev.some((p) => p.id === e.id)).map((e) => ({ id: e.id, name: e.name })),
-          ]);
+          const fresh = exs.filter((e) => !exerciseGroups.some((p) => p.id === e.id));
+          fresh.forEach((e, i) => addSessionExercise(session.id, e.id, exerciseGroups.length + i));
+          setExerciseGroups((prev) => [...prev, ...fresh.map((e) => ({ id: e.id, name: e.name }))]);
           setPickerVisible(false);
         }}
         onClose={() => setPickerVisible(false)}

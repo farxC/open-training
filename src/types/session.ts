@@ -24,6 +24,15 @@ export interface SessionPhoto {
   order: number;
 }
 
+export interface SessionExercise {
+  id: number;
+  session_id: number;
+  exercise_id: number;
+  order: number;
+  exercise_name?: string;
+  muscle_group?: string;
+}
+
 export interface WorkoutSet {
   id: number;
   session_id: number;

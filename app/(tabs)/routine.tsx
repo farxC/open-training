@@ -118,6 +118,7 @@ export default function RoutineScreen() {
         onAddExercise={r.addExercise}
         onRemoveExercise={r.removeExercise}
         onUpdateTargets={r.updateExerciseTargets}
+        onReorderExercises={r.reorderExercises}
         onSetOverride={r.markOverride}
         onClearOverride={r.clearOverrideMark}
       />

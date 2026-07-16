@@ -7,6 +7,7 @@ import type {
   Modality,
   Session,
   SessionPhoto,
+  SessionExercise,
   SessionSummary,
   SessionWithSets,
   WorkoutSet,
@@ -87,8 +88,8 @@ export function getSessionWithSets(id: number): SessionWithSets | null {
      JOIN exercises e ON e.id = st.exercise_id
      WHERE st.session_id = ?
      ORDER BY (
-       SELECT MIN(s2.id) FROM sets s2
-       WHERE s2.session_id = st.session_id AND s2.exercise_id = st.exercise_id
+       SELECT se."order" FROM session_exercises se
+       WHERE se.session_id = st.session_id AND se.exercise_id = st.exercise_id
      ), st.set_number`,
     [id]
   );
@@ -189,6 +190,48 @@ export function moveSessionPhoto(sessionId: number, id: number, direction: "up" 
   db.runSync(`UPDATE session_photos SET "order" = ? WHERE id = ?`, [rows[idx].order, rows[swap].id]);
 }
 
+// ─── Session exercises ─────────────────────────────────────────────────────────
+
+export function getSessionExercises(sessionId: number): SessionExercise[] {
+  return db.getAllSync<SessionExercise>(
+    `SELECT se.*, e.name AS exercise_name, e.muscle_group
+     FROM session_exercises se
+     JOIN exercises e ON e.id = se.exercise_id
+     WHERE se.session_id = ?
+     ORDER BY se."order"`,
+    [sessionId]
+  );
+}
+
+export function addSessionExercise(sessionId: number, exerciseId: number, order?: number): number {
+  const position = order ?? getSessionExercises(sessionId).length;
+  const result = db.runSync(
+    `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
+    [sessionId, exerciseId, position]
+  );
+  return result.lastInsertRowId;
+}
+
+export function removeSessionExercise(sessionId: number, exerciseId: number): void {
+  deleteSetsByExercise(sessionId, exerciseId);
+  db.runSync("DELETE FROM session_exercises WHERE session_id = ? AND exercise_id = ?", [sessionId, exerciseId]);
+  const rows = db.getAllSync<{ id: number }>(
+    `SELECT id FROM session_exercises WHERE session_id = ? ORDER BY "order"`,
+    [sessionId]
+  );
+  rows.forEach((row, i) => db.runSync(`UPDATE session_exercises SET "order" = ? WHERE id = ?`, [i, row.id]));
+}
+
+export function reorderSessionExercises(sessionId: number, orderedExerciseIds: number[]): void {
+  orderedExerciseIds.forEach((exerciseId, i) => {
+    db.runSync(`UPDATE session_exercises SET "order" = ? WHERE session_id = ? AND exercise_id = ?`, [
+      i,
+      sessionId,
+      exerciseId,
+    ]);
+  });
+}
+
 // ─── Sets ─────────────────────────────────────────────────────────────────────
 
 export function getSetsBySession(sessionId: number): WorkoutSet[] {
@@ -196,8 +239,8 @@ export function getSetsBySession(sessionId: number): WorkoutSet[] {
     `SELECT * FROM sets st
      WHERE st.session_id = ?
      ORDER BY (
-       SELECT MIN(s2.id) FROM sets s2
-       WHERE s2.session_id = st.session_id AND s2.exercise_id = st.exercise_id
+       SELECT se."order" FROM session_exercises se
+       WHERE se.session_id = st.session_id AND se.exercise_id = st.exercise_id
      ), st.set_number`,
     [sessionId]
   );
@@ -469,7 +512,20 @@ export function updateUnitExerciseTargets(
 }
 
 export function removeUnitExercise(id: number): void {
+  const row = db.getFirstSync<{ unit_id: number }>("SELECT unit_id FROM routine_unit_exercises WHERE id = ?", [id]);
   db.runSync("DELETE FROM routine_unit_exercises WHERE id = ?", [id]);
+  if (!row) return;
+  const rows = db.getAllSync<{ id: number }>(
+    `SELECT id FROM routine_unit_exercises WHERE unit_id = ? ORDER BY "order"`,
+    [row.unit_id]
+  );
+  rows.forEach((r, i) => db.runSync(`UPDATE routine_unit_exercises SET "order" = ? WHERE id = ?`, [i, r.id]));
+}
+
+export function reorderUnitExercises(unitId: number, orderedIds: number[]): void {
+  orderedIds.forEach((id, i) => {
+    db.runSync(`UPDATE routine_unit_exercises SET "order" = ? WHERE id = ?`, [i, id]);
+  });
 }
 
 export function getOverridesInRange(startISO: string, endISO: string): RoutineOverride[] {

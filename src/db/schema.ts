@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -33,6 +33,14 @@ export const CREATE_TABLES: string[] = [
     session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     uri TEXT NOT NULL,
     "order" INTEGER NOT NULL DEFAULT 0
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS session_exercises (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+    "order" INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(session_id, exercise_id)
   )`,
 
   `CREATE TABLE IF NOT EXISTS sets (

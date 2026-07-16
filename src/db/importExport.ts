@@ -26,6 +26,11 @@ export interface ExportedSet {
   failure: 0 | 1;
 }
 
+export interface ExportedSessionExercise {
+  exercise_uuid: string;
+  order: number;
+}
+
 export interface ExportedSession {
   uuid: string;
   date: string;
@@ -36,6 +41,8 @@ export interface ExportedSession {
   end_time: string | null;
   modality: Modality;
   sets: ExportedSet[];
+  /** Optional: absent in backups made before exercise ordering existed. */
+  exercises?: ExportedSessionExercise[];
 }
 
 export interface ExportedUnitExercise {

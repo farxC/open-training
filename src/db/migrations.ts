@@ -74,6 +74,42 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     []
   );
 
+  // Backfill: session_exercises predates real exercise ordering in sessions — before
+  // this table, "exercise order" was just an accident of which exercise's first set
+  // got logged first. Preserve that exact order per session (MIN(id) per exercise_id)
+  // so upgrading never visually reorders anyone's existing history. Done as a JS loop
+  // rather than a window-function query to avoid depending on the SQLite version
+  // bundled by the web (sql.js) driver.
+  {
+    const pairsNeedingBackfill = dbHandle.getAllSync<{ session_id: number; exercise_id: number }>(
+      `SELECT session_id, exercise_id
+       FROM sets
+       WHERE NOT EXISTS (
+         SELECT 1 FROM session_exercises se
+         WHERE se.session_id = sets.session_id AND se.exercise_id = sets.exercise_id
+       )
+       GROUP BY session_id, exercise_id
+       ORDER BY session_id, MIN(id)`,
+      []
+    );
+    const nextOrderBySession = new Map<number, number>();
+    for (const { session_id, exercise_id } of pairsNeedingBackfill) {
+      if (!nextOrderBySession.has(session_id)) {
+        const maxRow = dbHandle.getFirstSync<{ maxOrder: number | null }>(
+          `SELECT MAX("order") as maxOrder FROM session_exercises WHERE session_id = ?`,
+          [session_id]
+        );
+        nextOrderBySession.set(session_id, (maxRow?.maxOrder ?? -1) + 1);
+      }
+      const order = nextOrderBySession.get(session_id)!;
+      nextOrderBySession.set(session_id, order + 1);
+      dbHandle.runSync(
+        `INSERT INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
+        [session_id, exercise_id, order]
+      );
+    }
+  }
+
   // Backfill: rows created before schema v9 (export/import) have no uuid — the merge
   // key import uses to tell "already have this" from "new". Generated in pure SQL via
   // randomblob so it works identically on both the native and sql.js (web) drivers,

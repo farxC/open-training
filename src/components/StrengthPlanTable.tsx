@@ -3,6 +3,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
+import { DraggableList } from "@/components/DraggableList";
 
 export function strengthSummary(exercises: RoutineUnitExercise[]): string {
   if (exercises.length === 0) return "—";
@@ -29,6 +30,7 @@ interface StrengthPlanTableProps {
   onAddExercise: (unitId: number) => void;
   onRemoveExercise: (id: number) => void;
   onUpdateTargets: (exerciseId: number, patch: TargetPatch) => void;
+  onReorderExercises: (unitId: number, orderedIds: number[]) => void;
   onMoveUp?: (unitId: number) => void;
   onMoveDown?: (unitId: number) => void;
   onDelete?: (unitId: number) => void;
@@ -43,6 +45,7 @@ export function StrengthPlanTable({
   onAddExercise,
   onRemoveExercise,
   onUpdateTargets,
+  onReorderExercises,
   onMoveUp,
   onMoveDown,
   onDelete,
@@ -134,46 +137,48 @@ export function StrengthPlanTable({
                   )}
                 </View>
 
-                {exercises.map((ex) => (
-                  <View
-                    key={ex.id}
-                    className="py-2"
-                    style={{ borderTopWidth: 1, borderTopColor: "#ebe7df" }}
-                  >
-                    <View className="flex-row items-center justify-between mb-2">
-                      <Text className="text-ink text-sm flex-1">{ex.exercise_name}</Text>
-                      <TouchableOpacity onPress={() => onRemoveExercise(ex.id)} className="px-2">
-                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
-                      </TouchableOpacity>
+                <DraggableList
+                  data={exercises}
+                  keyExtractor={(ex) => String(ex.id)}
+                  onReorder={(reordered) => onReorderExercises(unit.id, reordered.map((ex) => ex.id))}
+                  renderItem={({ item: ex, dragHandle }) => (
+                    <View className="py-2" style={{ borderTopWidth: 1, borderTopColor: "#ebe7df" }}>
+                      <View className="flex-row items-center justify-between mb-2">
+                        {dragHandle}
+                        <Text className="text-ink text-sm flex-1">{ex.exercise_name}</Text>
+                        <TouchableOpacity onPress={() => onRemoveExercise(ex.id)} className="px-2">
+                          <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
+                        </TouchableOpacity>
+                      </View>
+                      <View className="flex-row items-center flex-wrap" style={{ gap: 8 }}>
+                        <NumField
+                          value={ex.target_sets}
+                          onChange={(n) => onUpdateTargets(ex.id, { target_sets: n ?? 0 })}
+                          suffix="séries"
+                          integer
+                        />
+                        <Text className="text-ink-faint text-sm">×</Text>
+                        <NumField
+                          value={ex.target_reps}
+                          onChange={(n) => onUpdateTargets(ex.id, { target_reps: n ?? 0 })}
+                          integer
+                        />
+                        <Text className="text-ink-faint text-xs">–</Text>
+                        <NumField
+                          value={ex.target_reps_max}
+                          onChange={(n) => onUpdateTargets(ex.id, { target_reps_max: n })}
+                          suffix="reps"
+                          integer
+                        />
+                        <NumField
+                          value={ex.target_weight_kg}
+                          onChange={(n) => onUpdateTargets(ex.id, { target_weight_kg: n })}
+                          suffix="kg"
+                        />
+                      </View>
                     </View>
-                    <View className="flex-row items-center flex-wrap" style={{ gap: 8 }}>
-                      <NumField
-                        value={ex.target_sets}
-                        onChange={(n) => onUpdateTargets(ex.id, { target_sets: n ?? 0 })}
-                        suffix="séries"
-                        integer
-                      />
-                      <Text className="text-ink-faint text-sm">×</Text>
-                      <NumField
-                        value={ex.target_reps}
-                        onChange={(n) => onUpdateTargets(ex.id, { target_reps: n ?? 0 })}
-                        integer
-                      />
-                      <Text className="text-ink-faint text-xs">–</Text>
-                      <NumField
-                        value={ex.target_reps_max}
-                        onChange={(n) => onUpdateTargets(ex.id, { target_reps_max: n })}
-                        suffix="reps"
-                        integer
-                      />
-                      <NumField
-                        value={ex.target_weight_kg}
-                        onChange={(n) => onUpdateTargets(ex.id, { target_weight_kg: n })}
-                        suffix="kg"
-                      />
-                    </View>
-                  </View>
-                ))}
+                  )}
+                />
 
                 {exercises.length === 0 && (
                   <Text className="text-ink-faint text-xs mb-3">Sem exercícios definidos</Text>

@@ -56,6 +56,10 @@ export function buildExportPayload(): ExportPayload {
   }>("SELECT id, uuid, date, name, notes, duration_seconds, start_time, end_time, modality FROM sessions");
 
   const sessions: ExportedSession[] = sessionRows.map((s) => {
+    const sessionExerciseRows = db.getAllSync<{ exercise_id: number; order: number }>(
+      `SELECT exercise_id, "order" FROM session_exercises WHERE session_id = ? ORDER BY "order"`,
+      [s.id]
+    );
     const sets = db.getAllSync<{
       exercise_id: number;
       set_number: number;
@@ -94,6 +98,10 @@ export function buildExportPayload(): ExportPayload {
         duration_sec: st.duration_sec,
         pace_sec: st.pace_sec,
         failure: st.failure,
+      })),
+      exercises: sessionExerciseRows.map((se) => ({
+        exercise_uuid: exerciseUuidById.get(se.exercise_id) ?? "",
+        order: se.order,
       })),
     };
   });
@@ -365,6 +373,31 @@ export function applyImport(payload: ExportPayload): ImportSummary {
             set.notes, set.distance_km, set.duration_sec, set.pace_sec, set.failure ?? 0,
           ]
         );
+      }
+      if (session.exercises && session.exercises.length > 0) {
+        for (const se of session.exercises) {
+          const exerciseId = exerciseIdByUuid.get(se.exercise_uuid);
+          if (exerciseId === undefined) continue;
+          db.runSync(
+            `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
+            [sessionId, exerciseId, se.order]
+          );
+        }
+      } else {
+        // Backups made before exercise ordering existed have no `exercises` field —
+        // derive it from first-appearance in `sets`, matching the old implicit order.
+        const seen = new Set<number>();
+        let order = 0;
+        for (const set of session.sets) {
+          const exerciseId = exerciseIdByUuid.get(set.exercise_uuid);
+          if (exerciseId === undefined || seen.has(exerciseId)) continue;
+          seen.add(exerciseId);
+          db.runSync(
+            `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
+            [sessionId, exerciseId, order]
+          );
+          order++;
+        }
       }
       summary.sessionsAdded++;
     }

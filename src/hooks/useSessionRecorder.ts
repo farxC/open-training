@@ -9,6 +9,9 @@ import {
   deleteSet,
   getSetsBySession,
   addSessionPhoto,
+  addSessionExercise,
+  removeSessionExercise,
+  reorderSessionExercises,
 } from "@/db/queries";
 import type { Exercise, Modality, RoutineUnitExercise, WorkoutSet } from "@/types";
 
@@ -20,6 +23,7 @@ export function useSessionRecorder() {
     addExercise,
     addExercises,
     removeExercise,
+    reorderExercises,
     finish,
     discard,
   } = useRecorderContext();
@@ -47,6 +51,9 @@ export function useSessionRecorder() {
       payload.photoUris.forEach((uri, i) => addSessionPhoto(sessionId, uri, i));
       start(sessionId, payload.modality, payload.splitId, payload.unitId, payload.programWeekId);
       addExercises(payload.exercises);
+      // Persists the starting order — already the split's order, since payload.exercises
+      // arrives ordered via getUnitExercises's ORDER BY re."order".
+      payload.exercises.forEach((item, i) => addSessionExercise(sessionId, item.exercise.id, i));
       return sessionId;
     },
     [start, addExercises]
@@ -54,23 +61,41 @@ export function useSessionRecorder() {
 
   const addExerciseToSession = useCallback(
     (exercise: Exercise) => {
+      if (state.sessionId) addSessionExercise(state.sessionId, exercise.id);
       addExercise(exercise);
     },
-    [addExercise]
+    [addExercise, state.sessionId]
   );
 
   const addExercisesToSession = useCallback(
     (exercises: Exercise[]) => {
+      if (state.sessionId) {
+        const startIndex = state.selectedExercises.length;
+        exercises.forEach((exercise, i) => addSessionExercise(state.sessionId!, exercise.id, startIndex + i));
+      }
       addExercises(exercises.map((exercise) => ({ exercise })));
     },
-    [addExercises]
+    [addExercises, state.sessionId, state.selectedExercises.length]
   );
 
   const removeExerciseFromSession = useCallback(
     (exerciseId: number) => {
+      // removeSessionExercise also cascades deleteSetsByExercise — without this, sets
+      // logged before the removal used to survive invisibly and reappear when the
+      // session was reopened later (getSessionWithSets derives its exercise list from
+      // `sets`, not from recorder state).
+      if (state.sessionId) removeSessionExercise(state.sessionId, exerciseId);
       removeExercise(exerciseId);
     },
-    [removeExercise]
+    [removeExercise, state.sessionId]
+  );
+
+  const reorderExercisesInSession = useCallback(
+    (orderedExerciseIds: number[]) => {
+      if (state.sessionId) reorderSessionExercises(state.sessionId, orderedExerciseIds);
+      reorderExercises(orderedExerciseIds);
+    },
+    [reorderExercises, state.sessionId]
   );
 
   const addSetToSession = useCallback(
@@ -142,6 +167,7 @@ export function useSessionRecorder() {
     addExerciseToSession,
     addExercisesToSession,
     removeExerciseFromSession,
+    reorderExercisesInSession,
     addSetToSession,
     updateSetInSession,
     removeSetFromSession,

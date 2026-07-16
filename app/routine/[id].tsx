@@ -121,6 +121,7 @@ export default function EditSplitScreen() {
     onAddExercise: () => setPickerUnitId(unit.id),
     onRemoveExercise: r.removeExercise,
     onUpdateTargets: r.updateExerciseTargets,
+    onReorderExercises: (orderedIds: number[]) => r.reorderExercises(unit.id, orderedIds),
     badge,
     onDelete: () => confirmRemoveUnit(unit.id),
   });
@@ -202,6 +203,7 @@ export default function EditSplitScreen() {
                 onAddExercise={(uid) => setPickerUnitId(uid)}
                 onRemoveExercise={r.removeExercise}
                 onUpdateTargets={r.updateExerciseTargets}
+                onReorderExercises={r.reorderExercises}
                 onMoveUp={(uid) => r.reorderUnit(uid, "up")}
                 onMoveDown={(uid) => r.reorderUnit(uid, "down")}
                 onDelete={confirmRemoveUnit}

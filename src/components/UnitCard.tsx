@@ -4,6 +4,7 @@ import type { Modality, RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { modalityConfig } from "@/data/modalities";
 import { NumField, RunTargetFields } from "@/components/TargetFields";
+import { DraggableList } from "@/components/DraggableList";
 
 interface Props {
   unit: RoutineUnit;
@@ -15,6 +16,7 @@ interface Props {
   onAddExercise: () => void;
   onRemoveExercise: (id: number) => void;
   onUpdateTargets: (exerciseId: number, patch: TargetPatch) => void;
+  onReorderExercises: (orderedIds: number[]) => void;
   badge?: string;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
@@ -31,6 +33,7 @@ export function UnitCard({
   onAddExercise,
   onRemoveExercise,
   onUpdateTargets,
+  onReorderExercises,
   badge,
   onMoveUp,
   onMoveDown,
@@ -105,47 +108,49 @@ export function UnitCard({
 
           {expanded && (
             <View className="px-4 pb-4">
-              {exercises.map((re) => (
-                <View
-                  key={re.id}
-                  className="py-3"
-                  style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}
-                >
-                  <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
-                    <TouchableOpacity onPress={() => onRemoveExercise(re.id)} className="px-2">
-                      <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
-                    </TouchableOpacity>
-                  </View>
+              <DraggableList
+                data={exercises}
+                keyExtractor={(re) => String(re.id)}
+                onReorder={(reordered) => onReorderExercises(reordered.map((re) => re.id))}
+                renderItem={({ item: re, dragHandle }) => (
+                  <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}>
+                    <View className="flex-row items-center justify-between mb-2">
+                      {dragHandle}
+                      <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
+                      <TouchableOpacity onPress={() => onRemoveExercise(re.id)} className="px-2">
+                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
+                      </TouchableOpacity>
+                    </View>
 
-                  <View className="flex-row items-center flex-wrap" style={{ gap: 8 }}>
-                    <NumField
-                      value={re.target_sets}
-                      onChange={(n) => onUpdateTargets(re.id, { target_sets: n ?? 0 })}
-                      suffix="séries"
-                      integer
-                    />
-                    <Text className="text-ink-faint text-sm">×</Text>
-                    <NumField
-                      value={re.target_reps}
-                      onChange={(n) => onUpdateTargets(re.id, { target_reps: n ?? 0 })}
-                      integer
-                    />
-                    <Text className="text-ink-faint text-xs">–</Text>
-                    <NumField
-                      value={re.target_reps_max}
-                      onChange={(n) => onUpdateTargets(re.id, { target_reps_max: n })}
-                      suffix="reps"
-                      integer
-                    />
-                    <NumField
-                      value={re.target_weight_kg}
-                      onChange={(n) => onUpdateTargets(re.id, { target_weight_kg: n })}
-                      suffix="kg"
-                    />
+                    <View className="flex-row items-center flex-wrap" style={{ gap: 8 }}>
+                      <NumField
+                        value={re.target_sets}
+                        onChange={(n) => onUpdateTargets(re.id, { target_sets: n ?? 0 })}
+                        suffix="séries"
+                        integer
+                      />
+                      <Text className="text-ink-faint text-sm">×</Text>
+                      <NumField
+                        value={re.target_reps}
+                        onChange={(n) => onUpdateTargets(re.id, { target_reps: n ?? 0 })}
+                        integer
+                      />
+                      <Text className="text-ink-faint text-xs">–</Text>
+                      <NumField
+                        value={re.target_reps_max}
+                        onChange={(n) => onUpdateTargets(re.id, { target_reps_max: n })}
+                        suffix="reps"
+                        integer
+                      />
+                      <NumField
+                        value={re.target_weight_kg}
+                        onChange={(n) => onUpdateTargets(re.id, { target_weight_kg: n })}
+                        suffix="kg"
+                      />
+                    </View>
                   </View>
-                </View>
-              ))}
+                )}
+              />
               <TouchableOpacity
                 className="mt-3 py-2.5 rounded-xl items-center"
                 style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}

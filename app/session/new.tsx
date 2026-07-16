@@ -19,6 +19,7 @@ import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
+import { DraggableList } from "@/components/DraggableList";
 import { SessionTimer } from "@/components/SessionTimer";
 import { SessionFinishModal } from "@/components/SessionFinishModal";
 import { MODALITIES, modalityConfig, modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
@@ -582,27 +583,32 @@ export default function NewSessionScreen() {
                   </Text>
                 )}
 
-                {recorder.selectedExercises.map((exercise) =>
-                  exercise.modality === "corrida" ? (
-                    <RunLogger
-                      key={exercise.id}
-                      exerciseId={exercise.id}
-                      exerciseName={exercise.name}
-                      sessionId={recorder.sessionId!}
-                      targets={recorder.targetsByExerciseId[exercise.id]}
-                      onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
-                    />
-                  ) : (
-                    <SetLogger
-                      key={exercise.id}
-                      exerciseId={exercise.id}
-                      exerciseName={exercise.name}
-                      sessionId={recorder.sessionId!}
-                      targets={recorder.targetsByExerciseId[exercise.id]}
-                      onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
-                    />
-                  )
-                )}
+                <DraggableList
+                  data={recorder.selectedExercises}
+                  keyExtractor={(exercise) => String(exercise.id)}
+                  onReorder={(reordered) => recorder.reorderExercisesInSession(reordered.map((e) => e.id))}
+                  renderItem={({ item: exercise, dragHandle }) =>
+                    exercise.modality === "corrida" ? (
+                      <RunLogger
+                        exerciseId={exercise.id}
+                        exerciseName={exercise.name}
+                        sessionId={recorder.sessionId!}
+                        targets={recorder.targetsByExerciseId[exercise.id]}
+                        onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
+                        dragHandle={dragHandle}
+                      />
+                    ) : (
+                      <SetLogger
+                        exerciseId={exercise.id}
+                        exerciseName={exercise.name}
+                        sessionId={recorder.sessionId!}
+                        targets={recorder.targetsByExerciseId[exercise.id]}
+                        onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
+                        dragHandle={dragHandle}
+                      />
+                    )
+                  }
+                />
 
                 {modality !== "corrida" && (
                   <TouchableOpacity

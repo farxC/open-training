@@ -14,6 +14,7 @@ import {
   addUnitExercise,
   updateUnitExerciseTargets,
   removeUnitExercise,
+  reorderUnitExercises,
   getExercises,
   getOverridesInRange,
   setOverride as setOverrideQuery,
@@ -254,6 +255,10 @@ export function useRoutine() {
     [refreshAll]
   );
   const removeExercise = useCallback((id: number) => { removeUnitExercise(id); refreshAll(); }, [refreshAll]);
+  const reorderExercises = useCallback(
+    (unitId: number, orderedIds: number[]) => { reorderUnitExercises(unitId, orderedIds); refreshAll(); },
+    [refreshAll]
+  );
 
   // Optimistic target edits (avoid DB re-read per keystroke).
   const updateExerciseTargets = useCallback((id: number, patch: TargetPatch) => {
@@ -384,6 +389,7 @@ export function useRoutine() {
     reorderUnit,
     addExercise,
     removeExercise,
+    reorderExercises,
     updateExerciseTargets,
     markOverride,
     clearOverrideMark,

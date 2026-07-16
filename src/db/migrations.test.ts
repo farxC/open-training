@@ -71,6 +71,52 @@ describe("runMigrations upgrade from frozen snapshots", () => {
   });
 });
 
+describe("runMigrations backfills session_exercises", () => {
+  it("preserves MIN(id)-per-exercise order, not exercise_id order", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v11-multi-exercise-session.sql"));
+
+    runMigrations(dbHandle);
+
+    const sessionExercises = dbHandle.getAllSync<{ exercise_id: number; order: number }>(
+      'SELECT exercise_id, "order" FROM session_exercises WHERE session_id = 1 ORDER BY "order"',
+      []
+    );
+    expect(sessionExercises).toEqual([
+      { exercise_id: 2, order: 0 },
+      { exercise_id: 1, order: 1 },
+    ]);
+
+    // Regression guard: the exercise grouping order used to render a session must
+    // still match what it was before the migration (first set's rowid), now driven
+    // by session_exercises."order" instead of the MIN(id) subquery.
+    const sets = dbHandle.getAllSync<{ exercise_id: number }>(
+      `SELECT st.exercise_id FROM sets st
+       WHERE st.session_id = 1
+       ORDER BY (
+         SELECT se."order" FROM session_exercises se
+         WHERE se.session_id = st.session_id AND se.exercise_id = st.exercise_id
+       ), st.set_number`,
+      []
+    );
+    expect(sets.map((s) => s.exercise_id)).toEqual([2, 2, 1, 1]);
+  });
+
+  it("running migrations twice does not duplicate session_exercises rows", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v11-multi-exercise-session.sql"));
+
+    runMigrations(dbHandle);
+    runMigrations(dbHandle);
+
+    const count = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM session_exercises",
+      []
+    );
+    expect(count!.count).toBe(2);
+  });
+});
+
 describe("runMigrations against an already-current device", () => {
   it("is a no-op: no rows added or removed, existing uuids untouched", async () => {
     const dbHandle: DbHandle = await createInMemoryDb();

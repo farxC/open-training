@@ -21,6 +21,7 @@ interface Props {
   onAddExercise: (unitId: number, exercise: Exercise) => void;
   onRemoveExercise: (id: number) => void;
   onUpdateTargets: (exerciseId: number, patch: TargetPatch) => void;
+  onReorderExercises: (unitId: number, orderedIds: number[]) => void;
   onSetOverride: (date: string, status: OverrideStatus) => void;
   onClearOverride: (date: string) => void;
 }
@@ -50,6 +51,7 @@ export function DayDetailModal({
   onAddExercise,
   onRemoveExercise,
   onUpdateTargets,
+  onReorderExercises,
   onSetOverride,
   onClearOverride,
 }: Props) {
@@ -116,6 +118,7 @@ export function DayDetailModal({
                   }}
                   onRemoveExercise={onRemoveExercise}
                   onUpdateTargets={onUpdateTargets}
+                  onReorderExercises={(orderedIds) => onReorderExercises(unitId, orderedIds)}
                   badge={entry.split.name}
                 />
               );

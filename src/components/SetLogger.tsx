@@ -15,6 +15,7 @@ interface Props {
   sessionId: number;
   onRemoveExercise: () => void;
   targets?: RoutineUnitExercise;
+  dragHandle?: React.ReactNode;
 }
 
 function targetLabel(targets: RoutineUnitExercise): string | null {
@@ -26,7 +27,7 @@ function targetLabel(targets: RoutineUnitExercise): string | null {
   return `Meta: ${targets.target_sets}×${reps} reps${weight}`;
 }
 
-export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets }: Props) {
+export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandle }: Props) {
   const [sets, setSets] = useState<WorkoutSet[]>([]);
 
   const refreshSets = useCallback(() => {
@@ -94,6 +95,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
       {/* Exercise header */}
       <View className="flex-row justify-between items-center mb-2">
         <View className="flex-row items-center" style={{ gap: 8 }}>
+          {dragHandle}
           <View style={{ width: 2, height: 14, backgroundColor: '#26241f', borderRadius: 1 }} />
           <View>
             <Text className="text-ink font-semibold text-base">{exerciseName}</Text>
