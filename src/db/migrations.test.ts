@@ -1,13 +1,18 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import { createInMemoryDb } from "./__tests__/testDb";
 import { runMigrations } from "./migrations";
 import { SCHEMA_VERSION } from "./schema";
 import type { DbHandle } from "./dbHandle";
 
+const FIXTURES_DIR = path.join(__dirname, "__fixtures__");
+
 function loadFixture(name: string): string {
-  return fs.readFileSync(path.join(__dirname, "__fixtures__", name), "utf8");
+  return fs.readFileSync(path.join(FIXTURES_DIR, name), "utf8");
 }
+
+const ALL_FIXTURE_FILES = fs.readdirSync(FIXTURES_DIR).filter((f) => f.endsWith(".sql"));
 
 describe("runMigrations upgrade from frozen snapshots", () => {
   it("upgrades a v8 device: preserves rows, adds new columns, drops nothing unexpectedly", async () => {
@@ -167,5 +172,60 @@ describe("runMigrations against an already-current device", () => {
       []
     );
     expect(exerciseCount!.count).toBe(3);
+  });
+});
+
+// Baseline safety net: every frozen fixture, whatever it was written to test
+// specifically, must never regress on the two invariants runMigrations makes to
+// ANY device — reaching the current schema version, and never losing exercises,
+// sessions, or sets. New fixtures get this coverage automatically, with no test
+// code to write.
+describe("runMigrations baseline sweep (every frozen fixture)", () => {
+  function countCoreRows(dbHandle: DbHandle): number {
+    const row = dbHandle.getFirstSync<{ total: number }>(
+      `SELECT (SELECT COUNT(*) FROM exercises)
+            + (SELECT COUNT(*) FROM sessions)
+            + (SELECT COUNT(*) FROM sets) AS total`,
+      []
+    );
+    return row!.total;
+  }
+
+  it.each(ALL_FIXTURE_FILES)(
+    "%s: reaches the current schema version without losing exercises, sessions, or sets",
+    async (fixtureFile) => {
+      const dbHandle: DbHandle = await createInMemoryDb();
+      dbHandle.execSync(loadFixture(fixtureFile));
+
+      const before = countCoreRows(dbHandle);
+      runMigrations(dbHandle);
+      const after = countCoreRows(dbHandle);
+
+      expect(after).toBeGreaterThanOrEqual(before);
+
+      const versionRow = dbHandle.getFirstSync<{ value: string }>(
+        "SELECT value FROM user_meta WHERE key = 'schema_version'",
+        []
+      );
+      expect(versionRow!.value).toBe(String(SCHEMA_VERSION));
+    }
+  );
+});
+
+// A frozen fixture is only useful as a regression guard if it truly never changes
+// after being committed — editing one to match today's schema would make its test
+// a tautology. This is enforced, not just documented in a comment.
+describe("frozen fixture integrity", () => {
+  const CHECKSUMS: Record<string, string> = JSON.parse(
+    fs.readFileSync(path.join(FIXTURES_DIR, "CHECKSUMS.json"), "utf8")
+  );
+
+  it("every fixture file has a checksum recorded in CHECKSUMS.json", () => {
+    expect(ALL_FIXTURE_FILES.slice().sort()).toEqual(Object.keys(CHECKSUMS).sort());
+  });
+
+  it.each(ALL_FIXTURE_FILES)("%s matches its recorded checksum", (fixtureFile) => {
+    const hash = crypto.createHash("sha256").update(loadFixture(fixtureFile)).digest("hex");
+    expect(hash).toBe(CHECKSUMS[fixtureFile]);
   });
 });
