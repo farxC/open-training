@@ -22,7 +22,8 @@ import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
 import { DraggableList } from "@/components/DraggableList";
-import { modalityLabel, formatClock, formatPaceSec, parseClock } from "@/data/modalities";
+import { ExerciseSessionCard } from "@/components/ExerciseSessionCard";
+import { modalityLabel, formatClock, parseClock } from "@/data/modalities";
 import { dateToISO } from "@/utils/cycle";
 import type { WorkoutSet } from "@/types";
 
@@ -62,12 +63,6 @@ function groupByExercise(
     groups[set.exercise_name].push(set);
   }
   return groups;
-}
-
-function intensityColor(rpe: number | null, rir: number | null, failure: 0 | 1): string {
-  if (failure || (rpe != null && rpe >= 9)) return "#bf3b30";
-  if ((rir != null && rir <= 1) || (rpe != null && rpe >= 8)) return "#b9791f";
-  return "#928d80";
 }
 
 const MODALITY_DOT: Record<string, string> = {
@@ -431,123 +426,15 @@ export default function SessionDetailScreen() {
               )}
 
               <View style={{ marginTop: 20 }}>
-                {Object.entries(grouped).map(([exerciseName, sets], groupIndex) => {
-                  const vol = sets.reduce((s, x) => s + x.reps * x.weight_kg, 0);
-                  const isRunGroup = sets.some((s) => s.distance_km != null);
-                  const dist = sets.reduce((s, x) => s + (x.distance_km ?? 0), 0);
-                  const setLabel = sets.length === 1 ? "1 série" : `${sets.length} séries`;
-                  return (
-                    <View
-                      key={exerciseName}
-                      className="bg-surface-card mb-3"
-                      style={{
-                        borderRadius: 16,
-                        borderWidth: 1,
-                        borderColor: "#ddd8ce",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {/* Card header */}
-                      <View
-                        className="flex-row justify-between items-baseline"
-                        style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 11 }}
-                      >
-                        <Text
-                          className="font-display flex-1 pr-3"
-                          style={{ color: "#26241f", fontSize: 16, fontWeight: "600" }}
-                          numberOfLines={1}
-                        >
-                          <Text style={{ color: "#928d80", fontWeight: "500" }}>{groupIndex + 1}. </Text>
-                          {exerciseName}
-                        </Text>
-                        <Text
-                          className="text-ink-soft"
-                          style={{
-                            fontSize: 12,
-                            fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
-                          }}
-                        >
-                          {isRunGroup
-                            ? dist > 0
-                              ? `${dist.toFixed(1)} km`
-                              : setLabel
-                            : vol > 0
-                              ? `${formatThousands(vol)} kg`
-                              : setLabel}
-                        </Text>
-                      </View>
-
-                      <View style={{ height: 1, backgroundColor: "#ddd8ce" }} />
-
-                      {/* Sets */}
-                      <View style={{ paddingHorizontal: 14 }}>
-                        {sets.map((s, i) => {
-                          const hasIntensity = s.rpe != null || s.rir != null || !!s.failure;
-                          return (
-                            <View
-                              key={s.id}
-                              className="flex-row items-center"
-                              style={{
-                                paddingVertical: 10,
-                                borderTopWidth: i === 0 ? 0 : 1,
-                                borderTopColor: "#efeae1",
-                              }}
-                            >
-                              <View
-                                className="items-center justify-center bg-surface-elevated"
-                                style={{ width: 24, height: 24, borderRadius: 12, marginRight: 10 }}
-                              >
-                                <Text
-                                  className="text-ink-soft"
-                                  style={{ fontSize: 11, fontFamily: "JetBrains Mono, Menlo, Courier New, monospace" }}
-                                >
-                                  {s.set_number}
-                                </Text>
-                              </View>
-
-                              {s.distance_km != null ? (
-                                <Text className="text-ink flex-1" style={{ fontSize: 14 }}>
-                                  {s.distance_km} km em {formatClock(s.duration_sec)}
-                                  {formatPaceSec(s.pace_sec) ? ` · pace ${formatPaceSec(s.pace_sec)}` : ""}
-                                </Text>
-                              ) : (
-                                <Text className="text-ink flex-1" style={{ fontSize: 14 }}>
-                                  <Text style={{ fontFamily: "JetBrains Mono, Menlo, Courier New, monospace" }}>
-                                    {s.weight_kg}
-                                  </Text>
-                                  <Text className="text-ink-mute"> kg × </Text>
-                                  <Text style={{ fontFamily: "JetBrains Mono, Menlo, Courier New, monospace" }}>
-                                    {s.reps}
-                                  </Text>
-                                  <Text className="text-ink-mute"> reps</Text>
-                                </Text>
-                              )}
-
-                              {hasIntensity && (
-                                <View className="flex-row items-center" style={{ gap: 5 }}>
-                                  <View
-                                    style={{
-                                      width: 6,
-                                      height: 6,
-                                      borderRadius: 3,
-                                      backgroundColor: intensityColor(s.rpe, s.rir, s.failure),
-                                    }}
-                                  />
-                                  <Text className="text-ink-soft" style={{ fontSize: 11 }}>
-                                    {s.rpe != null ? `RPE ${s.rpe}` : ""}
-                                    {s.rpe != null && s.rir != null ? " · " : ""}
-                                    {s.rir != null ? `RIR ${s.rir}` : ""}
-                                    {s.failure ? `${s.rpe != null || s.rir != null ? " · " : ""}Falha` : ""}
-                                  </Text>
-                                </View>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  );
-                })}
+                {Object.entries(grouped).map(([exerciseName, sets], groupIndex) => (
+                  <ExerciseSessionCard
+                    key={exerciseName}
+                    exerciseId={sets[0].exercise_id}
+                    exerciseName={exerciseName}
+                    ordinal={groupIndex + 1}
+                    sets={sets}
+                  />
+                ))}
 
                 {session.sets.length === 0 && (
                   <Text className="text-ink-mute text-center mt-8">
