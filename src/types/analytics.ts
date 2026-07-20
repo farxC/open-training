@@ -75,3 +75,24 @@ export interface Delta {
   /** Signed absolute change vs previous; null when there is no previous data. */
   absChange: number | null;
 }
+
+/** Raw per-scope muscle-series aggregate straight out of SQL — one row per
+ *  muscle group, no notion of averaging. Scope is whatever the query filtered
+ *  on (a date range, or a single session). */
+export interface MuscleSeriesRaw {
+  muscle_group: string;
+  total_series: number;
+}
+
+/** UI-facing muscle-series row shared by MuscleSeriesChart (analytics) and
+ *  MuscleSeriesSessionCard (live recording + session detail). `value` is a
+ *  raw total when isAverage is false (week granularity, or any single
+ *  session), and a weekly average when isAverage is true (month/semester/year
+ *  granularity). `weeks` is the divisor used to produce `value` when
+ *  isAverage is true — always 1 otherwise. */
+export interface MuscleSeriesRow {
+  muscle_group: string;
+  value: number;
+  weeks: number;
+  isAverage: boolean;
+}

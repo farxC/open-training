@@ -154,6 +154,23 @@ function addMonths_asISO(year: number, month: number, day: number, n: number): s
   return formatISO(y, m, Math.min(day, daysInMonth(y, m)));
 }
 
+/**
+ * All Monday-start weeks whose Monday falls within [start, end] (inclusive),
+ * in chronological order. Each week is returned as its own natural Mon–Sun
+ * range — NOT clipped to [start, end] — so the last week of a period that
+ * spills into the next one still contributes its full 7 days, matching the
+ * weekly-bucket convention trendBuckets() already uses elsewhere.
+ */
+export function weeksInRange(start: string, end: string): DateRange[] {
+  const weeks: DateRange[] = [];
+  let weekStart = mondayOnOrBeforeISO(start);
+  while (weekStart <= end) {
+    weeks.push({ start: weekStart, end: addDays(weekStart, 6) });
+    weekStart = addDays(weekStart, 7);
+  }
+  return weeks;
+}
+
 export function trendBuckets(g: Granularity, refISO: string, count?: number): TrendBucket[] {
   const n = count ?? DEFAULT_COUNT[g];
   const buckets: TrendBucket[] = [];

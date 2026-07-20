@@ -1,5 +1,13 @@
-import type { AnalyticsSetRow, TrendBucket } from "@/types";
-import { bucketSum, computeStreak, delta, sumRunning, sumStrength } from "./analyticsAgg";
+import type { AnalyticsSetRow, MuscleSeriesRaw, TrendBucket } from "@/types";
+import {
+  averageMuscleSeriesPerWeek,
+  bucketSum,
+  computeStreak,
+  delta,
+  sumRunning,
+  sumStrength,
+  toMuscleSeriesRows,
+} from "./analyticsAgg";
 
 function strengthRow(overrides: Partial<AnalyticsSetRow> = {}): AnalyticsSetRow {
   return {
@@ -159,6 +167,64 @@ describe("computeStreak", () => {
 
   it("returns 0 for an empty array", () => {
     expect(computeStreak([], "2026-07-10")).toBe(0);
+  });
+});
+
+describe("toMuscleSeriesRows", () => {
+  it("maps total_series to value, tagging each row as an unaveraged single week", () => {
+    const raw: MuscleSeriesRaw[] = [
+      { muscle_group: "chest", total_series: 4 },
+      { muscle_group: "back", total_series: 2.5 },
+    ];
+    expect(toMuscleSeriesRows(raw)).toEqual([
+      { muscle_group: "chest", value: 4, weeks: 1, isAverage: false },
+      { muscle_group: "back", value: 2.5, weeks: 1, isAverage: false },
+    ]);
+  });
+
+  it("returns an empty array for empty input", () => {
+    expect(toMuscleSeriesRows([])).toEqual([]);
+  });
+});
+
+describe("averageMuscleSeriesPerWeek", () => {
+  it("divides each muscle group's summed series by the total week count, not just weeks it appeared in", () => {
+    const weeklyRows: MuscleSeriesRaw[][] = [
+      [{ muscle_group: "chest", total_series: 8 }],
+      [], // no series at all this week
+      [{ muscle_group: "chest", total_series: 4 }],
+      [], // no series at all this week
+    ];
+    const result = averageMuscleSeriesPerWeek(weeklyRows, 4);
+    expect(result).toEqual([{ muscle_group: "chest", value: 3, weeks: 4, isAverage: true }]);
+  });
+
+  it("sums across weeks per muscle group and sorts descending by average", () => {
+    const weeklyRows: MuscleSeriesRaw[][] = [
+      [
+        { muscle_group: "chest", total_series: 2 },
+        { muscle_group: "back", total_series: 10 },
+      ],
+      [
+        { muscle_group: "chest", total_series: 6 },
+      ],
+    ];
+    const result = averageMuscleSeriesPerWeek(weeklyRows, 2);
+    expect(result).toEqual([
+      { muscle_group: "back", value: 5, weeks: 2, isAverage: true }, // 10/2
+      { muscle_group: "chest", value: 4, weeks: 2, isAverage: true }, // (2+6)/2
+    ]);
+  });
+
+  it("omits a muscle group entirely if it never appears in any week", () => {
+    const result = averageMuscleSeriesPerWeek([[], []], 2);
+    expect(result).toEqual([]);
+  });
+
+  it("guards against a zero week count to avoid dividing by zero", () => {
+    const weeklyRows: MuscleSeriesRaw[][] = [[{ muscle_group: "chest", total_series: 5 }]];
+    const result = averageMuscleSeriesPerWeek(weeklyRows, 0);
+    expect(result).toEqual([{ muscle_group: "chest", value: 5, weeks: 0, isAverage: true }]);
   });
 });
 

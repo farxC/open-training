@@ -18,6 +18,7 @@ interface Props {
   targets?: RoutineUnitExercise;
   dragHandle?: React.ReactNode;
   index?: number;
+  onSetsChanged?: () => void;
 }
 
 function targetLabel(targets: RoutineUnitExercise): string | null {
@@ -26,7 +27,7 @@ function targetLabel(targets: RoutineUnitExercise): string | null {
   return `Meta: ${targets.target_distance_km}km${pace ? ` · pace ${pace}` : ""}`;
 }
 
-export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandle, index }: Props) {
+export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandle, index, onSetsChanged }: Props) {
   const [sets, setSets] = useState<WorkoutSet[]>([]);
 
   const refreshSets = useCallback(() => {
@@ -57,6 +58,7 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
       });
     }
     refreshSets();
+    onSetsChanged?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -76,16 +78,19 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
       failure: 0,
     });
     refreshSets();
+    onSetsChanged?.();
   };
 
   const handleChange = (id: number, patch: Partial<WorkoutSet>) => {
     updateSet(id, patch);
     setSets((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    onSetsChanged?.();
   };
 
   const handleDelete = (id: number) => {
     deleteSet(id);
     refreshSets();
+    onSetsChanged?.();
   };
 
   return (

@@ -1,4 +1,4 @@
-import { periodRange, previousPeriodRange, trendBuckets } from "./periods";
+import { periodRange, previousPeriodRange, trendBuckets, weeksInRange } from "./periods";
 
 describe("periodRange", () => {
   describe("week", () => {
@@ -128,6 +128,36 @@ describe("previousPeriodRange", () => {
       start: "2025-01-01",
       end: "2025-12-31",
     });
+  });
+});
+
+describe("weeksInRange", () => {
+  it("returns a single week when the range is exactly one Mon-Sun week", () => {
+    const week = periodRange("week", "2026-07-08");
+    expect(weeksInRange(week.start, week.end)).toEqual([week]);
+  });
+
+  it("returns each natural Mon-Sun week overlapping a full month, uncapped at the month boundary", () => {
+    const month = periodRange("month", "2026-07-15"); // 2026-07-01..2026-07-31
+    const weeks = weeksInRange(month.start, month.end);
+    expect(weeks.map((w) => w.start)).toEqual([
+      "2026-06-29",
+      "2026-07-06",
+      "2026-07-13",
+      "2026-07-20",
+      "2026-07-27",
+    ]);
+    // last week's own end spills past the month's end, uncapped
+    expect(weeks[weeks.length - 1]).toEqual({ start: "2026-07-27", end: "2026-08-02" });
+  });
+
+  it("returns weeks in chronological order", () => {
+    const year = periodRange("year", "2026-07-08");
+    const weeks = weeksInRange(year.start, year.end);
+    for (let i = 1; i < weeks.length; i++) {
+      expect(weeks[i].start > weeks[i - 1].start).toBe(true);
+    }
+    expect(weeks.length).toBeGreaterThanOrEqual(52);
   });
 });
 

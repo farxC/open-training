@@ -1,4 +1,12 @@
-import type { AnalyticsSetRow, Delta, RunningSummary, StrengthSummary, TrendBucket } from "@/types";
+import type {
+  AnalyticsSetRow,
+  Delta,
+  MuscleSeriesRaw,
+  MuscleSeriesRow,
+  RunningSummary,
+  StrengthSummary,
+  TrendBucket,
+} from "@/types";
 import { addDays, todayISO } from "./cycle";
 
 export function sumStrength(sets: AnalyticsSetRow[]): StrengthSummary {
@@ -78,6 +86,38 @@ export function computeStreak(datesDesc: string[], todayISO_: string = todayISO(
   }
 
   return streak;
+}
+
+/** Raw rows (a single session, or a single week) → UI rows, unaveraged (weeks:
+ *  1, isAverage: false). Single conversion point shared by the live recorder,
+ *  session detail, and the analytics week-granularity path. */
+export function toMuscleSeriesRows(raw: MuscleSeriesRaw[]): MuscleSeriesRow[] {
+  return raw.map((r) => ({ muscle_group: r.muscle_group, value: r.total_series, weeks: 1, isAverage: false }));
+}
+
+/**
+ * Averages per-week muscle-series rows into one row per muscle group.
+ * `weeklyRows` is one MuscleSeriesRaw[] per calendar week in the period
+ * (typically produced by calling getMuscleSeriesInRange once per week from
+ * weeksInRange()); a week with no series for a muscle group simply omits it.
+ * `totalWeeks` is the fixed denominator — it does NOT shrink per muscle
+ * group, so a muscle trained in only 2 of 4 weeks is still divided by 4.
+ */
+export function averageMuscleSeriesPerWeek(
+  weeklyRows: MuscleSeriesRaw[][],
+  totalWeeks: number
+): MuscleSeriesRow[] {
+  const totals = new Map<string, number>();
+  for (const week of weeklyRows) {
+    for (const row of week) {
+      totals.set(row.muscle_group, (totals.get(row.muscle_group) ?? 0) + row.total_series);
+    }
+  }
+
+  const denom = Math.max(totalWeeks, 1);
+  return Array.from(totals.entries())
+    .map(([muscle_group, sum]) => ({ muscle_group, value: sum / denom, weeks: totalWeeks, isAverage: true }))
+    .sort((a, b) => b.value - a.value);
 }
 
 export function delta(cur: number, prev: number, higherIsBetter: boolean): Delta {

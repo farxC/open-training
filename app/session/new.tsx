@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react";
+import { useReducer, useState, type ComponentProps } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -22,6 +22,8 @@ import { RunLogger } from "@/components/RunLogger";
 import { DraggableList } from "@/components/DraggableList";
 import { SessionTimer } from "@/components/SessionTimer";
 import { SessionFinishModal } from "@/components/SessionFinishModal";
+import { SectionHeader } from "@/components/SectionHeader";
+import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
 import { MODALITIES, modalityConfig, modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
 import {
   getExercises,
@@ -30,9 +32,11 @@ import {
   getSessionPhotos,
   addSessionPhoto,
   removeSessionPhoto,
+  getMuscleSeriesForSession,
 } from "@/db/queries";
 import { confirmAction, notify } from "@/components/AppModal";
 import { dateToISO, todayISO } from "@/utils/cycle";
+import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
 import type { Exercise, Modality, RoutineSplit, RoutineUnit, RoutineUnitExercise, SessionPhoto } from "@/types";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -98,6 +102,13 @@ export default function NewSessionScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [finishModalVisible, setFinishModalVisible] = useState(false);
   const [finishInitialDuration, setFinishInitialDuration] = useState(0);
+
+  // Sets are persisted straight to SQLite by SetLogger/RunLogger (not the
+  // recorder reducer), so this tick just forces a re-render to pick up the
+  // latest getMuscleSeriesForSession() read after each mutation.
+  const [, bumpSetsTick] = useReducer((c: number) => c + 1, 0);
+  const muscleSeries =
+    recorder.sessionId != null ? toMuscleSeriesRows(getMuscleSeriesForSession(recorder.sessionId)) : [];
 
   const split = splitId != null ? r.splits.find((s) => s.id === splitId) ?? null : null;
 
@@ -510,6 +521,13 @@ export default function NewSessionScreen() {
                   <SessionTimer startTime={recorder.startTime} onStart={recorder.startTimer} />
                 </View>
 
+                {muscleSeries.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <SectionHeader title="Séries por grupo muscular" />
+                    <MuscleSeriesSessionCard data={muscleSeries} />
+                  </View>
+                )}
+
                 {/* Compact modality context — was the big centered icon+badge, now tucked in the corner */}
                 <View className="flex-row items-center mb-6" style={{ gap: 8 }}>
                   <View
@@ -597,6 +615,7 @@ export default function NewSessionScreen() {
                         onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
                         dragHandle={dragHandle}
                         index={index}
+                        onSetsChanged={bumpSetsTick}
                       />
                     ) : (
                       <SetLogger
@@ -607,6 +626,7 @@ export default function NewSessionScreen() {
                         onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
                         dragHandle={dragHandle}
                         index={index}
+                        onSetsChanged={bumpSetsTick}
                       />
                     )
                   }

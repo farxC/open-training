@@ -11,4 +11,6 @@ export type {
   StrengthRecord,
   RunningRecords,
   Delta,
+  MuscleSeriesRaw,
+  MuscleSeriesRow,
 } from "./analytics";

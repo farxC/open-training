@@ -8,6 +8,7 @@ import {
   addSessionExercise,
   addSessionPhoto,
   deleteSession,
+  getMuscleSeriesForSession,
   moveSessionPhoto,
   removeSessionExercise,
   removeSessionPhoto,
@@ -16,6 +17,7 @@ import {
 } from "@/db/queries";
 import { confirmAction } from "@/components/AppModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { SectionHeader } from "@/components/SectionHeader";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
@@ -23,8 +25,10 @@ import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
 import { DraggableList } from "@/components/DraggableList";
 import { ExerciseSessionCard } from "@/components/ExerciseSessionCard";
+import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
 import { modalityLabel, formatClock, parseClock } from "@/data/modalities";
 import { dateToISO } from "@/utils/cycle";
+import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
 import type { WorkoutSet } from "@/types";
 
 const WEEKDAY_ABBREVS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -137,6 +141,7 @@ export default function SessionDetailScreen() {
   const totalVolume = session.sets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0);
   const totalDistance = session.sets.reduce((sum, s) => sum + (s.distance_km ?? 0), 0);
   const exerciseCount = Object.keys(grouped).length;
+  const muscleSeries = toMuscleSeriesRows(getMuscleSeriesForSession(session.id));
   const isCorrida = session.modality === "corrida";
 
   const contextParts: string[] = [];
@@ -422,6 +427,13 @@ export default function SessionDetailScreen() {
                   <Text className="text-ink-soft italic" style={{ fontSize: 14, lineHeight: 20 }}>
                     {session.notes}
                   </Text>
+                </View>
+              )}
+
+              {muscleSeries.length > 0 && (
+                <View style={{ marginTop: 20 }}>
+                  <SectionHeader title="Séries por grupo muscular" />
+                  <MuscleSeriesSessionCard data={muscleSeries} />
                 </View>
               )}
 

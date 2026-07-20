@@ -11,14 +11,22 @@ import type {
   DateRange,
   Granularity,
   Modality,
+  MuscleSeriesRow,
   RunningRecords,
   RunningSummary,
   StrengthRecord,
   StrengthSummary,
 } from "@/types";
-import { bucketSum, computeStreak, sumRunning, sumStrength } from "@/utils/analyticsAgg";
+import {
+  averageMuscleSeriesPerWeek,
+  bucketSum,
+  computeStreak,
+  sumRunning,
+  sumStrength,
+  toMuscleSeriesRows,
+} from "@/utils/analyticsAgg";
 import { todayISO } from "@/utils/cycle";
-import { periodRange, previousPeriodRange, trendBuckets } from "@/utils/periods";
+import { periodRange, previousPeriodRange, trendBuckets, weeksInRange } from "@/utils/periods";
 
 const ZERO_STRENGTH: StrengthSummary = { volume: 0, sessionCount: 0, maxWeight: 0 };
 const ZERO_RUNNING: RunningSummary = { distance: 0, runCount: 0, totalDuration: 0, avgPaceSec: null };
@@ -46,8 +54,12 @@ export interface AnalyticsView {
   strengthRecords: StrengthRecord[];
   runningRecords: RunningRecords;
   muscleFreq: { muscle_group: string; count: number }[];
-  /** Total series (sum of counting_factor) per muscle group in the current period. Meaningful when modality === "musculacao". */
-  muscleSeries: { muscle_group: string; total_series: number }[];
+  /** Series (sum of counting_factor) per muscle group. Meaningful when
+   *  modality === "musculacao". For "week" granularity this is the period's
+   *  raw total; for month/semester/year it's the AVERAGE per calendar week in
+   *  the period (denominator = total weeks in the period, including weeks
+   *  with zero series). */
+  muscleSeries: MuscleSeriesRow[];
   streak: number;
   streakDates: string[];
   /** The active period's date range — used to badge records achieved within it. */
@@ -105,7 +117,7 @@ export function useAnalytics(): AnalyticsView {
     let strengthRecords: StrengthRecord[] = [];
     let runningRecords: RunningRecords = EMPTY_RUNNING_RECORDS;
     let muscleFreq: { muscle_group: string; count: number }[] = [];
-    let muscleSeries: { muscle_group: string; total_series: number }[] = [];
+    let muscleSeries: MuscleSeriesRow[] = [];
     let trend: { label: string; value: number }[];
 
     if (modality === "musculacao") {
@@ -115,7 +127,13 @@ export function useAnalytics(): AnalyticsView {
       trend = buckets.map((b, i) => ({ label: b.label, value: volumes[i] }));
       strengthRecords = getStrengthRecords();
       muscleFreq = muscleFrequency(curSets);
-      muscleSeries = getMuscleSeriesInRange("musculacao", cur.start, cur.end);
+      if (granularity === "week") {
+        muscleSeries = toMuscleSeriesRows(getMuscleSeriesInRange("musculacao", cur.start, cur.end));
+      } else {
+        const periodWeeks = weeksInRange(cur.start, cur.end);
+        const weeklyRaw = periodWeeks.map((w) => getMuscleSeriesInRange("musculacao", w.start, w.end));
+        muscleSeries = averageMuscleSeriesPerWeek(weeklyRaw, periodWeeks.length);
+      }
     } else {
       runningCurrent = sumRunning(curSets);
       runningPrevious = sumRunning(prevSets);

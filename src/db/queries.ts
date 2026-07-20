@@ -24,6 +24,7 @@ import type {
   AnalyticsSetRow,
   StrengthRecord,
   RunningRecords,
+  MuscleSeriesRaw,
 } from "../types";
 
 // ─── Sessions ────────────────────────────────────────────────────────────────
@@ -797,7 +798,7 @@ export function getMuscleSeriesInRange(
   modality: Modality,
   startISO: string,
   endISO: string
-): { muscle_group: string; total_series: number }[] {
+): MuscleSeriesRaw[] {
   // Real JOIN against exercise_muscle_groups — the opposite choice from
   // getSetsInRange above, and deliberately so: here the fan-out of one row per
   // (set, muscle_group) pair is exactly what's wanted, since each muscle
@@ -805,7 +806,7 @@ export function getMuscleSeriesInRange(
   // the exercise's CURRENT muscle-group/factor configuration across the whole
   // range, not a historical snapshot of what was configured when each set was
   // logged (the schema has no per-set snapshot of counting_factor).
-  return db.getAllSync<{ muscle_group: string; total_series: number }>(
+  return db.getAllSync<MuscleSeriesRaw>(
     `SELECT emg.muscle_group AS muscle_group, SUM(emg.counting_factor) AS total_series
      FROM sessions s
      JOIN sets st ON st.session_id = s.id
@@ -814,6 +815,21 @@ export function getMuscleSeriesInRange(
      GROUP BY emg.muscle_group
      ORDER BY total_series DESC`,
     [modality, startISO, endISO]
+  );
+}
+
+/** Same weighting as getMuscleSeriesInRange, scoped to a single session
+ *  instead of a date range/modality — used by the live recording screen and
+ *  the finished-session detail view, both of which already know the session. */
+export function getMuscleSeriesForSession(sessionId: number): MuscleSeriesRaw[] {
+  return db.getAllSync<MuscleSeriesRaw>(
+    `SELECT emg.muscle_group AS muscle_group, SUM(emg.counting_factor) AS total_series
+     FROM sets st
+     JOIN exercise_muscle_groups emg ON emg.exercise_id = st.exercise_id
+     WHERE st.session_id = ?
+     GROUP BY emg.muscle_group
+     ORDER BY total_series DESC`,
+    [sessionId]
   );
 }
 
