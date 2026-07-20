@@ -25,7 +25,6 @@ export function buildExportPayload(): ExportPayload {
     id: number;
     uuid: string;
     name: string;
-    muscle_group: string;
     equipment: string;
     type: string;
     is_custom: number;
@@ -33,10 +32,21 @@ export function buildExportPayload(): ExportPayload {
   }>("SELECT * FROM exercises");
   const exerciseUuidById = new Map(exerciseRows.map((e) => [e.id, e.uuid]));
 
+  // Batch-fetch all muscle groups — not per-exercise N+1.
+  const allMuscleGroupRows = db.getAllSync<{ exercise_id: number; muscle_group: string }>(
+    "SELECT exercise_id, muscle_group FROM exercise_muscle_groups"
+  );
+  const muscleGroupsByExerciseId = new Map<number, string[]>();
+  for (const { exercise_id, muscle_group } of allMuscleGroupRows) {
+    const groups = muscleGroupsByExerciseId.get(exercise_id);
+    if (groups) groups.push(muscle_group);
+    else muscleGroupsByExerciseId.set(exercise_id, [muscle_group]);
+  }
+
   const exercises: ExportedExercise[] = exerciseRows.map((e) => ({
     uuid: e.uuid,
     name: e.name,
-    muscle_group: e.muscle_group,
+    muscle_groups: muscleGroupsByExerciseId.get(e.id) ?? [],
     equipment: e.equipment,
     type: e.type,
     is_custom: e.is_custom as 0 | 1,
@@ -297,10 +307,17 @@ export function applyImport(payload: ExportPayload): ImportSummary {
     const exerciseIdByUuid = new Map(exercisePlan.matchedIds);
     for (const ex of exercisePlan.toInsert) {
       const result = db.runSync(
-        "INSERT INTO exercises (name, muscle_group, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [ex.name, ex.muscle_group, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid]
+        "INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?)",
+        [ex.name, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid]
       );
-      exerciseIdByUuid.set(ex.uuid, result.lastInsertRowId);
+      const exerciseId = result.lastInsertRowId;
+      for (const mg of ex.muscle_groups) {
+        db.runSync(
+          "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, ?)",
+          [exerciseId, mg]
+        );
+      }
+      exerciseIdByUuid.set(ex.uuid, exerciseId);
       summary.exercisesAdded++;
     }
 

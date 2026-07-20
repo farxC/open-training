@@ -7,6 +7,13 @@ type Param = string | number | null | undefined;
 
 let _db: SqlJsDatabase | null = null;
 
+// Suppresses the per-statement persist() below while a withTransactionSync is in
+// flight — calling db.export() mid-transaction ends the transaction out from under
+// SQLite (COMMIT/ROLLBACK afterwards fail with "no transaction is active"), so every
+// statement issued between BEGIN and COMMIT must defer persisting to the transaction
+// wrapper itself, which persists once after COMMIT succeeds.
+let inTransaction = false;
+
 const STORAGE_KEY = "open_training_sqlite_v1";
 
 function requireDb(): SqlJsDatabase {
@@ -70,7 +77,7 @@ export const db = {
     d.run(sql, params as (string | number | null)[]);
     const idResult = d.exec("SELECT last_insert_rowid()");
     const lastInsertRowId = (idResult[0]?.values[0]?.[0] as number) ?? 0;
-    persist();
+    if (!inTransaction) persist();
     return { lastInsertRowId, changes: 0 };
   },
 
@@ -104,11 +111,14 @@ export const db = {
   withTransactionSync(task: () => void): void {
     const d = requireDb();
     d.run("BEGIN");
+    inTransaction = true;
     try {
       task();
+      inTransaction = false;
       d.run("COMMIT");
       persist();
     } catch (err) {
+      inTransaction = false;
       d.run("ROLLBACK");
       throw err;
     }

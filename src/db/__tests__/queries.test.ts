@@ -58,13 +58,13 @@ describe("routine_unit_exercises reorder/remove", () => {
     const splitId = createSplit({ name: "Push Pull Legs", mode: "cyclic", modality: "musculacao" });
     const unitId = createUnit({ split_id: splitId, ordinal: 0, label: "Push" });
     const a = createExercise({
-      name: "Supino", muscle_group: "chest", equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+      name: "Supino", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
     });
     const b = createExercise({
-      name: "Desenvolvimento", muscle_group: "shoulders", equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+      name: "Desenvolvimento", muscle_groups: ["shoulders"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
     });
     const c = createExercise({
-      name: "Tríceps", muscle_group: "triceps", equipment: "cable", type: "isolation", modality: "musculacao", is_custom: 0,
+      name: "Tríceps", muscle_groups: ["triceps"], equipment: "cable", type: "isolation", modality: "musculacao", is_custom: 0,
     });
     const idA = addUnitExercise(baseUnitExercise(unitId, a.id, 0));
     const idB = addUnitExercise(baseUnitExercise(unitId, b.id, 1));
@@ -97,13 +97,13 @@ describe("routine_unit_exercises reorder/remove", () => {
 describe("session_exercises", () => {
   function setupExercises() {
     const ex1 = createExercise({
-      name: "Supino", muscle_group: "chest", equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+      name: "Supino", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
     });
     const ex2 = createExercise({
-      name: "Agachamento", muscle_group: "legs", equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+      name: "Agachamento", muscle_groups: ["legs"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
     });
     const ex3 = createExercise({
-      name: "Remada", muscle_group: "back", equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+      name: "Remada", muscle_groups: ["back"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
     });
     return { ex1, ex2, ex3 };
   }

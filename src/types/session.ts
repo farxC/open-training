@@ -30,7 +30,7 @@ export interface SessionExercise {
   exercise_id: number;
   order: number;
   exercise_name?: string;
-  muscle_group?: string;
+  muscle_groups?: string[];
 }
 
 export interface WorkoutSet {

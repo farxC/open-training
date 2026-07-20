@@ -1,15 +1,20 @@
-export const SCHEMA_VERSION = 12;
+export const SCHEMA_VERSION = 13;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
-    muscle_group TEXT NOT NULL,
     equipment TEXT NOT NULL,
     type TEXT NOT NULL,
     is_custom INTEGER NOT NULL DEFAULT 0,
     modality TEXT NOT NULL DEFAULT 'musculacao',
     uuid TEXT UNIQUE
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS exercise_muscle_groups (
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    muscle_group TEXT NOT NULL,
+    PRIMARY KEY (exercise_id, muscle_group)
   )`,
 
   `CREATE TABLE IF NOT EXISTS sessions (

@@ -30,7 +30,7 @@ describe("validateExportPayload", () => {
   });
 
   it("rejects an unknown exportFormatVersion", () => {
-    expect(() => validateExportPayload({ ...validPayload(), exportFormatVersion: 2 })).toThrow();
+    expect(() => validateExportPayload({ ...validPayload(), exportFormatVersion: 99 })).toThrow();
     expect(() => validateExportPayload({ ...validPayload(), exportFormatVersion: undefined })).toThrow();
   });
 
@@ -44,7 +44,7 @@ function exercise(overrides: Partial<ExportedExercise> = {}): ExportedExercise {
   return {
     uuid: "ex-uuid-1",
     name: "Supino reto",
-    muscle_group: "chest",
+    muscle_groups: ["chest"],
     equipment: "barbell",
     type: "compound",
     is_custom: 0,

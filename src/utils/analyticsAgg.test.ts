@@ -7,7 +7,7 @@ function strengthRow(overrides: Partial<AnalyticsSetRow> = {}): AnalyticsSetRow 
     date: "2026-07-01",
     exercise_id: 1,
     exercise_name: "Supino",
-    muscle_group: "peito",
+    muscle_groups: ["peito"],
     reps: 10,
     weight_kg: 20,
     distance_km: null,

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { getExercises, createExercise } from "@/db/queries";
+import { getExercises, createExercise, updateExerciseMuscleGroups } from "@/db/queries";
 import type { Exercise, MuscleGroup } from "@/types";
 
 interface Filter {
@@ -17,7 +17,7 @@ export function useExercises(filter?: Filter) {
   }, [filter]);
 
   const createCustom = useCallback(
-    (ex: Omit<Exercise, "id" | "uuid">): Exercise => {
+    (ex: Omit<Exercise, "id" | "uuid" | "muscle_groups"> & { muscle_groups: MuscleGroup[] }): Exercise => {
       const { id, uuid } = createExercise(ex);
       refresh();
       return { ...ex, id, uuid, is_custom: 1 };
@@ -25,5 +25,13 @@ export function useExercises(filter?: Filter) {
     [refresh]
   );
 
-  return { exercises, refresh, createCustom };
+  const updateMuscleGroups = useCallback(
+    (exerciseId: number, muscleGroups: MuscleGroup[]): void => {
+      updateExerciseMuscleGroups(exerciseId, muscleGroups);
+      refresh();
+    },
+    [refresh]
+  );
+
+  return { exercises, refresh, createCustom, updateMuscleGroups };
 }

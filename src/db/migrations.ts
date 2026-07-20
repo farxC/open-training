@@ -3,10 +3,20 @@ import { CREATE_TABLES, SCHEMA_VERSION } from "./schema";
 import { SEED_EXERCISES, SEED_RUNNING_EXERCISES } from "../data/exercises";
 import { todayISO } from "../utils/cycle";
 import type { DbHandle } from "./dbHandle";
+import type { MuscleGroup } from "../types/exercise";
 
 function hasColumn(dbHandle: DbHandle, table: string, column: string): boolean {
   const rows = dbHandle.getAllSync<{ name: string }>(`PRAGMA table_info(${table})`, []);
   return rows.some((r) => r.name === column);
+}
+
+function hasTable(dbHandle: DbHandle, table: string): boolean {
+  return (
+    dbHandle.getAllSync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      [table]
+    ).length > 0
+  );
 }
 
 /** Idempotent ADD COLUMN — safe on both web and native, unlike a swallowed ALTER. */
@@ -16,7 +26,33 @@ function ensureColumn(dbHandle: DbHandle, table: string, column: string, decl: s
   }
 }
 
+function insertExerciseMuscleGroups(
+  dbHandle: DbHandle,
+  exerciseId: number,
+  muscleGroups: readonly string[]
+): void {
+  for (const mg of muscleGroups) {
+    dbHandle.runSync(
+      "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, ?)",
+      [exerciseId, mg]
+    );
+  }
+}
+
 export function runMigrations(dbHandle: DbHandle = db): void {
+  // Recover from an interrupted v13 exercises rebuild (app killed mid-migration,
+  // between DROP TABLE and RENAME below). If left alone, the CREATE_TABLES loop's
+  // `IF NOT EXISTS` would recreate an empty `exercises` table and orphan every row
+  // sitting in `exercises_new` — finish (or clean up) the swap before anything else
+  // touches `exercises`.
+  if (hasTable(dbHandle, "exercises_new")) {
+    if (!hasTable(dbHandle, "exercises")) {
+      dbHandle.execSync("ALTER TABLE exercises_new RENAME TO exercises;");
+    } else {
+      dbHandle.execSync("DROP TABLE exercises_new;");
+    }
+  }
+
   dbHandle.execSync("PRAGMA foreign_keys = ON;");
   dbHandle.execSync("PRAGMA journal_mode = WAL;");
 
@@ -126,16 +162,25 @@ export function runMigrations(dbHandle: DbHandle = db): void {
   const currentVersion = row ? parseInt(row.value, 10) : 0;
 
   if (currentVersion < 1) {
-    const stmt = dbHandle.prepareSync(
-      "INSERT OR IGNORE INTO exercises (name, muscle_group, equipment, type, is_custom, modality) VALUES (?, ?, ?, ?, ?, ?)"
-    );
-    for (const ex of SEED_EXERCISES) {
-      stmt.executeSync([ex.name, ex.muscle_group, ex.equipment, ex.type, ex.is_custom, "musculacao"]);
-    }
-    for (const ex of SEED_RUNNING_EXERCISES) {
-      stmt.executeSync([ex.name, ex.muscle_group, ex.equipment, ex.type, ex.is_custom, "corrida"]);
-    }
-    stmt.finalizeSync();
+    // Only ever runs on a fresh install — an upgrading device is always already
+    // >= 1 — so `exercises`/`exercise_muscle_groups` are guaranteed to already be
+    // in the current (post-v13) shape here, created directly by CREATE_TABLES above.
+    const insertSeed = (
+      ex: { name: string; muscle_groups: MuscleGroup[]; equipment: string; type: string; is_custom: 0 | 1 },
+      modality: string
+    ) => {
+      dbHandle.runSync(
+        "INSERT OR IGNORE INTO exercises (name, equipment, type, is_custom, modality) VALUES (?, ?, ?, ?, ?)",
+        [ex.name, ex.equipment, ex.type, ex.is_custom, modality]
+      );
+      const inserted = dbHandle.getFirstSync<{ id: number }>(
+        "SELECT id FROM exercises WHERE name = ?",
+        [ex.name]
+      );
+      if (inserted) insertExerciseMuscleGroups(dbHandle, inserted.id, ex.muscle_groups);
+    };
+    for (const ex of SEED_EXERCISES) insertSeed(ex, "musculacao");
+    for (const ex of SEED_RUNNING_EXERCISES) insertSeed(ex, "corrida");
   }
 
   if (currentVersion < 3) {
@@ -151,11 +196,97 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     dbHandle.execSync("DELETE FROM user_meta WHERE key = 'routine_cycle_anchor';");
   }
 
+  // v13: exercises can now belong to multiple muscle groups (composite movements
+  // like bench press train chest+triceps+shoulders, not just one bucket). SQLite
+  // has no ALTER TABLE DROP COLUMN + NOT NULL removal that's safe on both the
+  // native driver and the web sql.js/WASM driver, so dropping the old scalar
+  // `muscle_group` column requires the documented full-table-rebuild procedure.
+  // Double-guarded (version AND column presence) so this is a correct no-op both
+  // on a fresh install (new shape already in place) and if runMigrations is ever
+  // re-entered mid-migration (e.g. a dev hot reload).
+  if (currentVersion < 13 && hasColumn(dbHandle, "exercises", "muscle_group")) {
+    // 1. Backfill every existing exercise's single legacy value BEFORE the column
+    //    is gone — covers both seeded and user-created custom exercises.
+    dbHandle.execSync(
+      `INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group)
+       SELECT id, muscle_group FROM exercises WHERE muscle_group IS NOT NULL`
+    );
+
+    // 2. Re-curate built-in exercises (is_custom = 0) that still carry their
+    //    original seed name to the new curated multi-muscle-group breakdown —
+    //    this is what actually "updates" a pre-existing install's seeded
+    //    exercises, not just gives the capability. Exercises the user renamed or
+    //    created themselves don't match any seed name and keep their single
+    //    legacy value, editable manually via the picker's edit affordance.
+    const curatedByName = new Map<string, MuscleGroup[]>([
+      ...SEED_EXERCISES.map((ex) => [ex.name, ex.muscle_groups] as const),
+      ...SEED_RUNNING_EXERCISES.map((ex) => [ex.name, ex.muscle_groups] as const),
+    ]);
+    const builtins = dbHandle.getAllSync<{ id: number; name: string }>(
+      "SELECT id, name FROM exercises WHERE is_custom = 0",
+      []
+    );
+    for (const { id, name } of builtins) {
+      const curated = curatedByName.get(name);
+      if (!curated) continue;
+      dbHandle.runSync("DELETE FROM exercise_muscle_groups WHERE exercise_id = ?", [id]);
+      insertExerciseMuscleGroups(dbHandle, id, curated);
+    }
+
+    // 3. FK enforcement must be off for the whole rebuild — PRAGMA foreign_keys is
+    //    a no-op inside an active transaction, and runMigrations never opens one
+    //    explicitly (every statement here runs autocommit), so this is safe.
+    dbHandle.execSync("PRAGMA foreign_keys = OFF;");
+
+    // 4. New shape, no muscle_group.
+    dbHandle.execSync(
+      `CREATE TABLE exercises_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        equipment TEXT NOT NULL,
+        type TEXT NOT NULL,
+        is_custom INTEGER NOT NULL DEFAULT 0,
+        modality TEXT NOT NULL DEFAULT 'musculacao',
+        uuid TEXT UNIQUE
+      )`
+    );
+
+    // 5. Copy every remaining column, preserving `id` explicitly — session_exercises,
+    //    sets, routine_unit_exercises, and program_entries all hold exercise_id FKs
+    //    that must not shift.
+    dbHandle.execSync(
+      `INSERT INTO exercises_new (id, name, equipment, type, is_custom, modality, uuid)
+       SELECT id, name, equipment, type, is_custom, modality, uuid FROM exercises`
+    );
+
+    // 6. Drop old, rename new into place. Other tables' FK clauses reference
+    //    `exercises` by name, so they transparently repoint once it exists again.
+    dbHandle.execSync("DROP TABLE exercises;");
+    dbHandle.execSync("ALTER TABLE exercises_new RENAME TO exercises;");
+
+    // 7. Verify before trusting it, then restore enforcement.
+    const violations = dbHandle.getAllSync<unknown>("PRAGMA foreign_key_check;", []);
+    if (violations.length > 0) {
+      throw new Error(
+        `Migration v13 exercise rebuild left ${violations.length} dangling foreign key reference(s).`
+      );
+    }
+    dbHandle.execSync("PRAGMA foreign_keys = ON;");
+  }
+
   // Ensure the running seed exists for DBs created before the modality migration.
+  // Always targets the current (post-v13, no muscle_group column) shape.
   dbHandle.runSync(
-    "INSERT OR IGNORE INTO exercises (name, muscle_group, equipment, type, is_custom, modality) VALUES ('Correr', 'cardio', 'bodyweight', 'compound', 0, 'corrida')",
+    "INSERT OR IGNORE INTO exercises (name, equipment, type, is_custom, modality) VALUES ('Correr', 'bodyweight', 'compound', 0, 'corrida')",
     []
   );
+  {
+    const correr = dbHandle.getFirstSync<{ id: number }>(
+      "SELECT id FROM exercises WHERE name = 'Correr'",
+      []
+    );
+    if (correr) insertExerciseMuscleGroups(dbHandle, correr.id, ["cardio"]);
+  }
 
   if (currentVersion < SCHEMA_VERSION) {
     dbHandle.runSync(

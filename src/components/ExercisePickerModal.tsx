@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useExercises } from "@/hooks/useExercises";
 import { MODALITIES, modalityLabel } from "@/data/modalities";
+import { MUSCLE_LABELS, MUSCLE_OPTIONS, muscleGroupLabel } from "@/data/muscleGroups";
 import type { Exercise, Modality, MuscleGroup } from "@/types";
 
 interface Props {
@@ -23,35 +24,47 @@ interface Props {
   modality?: Modality; // when set, list is filtered and new exercises inherit this modality
 }
 
-const MUSCLE_LABELS: Record<MuscleGroup, string> = {
-  chest: "Chest",
-  back: "Back",
-  shoulders: "Shoulders",
-  biceps: "Biceps",
-  triceps: "Triceps",
-  legs: "Legs",
-  glutes: "Glutes",
-  core: "Core",
-  cardio: "Cardio",
-  full_body: "Full Body",
-  femoral: "Femoral"
-};
-
-// Muscle groups offered when creating a strength exercise (cardio is implied for corrida).
-const MUSCLE_OPTIONS: MuscleGroup[] = [
-  "chest", "back", "shoulders", "biceps", "triceps", "legs", "femoral", "glutes", "core", "full_body",
-];
-
 export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: Props) {
   const [search, setSearch] = useState("");
-  const { exercises, createCustom } = useExercises();
+  const { exercises, createCustom, updateMuscleGroups } = useExercises();
 
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [formMuscle, setFormMuscle] = useState<MuscleGroup>("chest");
+  const [formMuscles, setFormMuscles] = useState<Set<MuscleGroup>>(new Set());
   const [formModality, setFormModality] = useState<Modality>("musculacao");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [editMuscles, setEditMuscles] = useState<Set<MuscleGroup>>(new Set());
   const effModality: Modality = modality ?? formModality;
+
+  const toggleFormMuscle = (mg: MuscleGroup) => {
+    setFormMuscles((prev) => {
+      const next = new Set(prev);
+      if (next.has(mg)) next.delete(mg);
+      else next.add(mg);
+      return next;
+    });
+  };
+
+  const toggleEditMuscle = (mg: MuscleGroup) => {
+    setEditMuscles((prev) => {
+      const next = new Set(prev);
+      if (next.has(mg)) next.delete(mg);
+      else next.add(mg);
+      return next;
+    });
+  };
+
+  const startEdit = (ex: Exercise) => {
+    setEditingExercise(ex);
+    setEditMuscles(new Set(ex.muscle_groups as MuscleGroup[]));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingExercise || editMuscles.size === 0) return;
+    updateMuscleGroups(editingExercise.id, Array.from(editMuscles));
+    setEditingExercise(null);
+  };
 
   // Mount/animate the sheet in response to `visible` so the exit transition can
   // finish playing before the Modal actually unmounts.
@@ -65,6 +78,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
       setSelectedIds(new Set());
       setSearch("");
       setCreating(false);
+      setEditingExercise(null);
       translateY.setValue(48);
       backdropOpacity.setValue(0);
       Animated.parallel([
@@ -108,9 +122,11 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
   );
 
   const grouped = filtered.reduce<Record<string, Exercise[]>>((acc, ex) => {
-    const group = MUSCLE_LABELS[ex.muscle_group] ?? ex.muscle_group;
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(ex);
+    for (const mg of ex.muscle_groups) {
+      const group = muscleGroupLabel(mg);
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(ex);
+    }
     return acc;
   }, {});
 
@@ -128,6 +144,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
   const resetForm = () => {
     setCreating(false);
     setName("");
+    setFormMuscles(new Set());
   };
 
   const toggleExercise = (ex: Exercise) => {
@@ -142,6 +159,8 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
   const handleCreate = () => {
     const nm = name.trim();
     if (!nm) return;
+    const isCorrida = effModality === "corrida";
+    if (!isCorrida && formMuscles.size === 0) return;
     // Avoid a UNIQUE-name crash: if it already exists, just select it.
     const existing = exercises.find((e) => e.name.toLowerCase() === nm.toLowerCase());
     if (existing) {
@@ -149,10 +168,9 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
       resetForm();
       return;
     }
-    const isCorrida = effModality === "corrida";
     const created = createCustom({
       name: nm,
-      muscle_group: isCorrida ? "cardio" : formMuscle,
+      muscle_groups: isCorrida ? ["cardio"] : Array.from(formMuscles),
       equipment: isCorrida ? "bodyweight" : "other",
       type: "compound",
       is_custom: 0, // createExercise forces is_custom = 1
@@ -210,20 +228,60 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
             <View className="flex-row items-center px-4 pt-3 pb-2">
               <View className="flex-1">
                 <Text className="text-ink font-display font-semibold text-2xl" style={{ letterSpacing: -0.4 }}>
-                  {creating ? "Novo exercício" : "Selecionar exercícios"}
+                  {editingExercise ? "Editar grupos musculares" : creating ? "Novo exercício" : "Selecionar exercícios"}
                 </Text>
-                {!creating && (
+                {!creating && !editingExercise && (
                   <Text className="text-ink-mute text-xs mt-0.5">
                     Toque para escolher — pode selecionar vários
                   </Text>
                 )}
               </View>
-              <TouchableOpacity onPress={creating ? resetForm : onClose} hitSlop={10} style={{ padding: 4 }}>
-                <Text className="text-ink-soft text-base">{creating ? "Voltar" : "Fechar"}</Text>
+              <TouchableOpacity
+                onPress={editingExercise ? () => setEditingExercise(null) : creating ? resetForm : onClose}
+                hitSlop={10}
+                style={{ padding: 4 }}
+              >
+                <Text className="text-ink-soft text-base">{editingExercise || creating ? "Voltar" : "Fechar"}</Text>
               </TouchableOpacity>
             </View>
 
-            {creating ? (
+            {editingExercise ? (
+              <View className="mx-4 flex-1">
+                <Text className="text-ink text-sm font-medium mb-3">{editingExercise.name}</Text>
+                <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+                  GRUPO MUSCULAR
+                </Text>
+                <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
+                  {MUSCLE_OPTIONS.map((mg) => {
+                    const on = editMuscles.has(mg);
+                    return (
+                      <TouchableOpacity
+                        key={mg}
+                        className="px-3 py-1.5 rounded-full"
+                        style={{
+                          borderWidth: 1,
+                          borderColor: on ? "#26241f" : "#ddd8ce",
+                          backgroundColor: on ? "#26241f" : "transparent",
+                        }}
+                        onPress={() => toggleEditMuscle(mg)}
+                      >
+                        <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+                          {MUSCLE_LABELS[mg]}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <TouchableOpacity
+                  className="py-3 rounded-xl items-center bg-brand-500"
+                  style={{ opacity: editMuscles.size > 0 ? 1 : 0.5 }}
+                  disabled={editMuscles.size === 0}
+                  onPress={handleSaveEdit}
+                >
+                  <Text className="text-white font-semibold text-sm">Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : creating ? (
               <View className="mx-4 flex-1">
                 <TextInput
                   className="bg-surface-card text-ink rounded-xl px-4 py-3 mb-3"
@@ -270,7 +328,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                     </Text>
                     <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
                       {MUSCLE_OPTIONS.map((mg) => {
-                        const on = formMuscle === mg;
+                        const on = formMuscles.has(mg);
                         return (
                           <TouchableOpacity
                             key={mg}
@@ -280,7 +338,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                               borderColor: on ? "#26241f" : "#ddd8ce",
                               backgroundColor: on ? "#26241f" : "transparent",
                             }}
-                            onPress={() => setFormMuscle(mg)}
+                            onPress={() => toggleFormMuscle(mg)}
                           >
                             <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
                               {MUSCLE_LABELS[mg]}
@@ -298,8 +356,8 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
 
                 <TouchableOpacity
                   className="py-3 rounded-xl items-center bg-brand-500"
-                  style={{ opacity: name.trim() ? 1 : 0.5 }}
-                  disabled={!name.trim()}
+                  style={{ opacity: name.trim() && (effModality === "corrida" || formMuscles.size > 0) ? 1 : 0.5 }}
+                  disabled={!name.trim() || (effModality === "musculacao" && formMuscles.size === 0)}
                   onPress={handleCreate}
                 >
                   <Text className="text-white font-semibold text-sm">Criar e selecionar</Text>
@@ -366,9 +424,21 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                         <View className="flex-1">
                           <Text className="text-ink text-sm">{item.exercise.name}</Text>
                           <Text className="text-ink-mute text-xs capitalize">
-                            {item.exercise.equipment} · {item.exercise.type}
+                            {item.exercise.muscle_groups.map(muscleGroupLabel).join(", ")} · {item.exercise.equipment} · {item.exercise.type}
                           </Text>
                         </View>
+                        {item.exercise.modality === "musculacao" && (
+                          <TouchableOpacity
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              startEdit(item.exercise);
+                            }}
+                            hitSlop={10}
+                            style={{ padding: 6 }}
+                          >
+                            <MaterialCommunityIcons name="pencil-outline" size={18} color="#928d80" />
+                          </TouchableOpacity>
+                        )}
                       </TouchableOpacity>
                     );
                   }}

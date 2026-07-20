@@ -28,7 +28,7 @@ export interface AnalyticsSetRow {
   date: string; // 'YYYY-MM-DD'
   exercise_id: number;
   exercise_name: string;
-  muscle_group: string;
+  muscle_groups: string[];
   reps: number;
   weight_kg: number;
   distance_km: number | null;

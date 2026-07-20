@@ -1,11 +1,11 @@
 import type { Modality, SplitMode } from "@/types";
 
-export const CURRENT_EXPORT_FORMAT_VERSION = 1;
+export const CURRENT_EXPORT_FORMAT_VERSION = 2;
 
 export interface ExportedExercise {
   uuid: string;
   name: string;
-  muscle_group: string;
+  muscle_groups: string[];
   equipment: string;
   type: string;
   is_custom: 0 | 1;

@@ -39,7 +39,7 @@ export interface RoutineUnitExercise {
   interval_work_km: number | null;
   interval_rest_sec: number | null;
   exercise_name?: string;
-  muscle_group?: string;
+  muscle_groups?: string[];
 }
 
 export type OverrideStatus = "trained" | "rest";

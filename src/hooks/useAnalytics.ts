@@ -60,12 +60,14 @@ function muscleFrequency(sets: AnalyticsSetRow[]): { muscle_group: string; count
   const bySessionByMuscle = new Map<string, Set<number>>();
 
   for (const s of sets) {
-    let sessions = bySessionByMuscle.get(s.muscle_group);
-    if (!sessions) {
-      sessions = new Set<number>();
-      bySessionByMuscle.set(s.muscle_group, sessions);
+    for (const mg of s.muscle_groups) {
+      let sessions = bySessionByMuscle.get(mg);
+      if (!sessions) {
+        sessions = new Set<number>();
+        bySessionByMuscle.set(mg, sessions);
+      }
+      sessions.add(s.session_id);
     }
-    sessions.add(s.session_id);
   }
 
   return Array.from(bySessionByMuscle.entries())

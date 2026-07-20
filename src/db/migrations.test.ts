@@ -122,6 +122,68 @@ describe("runMigrations backfills session_exercises", () => {
   });
 });
 
+describe("runMigrations rebuilds exercises for the muscle-groups join table (v12 -> v13)", () => {
+  it("backfills exercise_muscle_groups, re-curates matching seeds, and drops the old column", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v12-pre-composite-muscle-groups.sql"));
+
+    runMigrations(dbHandle);
+
+    const columns = dbHandle.getAllSync<{ name: string }>("PRAGMA table_info(exercises)", []);
+    expect(columns.some((c) => c.name === "muscle_group")).toBe(false);
+
+    const groups = dbHandle.getAllSync<{ exercise_id: number; muscle_group: string }>(
+      "SELECT exercise_id, muscle_group FROM exercise_muscle_groups WHERE exercise_id IN (1, 2, 3) ORDER BY exercise_id, muscle_group",
+      []
+    );
+    expect(groups).toEqual([
+      { exercise_id: 1, muscle_group: "chest" },
+      { exercise_id: 1, muscle_group: "shoulders" },
+      { exercise_id: 1, muscle_group: "triceps" },
+      { exercise_id: 2, muscle_group: "biceps" },
+      { exercise_id: 3, muscle_group: "cardio" },
+    ]);
+
+    // Custom exercise's id/uuid survived the table rebuild intact.
+    const custom = dbHandle.getFirstSync<{ id: number; uuid: string; is_custom: number }>(
+      "SELECT id, uuid, is_custom FROM exercises WHERE name = 'Rosca concentrada customizada'",
+      []
+    );
+    expect(custom).toEqual({ id: 2, uuid: "fixed-uuid-ex-2", is_custom: 1 });
+
+    // FKs still resolve to the right exercise after DROP + RENAME.
+    const set = dbHandle.getFirstSync<{ exercise_id: number }>(
+      "SELECT exercise_id FROM sets WHERE id = 2",
+      []
+    );
+    expect(set!.exercise_id).toBe(2);
+
+    const versionRow = dbHandle.getFirstSync<{ value: string }>(
+      "SELECT value FROM user_meta WHERE key = 'schema_version'",
+      []
+    );
+    expect(versionRow!.value).toBe(String(SCHEMA_VERSION));
+  });
+
+  it("is idempotent when run twice", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v12-pre-composite-muscle-groups.sql"));
+
+    runMigrations(dbHandle);
+    runMigrations(dbHandle);
+
+    const groups = dbHandle.getAllSync<{ exercise_id: number; muscle_group: string }>(
+      "SELECT exercise_id, muscle_group FROM exercise_muscle_groups WHERE exercise_id = 1 ORDER BY muscle_group",
+      []
+    );
+    expect(groups).toEqual([
+      { exercise_id: 1, muscle_group: "chest" },
+      { exercise_id: 1, muscle_group: "shoulders" },
+      { exercise_id: 1, muscle_group: "triceps" },
+    ]);
+  });
+});
+
 describe("runMigrations against an already-current device", () => {
   it("is a no-op: no rows added or removed, existing uuids untouched", async () => {
     const dbHandle: DbHandle = await createInMemoryDb();

@@ -28,7 +28,7 @@ export type Modality = "musculacao" | "corrida";
 export interface Exercise {
   id: number;
   name: string;
-  muscle_group: MuscleGroup;
+  muscle_groups: MuscleGroup[];
   equipment: Equipment;
   type: ExerciseType;
   is_custom: 0 | 1;

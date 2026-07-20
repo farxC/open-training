@@ -193,14 +193,19 @@ export function moveSessionPhoto(sessionId: number, id: number, direction: "up" 
 // ─── Session exercises ─────────────────────────────────────────────────────────
 
 export function getSessionExercises(sessionId: number): SessionExercise[] {
-  return db.getAllSync<SessionExercise>(
-    `SELECT se.*, e.name AS exercise_name, e.muscle_group
+  const rows = db.getAllSync<Omit<SessionExercise, "muscle_groups"> & { muscle_groups_csv: string | null }>(
+    `SELECT se.*, e.name AS exercise_name,
+            (SELECT GROUP_CONCAT(emg.muscle_group) FROM exercise_muscle_groups emg WHERE emg.exercise_id = e.id) AS muscle_groups_csv
      FROM session_exercises se
      JOIN exercises e ON e.id = se.exercise_id
      WHERE se.session_id = ?
      ORDER BY se."order"`,
     [sessionId]
   );
+  return rows.map(({ muscle_groups_csv, ...rest }) => ({
+    ...rest,
+    muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
+  }));
 }
 
 export function addSessionExercise(sessionId: number, exerciseId: number, order?: number): number {
@@ -290,7 +295,7 @@ export function deleteSetsByExercise(sessionId: number, exerciseId: number): voi
 // ─── Exercises ────────────────────────────────────────────────────────────────
 
 export function getExercises(filter?: {
-  muscle_group?: MuscleGroup;
+  muscle_group?: MuscleGroup; // matches exercises that include this group among their set
   is_custom?: boolean;
   modality?: Modality;
 }): Exercise[] {
@@ -298,7 +303,7 @@ export function getExercises(filter?: {
   const params: (string | number)[] = [];
 
   if (filter?.muscle_group) {
-    conditions.push("muscle_group = ?");
+    conditions.push("id IN (SELECT exercise_id FROM exercise_muscle_groups WHERE muscle_group = ?)");
     params.push(filter.muscle_group);
   }
   if (filter?.is_custom !== undefined) {
@@ -311,19 +316,53 @@ export function getExercises(filter?: {
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  return db.getAllSync<Exercise>(
+  const rows = db.getAllSync<Omit<Exercise, "muscle_groups">>(
     `SELECT * FROM exercises ${where} ORDER BY name`,
     params
   );
+  if (rows.length === 0) return [];
+
+  // Batch-fetch all muscle groups for the returned exercises — no N+1.
+  const ids = rows.map((r) => r.id);
+  const mgRows = db.getAllSync<{ exercise_id: number; muscle_group: string }>(
+    `SELECT exercise_id, muscle_group FROM exercise_muscle_groups WHERE exercise_id IN (${ids.map(() => "?").join(",")})`,
+    ids
+  );
+  const groupsByExerciseId = new Map<number, MuscleGroup[]>();
+  for (const { exercise_id, muscle_group } of mgRows) {
+    const groups = groupsByExerciseId.get(exercise_id);
+    if (groups) groups.push(muscle_group as MuscleGroup);
+    else groupsByExerciseId.set(exercise_id, [muscle_group as MuscleGroup]);
+  }
+  return rows.map((r) => ({ ...r, muscle_groups: groupsByExerciseId.get(r.id) ?? [] }));
 }
 
-export function createExercise(ex: Omit<Exercise, "id" | "uuid">): { id: number; uuid: string } {
+export function createExercise(
+  ex: Omit<Exercise, "id" | "uuid" | "muscle_groups"> & { muscle_groups: MuscleGroup[] }
+): { id: number; uuid: string } {
   const uuid = generateUuid();
   const result = db.runSync(
-    "INSERT INTO exercises (name, muscle_group, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [ex.name, ex.muscle_group, ex.equipment, ex.type, 1, ex.modality, uuid]
+    "INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?)",
+    [ex.name, ex.equipment, ex.type, 1, ex.modality, uuid]
   );
-  return { id: result.lastInsertRowId, uuid };
+  const id = result.lastInsertRowId;
+  for (const mg of ex.muscle_groups) {
+    db.runSync("INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, ?)", [id, mg]);
+  }
+  return { id, uuid };
+}
+
+/** Full replace of an exercise's muscle groups — used by the picker's edit UI. */
+export function updateExerciseMuscleGroups(exerciseId: number, muscleGroups: MuscleGroup[]): void {
+  db.withTransactionSync(() => {
+    db.runSync("DELETE FROM exercise_muscle_groups WHERE exercise_id = ?", [exerciseId]);
+    for (const mg of muscleGroups) {
+      db.runSync(
+        "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, ?)",
+        [exerciseId, mg]
+      );
+    }
+  });
 }
 
 export function getExerciseSets(exerciseId: number): (WorkoutSet & { date: string })[] {
@@ -447,18 +486,25 @@ export function moveUnit(id: number, direction: "up" | "down"): void {
 }
 
 export function getUnitExercises(unitId: number): RoutineUnitExercise[] {
-  return db.getAllSync<RoutineUnitExercise>(
-    `SELECT re.*, e.name AS exercise_name, e.muscle_group
+  const rows = db.getAllSync<
+    Omit<RoutineUnitExercise, "muscle_groups"> & { muscle_groups_csv: string | null }
+  >(
+    `SELECT re.*, e.name AS exercise_name,
+            (SELECT GROUP_CONCAT(emg.muscle_group) FROM exercise_muscle_groups emg WHERE emg.exercise_id = e.id) AS muscle_groups_csv
      FROM routine_unit_exercises re
      JOIN exercises e ON e.id = re.exercise_id
      WHERE re.unit_id = ?
      ORDER BY re."order"`,
     [unitId]
   );
+  return rows.map(({ muscle_groups_csv, ...rest }) => ({
+    ...rest,
+    muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
+  }));
 }
 
 export function addUnitExercise(
-  re: Omit<RoutineUnitExercise, "id" | "exercise_name" | "muscle_group">
+  re: Omit<RoutineUnitExercise, "id" | "exercise_name" | "muscle_groups">
 ): number {
   const result = db.runSync(
     `INSERT INTO routine_unit_exercises
@@ -725,9 +771,13 @@ export function getSetsInRange(
   startISO: string,
   endISO: string
 ): AnalyticsSetRow[] {
-  return db.getAllSync<AnalyticsSetRow>(
+  // Scalar correlated subquery, not a JOIN against exercise_muscle_groups — a real
+  // JOIN would fan out one row per (set, muscle_group) pair, silently multiplying
+  // the volume/weight sums this same row array feeds in useAnalytics.ts.
+  const rows = db.getAllSync<Omit<AnalyticsSetRow, "muscle_groups"> & { muscle_groups_csv: string | null }>(
     `SELECT st.session_id, s.date, st.exercise_id, e.name AS exercise_name,
-            e.muscle_group, st.reps, st.weight_kg, st.distance_km, st.duration_sec, st.pace_sec
+            (SELECT GROUP_CONCAT(emg.muscle_group) FROM exercise_muscle_groups emg WHERE emg.exercise_id = e.id) AS muscle_groups_csv,
+            st.reps, st.weight_kg, st.distance_km, st.duration_sec, st.pace_sec
      FROM sessions s
      JOIN sets st ON st.session_id = s.id
      JOIN exercises e ON e.id = st.exercise_id
@@ -735,6 +785,10 @@ export function getSetsInRange(
      ORDER BY s.date ASC, st.set_number ASC`,
     [modality, startISO, endISO]
   );
+  return rows.map(({ muscle_groups_csv, ...rest }) => ({
+    ...rest,
+    muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
+  }));
 }
 
 export function getStrengthRecords(): StrengthRecord[] {
