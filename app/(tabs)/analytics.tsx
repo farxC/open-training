@@ -7,6 +7,7 @@ import { AnalyticsRecords } from "@/components/AnalyticsRecords";
 import { AnalyticsSummary } from "@/components/AnalyticsSummary";
 import { AnalyticsTrend } from "@/components/AnalyticsTrend";
 import { MuscleFrequencyChart } from "@/components/MuscleFrequencyChart";
+import { MuscleSeriesChart } from "@/components/MuscleSeriesChart";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StreakBadge } from "@/components/StreakBadge";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -25,6 +26,7 @@ export default function AnalyticsScreen() {
     strengthRecords,
     runningRecords,
     muscleFreq,
+    muscleSeries,
     streak,
     streakDates,
     currentRange,
@@ -112,6 +114,13 @@ export default function AnalyticsScreen() {
             <View style={{ marginTop: 28 }}>
               <SectionHeader title="Grupos musculares" />
               <MuscleFrequencyChart data={muscleFreq} />
+            </View>
+          )}
+
+          {isStrength && (
+            <View style={{ marginTop: 28 }}>
+              <SectionHeader title="Séries por grupo muscular" />
+              <MuscleSeriesChart data={muscleSeries} />
             </View>
           )}
         </View>

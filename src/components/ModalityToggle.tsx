@@ -23,14 +23,19 @@ interface Props<T extends string> {
   onChange: (key: T) => void;
   /** When false, the track hugs its content and is left-aligned (desktop). */
   stretch?: boolean;
+  /** Shrinks track/segment sizing for use as a small inline control (e.g. next to a chip). */
+  compact?: boolean;
 }
 
 const PAD = 4;
 const SEG_W = 150; // per-segment width when not stretched
+const COMPACT_PAD = 2;
+const COMPACT_SEG_W = 44;
 // Segments sit flush against each other (no gap), so the thumb's Android elevation
 // shadow bleeds into the neighboring option unless it's inset a bit narrower than
 // the segment itself.
 const THUMB_INSET = 3;
+const COMPACT_THUMB_INSET = 2;
 
 /**
  * A tactile segmented toggle: a recessed warm track with a raised white thumb
@@ -41,7 +46,12 @@ export function ModalityToggle<T extends string>({
   value,
   onChange,
   stretch = true,
+  compact = false,
 }: Props<T>) {
+  const pad = compact ? COMPACT_PAD : PAD;
+  const segW = compact ? COMPACT_SEG_W : SEG_W;
+  const thumbInset = compact ? COMPACT_THUMB_INSET : THUMB_INSET;
+
   const [trackW, setTrackW] = useState(0);
   const progress = useSharedValue(Math.max(0, options.findIndex((o) => o.key === value)));
 
@@ -53,11 +63,11 @@ export function ModalityToggle<T extends string>({
     });
   }, [activeIndex, progress]);
 
-  const seg = trackW > 0 ? (trackW - PAD * 2) / options.length : 0;
+  const seg = trackW > 0 ? (trackW - pad * 2) / options.length : 0;
 
   const thumbStyle = useAnimatedStyle(() => ({
-    width: Math.max(seg - THUMB_INSET * 2, 0),
-    transform: [{ translateX: PAD + progress.value * seg + THUMB_INSET }],
+    width: Math.max(seg - thumbInset * 2, 0),
+    transform: [{ translateX: pad + progress.value * seg + thumbInset }],
   }));
 
   return (
@@ -67,8 +77,8 @@ export function ModalityToggle<T extends string>({
         flexDirection: "row",
         alignSelf: stretch ? "stretch" : "flex-start",
         backgroundColor: "#ebe7df",
-        borderRadius: 14,
-        padding: PAD,
+        borderRadius: compact ? 10 : 14,
+        padding: pad,
         position: "relative",
       }}
     >
@@ -78,10 +88,10 @@ export function ModalityToggle<T extends string>({
           style={[
             {
               position: "absolute",
-              top: PAD,
-              bottom: PAD,
+              top: pad,
+              bottom: pad,
               left: 0,
-              borderRadius: 10,
+              borderRadius: compact ? 7 : 10,
               backgroundColor: "#ffffff",
               shadowColor: "#26241f",
               shadowOpacity: 0.1,
@@ -103,11 +113,11 @@ export function ModalityToggle<T extends string>({
             onPress={() => onChange(opt.key)}
             style={{
               flex: stretch ? 1 : undefined,
-              width: stretch ? undefined : SEG_W,
+              width: stretch ? undefined : segW,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
-              paddingVertical: 11,
+              paddingVertical: compact ? 4 : 11,
             }}
           >
             {opt.icon ? (
@@ -121,7 +131,7 @@ export function ModalityToggle<T extends string>({
             <Text
               numberOfLines={1}
               style={{
-                fontSize: 14,
+                fontSize: compact ? 11 : 14,
                 fontWeight: active ? "700" : "600",
                 color,
                 letterSpacing: -0.1,

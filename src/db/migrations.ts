@@ -53,6 +53,15 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     }
   }
 
+  // Same recovery, for an interrupted v14 exercise_muscle_groups rebuild.
+  if (hasTable(dbHandle, "exercise_muscle_groups_new")) {
+    if (!hasTable(dbHandle, "exercise_muscle_groups")) {
+      dbHandle.execSync("ALTER TABLE exercise_muscle_groups_new RENAME TO exercise_muscle_groups;");
+    } else {
+      dbHandle.execSync("DROP TABLE exercise_muscle_groups_new;");
+    }
+  }
+
   dbHandle.execSync("PRAGMA foreign_keys = ON;");
   dbHandle.execSync("PRAGMA journal_mode = WAL;");
 
@@ -264,11 +273,73 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     dbHandle.execSync("DROP TABLE exercises;");
     dbHandle.execSync("ALTER TABLE exercises_new RENAME TO exercises;");
 
-    // 7. Verify before trusting it, then restore enforcement.
-    const violations = dbHandle.getAllSync<unknown>("PRAGMA foreign_key_check;", []);
+    // 7. Verify before trusting it, then restore enforcement. Scoped to the tables
+    //    that actually hold an exercise_id FK — an unscoped `PRAGMA foreign_key_check`
+    //    audits every table in the database, so a dev DB that has accumulated
+    //    unrelated dangling references elsewhere (nothing to do with this rebuild)
+    //    would otherwise make this migration abort on pre-existing, unrelated debt.
+    const exerciseReferencingTables = [
+      "exercise_muscle_groups",
+      "session_exercises",
+      "sets",
+      "routine_unit_exercises",
+      "program_entries",
+    ];
+    const violations = exerciseReferencingTables.flatMap((table) =>
+      dbHandle.getAllSync<unknown>(`PRAGMA foreign_key_check(${table});`, [])
+    );
     if (violations.length > 0) {
       throw new Error(
         `Migration v13 exercise rebuild left ${violations.length} dangling foreign key reference(s).`
+      );
+    }
+    dbHandle.execSync("PRAGMA foreign_keys = ON;");
+  }
+
+  // v14: exercise-muscle relationships now carry a configurable counting factor
+  // (1 = full set, 0.5 = half set) so compound movements can weight their
+  // emphasis per involved muscle when totaling series volume. SQLite's
+  // ALTER TABLE ADD COLUMN can't attach an inline CHECK, so — same as v13 —
+  // adding this column to an upgrading install requires a table rebuild rather
+  // than `ensureColumn`. Gated on column absence ALONE, not `currentVersion` —
+  // unlike v13's rebuild, this one must be self-healing even if schema_version
+  // was already bumped to >= 14 without the column actually existing (e.g. a
+  // dev hot-reload that picked up the new SCHEMA_VERSION constant before this
+  // migration block existed, poisoning user_meta). A stale `schema_version`
+  // must never be able to permanently skip this rebuild.
+  if (!hasColumn(dbHandle, "exercise_muscle_groups", "counting_factor")) {
+    dbHandle.execSync("PRAGMA foreign_keys = OFF;");
+
+    dbHandle.execSync(
+      `CREATE TABLE exercise_muscle_groups_new (
+        exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+        muscle_group TEXT NOT NULL,
+        counting_factor REAL NOT NULL DEFAULT 1 CHECK (counting_factor IN (0.5, 1)),
+        PRIMARY KEY (exercise_id, muscle_group)
+      )`
+    );
+
+    // No existing row has a factor yet — every pair simply inherits DEFAULT 1
+    // (full set), left for the user to adjust per exercise via the picker.
+    dbHandle.execSync(
+      `INSERT INTO exercise_muscle_groups_new (exercise_id, muscle_group)
+       SELECT exercise_id, muscle_group FROM exercise_muscle_groups`
+    );
+
+    dbHandle.execSync("DROP TABLE exercise_muscle_groups;");
+    dbHandle.execSync("ALTER TABLE exercise_muscle_groups_new RENAME TO exercise_muscle_groups;");
+
+    // Scoped to this table alone — an unscoped `PRAGMA foreign_key_check` audits
+    // every table in the database, so on a dev DB that has accumulated unrelated
+    // dangling references elsewhere over time, it would misattribute pre-existing
+    // debt to this rebuild and abort a migration that was otherwise correct.
+    const mgViolations = dbHandle.getAllSync<unknown>(
+      "PRAGMA foreign_key_check(exercise_muscle_groups);",
+      []
+    );
+    if (mgViolations.length > 0) {
+      throw new Error(
+        `Migration v14 exercise_muscle_groups rebuild left ${mgViolations.length} dangling foreign key reference(s).`
       );
     }
     dbHandle.execSync("PRAGMA foreign_keys = ON;");

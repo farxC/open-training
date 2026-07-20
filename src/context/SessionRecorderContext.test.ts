@@ -5,7 +5,7 @@ function makeExercise(id: number, name: string): Exercise {
   return {
     id,
     name,
-    muscle_groups: ["chest"],
+    muscle_groups: [{ muscle_group: "chest", counting_factor: 1 }],
     equipment: "barbell",
     type: "compound",
     is_custom: 0,

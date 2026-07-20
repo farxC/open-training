@@ -3,6 +3,7 @@ import { todayISO } from "../utils/cycle";
 import { generateUuid } from "../utils/uuid";
 import type {
   Exercise,
+  ExerciseMuscleGroup,
   MuscleGroup,
   Modality,
   Session,
@@ -324,15 +325,16 @@ export function getExercises(filter?: {
 
   // Batch-fetch all muscle groups for the returned exercises — no N+1.
   const ids = rows.map((r) => r.id);
-  const mgRows = db.getAllSync<{ exercise_id: number; muscle_group: string }>(
-    `SELECT exercise_id, muscle_group FROM exercise_muscle_groups WHERE exercise_id IN (${ids.map(() => "?").join(",")})`,
+  const mgRows = db.getAllSync<{ exercise_id: number; muscle_group: string; counting_factor: number }>(
+    `SELECT exercise_id, muscle_group, counting_factor FROM exercise_muscle_groups WHERE exercise_id IN (${ids.map(() => "?").join(",")})`,
     ids
   );
-  const groupsByExerciseId = new Map<number, MuscleGroup[]>();
-  for (const { exercise_id, muscle_group } of mgRows) {
+  const groupsByExerciseId = new Map<number, ExerciseMuscleGroup[]>();
+  for (const { exercise_id, muscle_group, counting_factor } of mgRows) {
     const groups = groupsByExerciseId.get(exercise_id);
-    if (groups) groups.push(muscle_group as MuscleGroup);
-    else groupsByExerciseId.set(exercise_id, [muscle_group as MuscleGroup]);
+    const entry = { muscle_group: muscle_group as MuscleGroup, counting_factor };
+    if (groups) groups.push(entry);
+    else groupsByExerciseId.set(exercise_id, [entry]);
   }
   return rows.map((r) => ({ ...r, muscle_groups: groupsByExerciseId.get(r.id) ?? [] }));
 }
@@ -353,13 +355,13 @@ export function createExercise(
 }
 
 /** Full replace of an exercise's muscle groups — used by the picker's edit UI. */
-export function updateExerciseMuscleGroups(exerciseId: number, muscleGroups: MuscleGroup[]): void {
+export function updateExerciseMuscleGroups(exerciseId: number, muscleGroups: ExerciseMuscleGroup[]): void {
   db.withTransactionSync(() => {
     db.runSync("DELETE FROM exercise_muscle_groups WHERE exercise_id = ?", [exerciseId]);
-    for (const mg of muscleGroups) {
+    for (const { muscle_group, counting_factor } of muscleGroups) {
       db.runSync(
-        "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, ?)",
-        [exerciseId, mg]
+        "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group, counting_factor) VALUES (?, ?, ?)",
+        [exerciseId, muscle_group, counting_factor]
       );
     }
   });
@@ -789,6 +791,30 @@ export function getSetsInRange(
     ...rest,
     muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
   }));
+}
+
+export function getMuscleSeriesInRange(
+  modality: Modality,
+  startISO: string,
+  endISO: string
+): { muscle_group: string; total_series: number }[] {
+  // Real JOIN against exercise_muscle_groups — the opposite choice from
+  // getSetsInRange above, and deliberately so: here the fan-out of one row per
+  // (set, muscle_group) pair is exactly what's wanted, since each muscle
+  // independently earns the exercise's counting_factor for that set. Reflects
+  // the exercise's CURRENT muscle-group/factor configuration across the whole
+  // range, not a historical snapshot of what was configured when each set was
+  // logged (the schema has no per-set snapshot of counting_factor).
+  return db.getAllSync<{ muscle_group: string; total_series: number }>(
+    `SELECT emg.muscle_group AS muscle_group, SUM(emg.counting_factor) AS total_series
+     FROM sessions s
+     JOIN sets st ON st.session_id = s.id
+     JOIN exercise_muscle_groups emg ON emg.exercise_id = st.exercise_id
+     WHERE s.modality = ? AND s.date >= ? AND s.date <= ?
+     GROUP BY emg.muscle_group
+     ORDER BY total_series DESC`,
+    [modality, startISO, endISO]
+  );
 }
 
 export function getStrengthRecords(): StrengthRecord[] {

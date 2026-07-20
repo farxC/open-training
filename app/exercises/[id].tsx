@@ -47,7 +47,7 @@ export default function ExerciseDetailScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View className="mb-4">
           <Text className="text-ink-mute text-sm capitalize mt-0.5">
-            {exercise.muscle_groups.map(muscleGroupLabel).join(", ")} · {exercise.equipment} · {exercise.type}
+            {exercise.muscle_groups.map((g) => muscleGroupLabel(g.muscle_group)).join(", ")} · {exercise.equipment} · {exercise.type}
           </Text>
         </View>
 

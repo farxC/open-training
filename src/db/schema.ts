@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 13;
+export const SCHEMA_VERSION = 14;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -14,6 +14,7 @@ export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercise_muscle_groups (
     exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
     muscle_group TEXT NOT NULL,
+    counting_factor REAL NOT NULL DEFAULT 1 CHECK (counting_factor IN (0.5, 1)),
     PRIMARY KEY (exercise_id, muscle_group)
   )`,
 

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  getMuscleSeriesInRange,
   getRunningRecords,
   getSessionDatesByModality,
   getSetsInRange,
@@ -45,6 +46,8 @@ export interface AnalyticsView {
   strengthRecords: StrengthRecord[];
   runningRecords: RunningRecords;
   muscleFreq: { muscle_group: string; count: number }[];
+  /** Total series (sum of counting_factor) per muscle group in the current period. Meaningful when modality === "musculacao". */
+  muscleSeries: { muscle_group: string; total_series: number }[];
   streak: number;
   streakDates: string[];
   /** The active period's date range — used to badge records achieved within it. */
@@ -102,6 +105,7 @@ export function useAnalytics(): AnalyticsView {
     let strengthRecords: StrengthRecord[] = [];
     let runningRecords: RunningRecords = EMPTY_RUNNING_RECORDS;
     let muscleFreq: { muscle_group: string; count: number }[] = [];
+    let muscleSeries: { muscle_group: string; total_series: number }[] = [];
     let trend: { label: string; value: number }[];
 
     if (modality === "musculacao") {
@@ -111,6 +115,7 @@ export function useAnalytics(): AnalyticsView {
       trend = buckets.map((b, i) => ({ label: b.label, value: volumes[i] }));
       strengthRecords = getStrengthRecords();
       muscleFreq = muscleFrequency(curSets);
+      muscleSeries = getMuscleSeriesInRange("musculacao", cur.start, cur.end);
     } else {
       runningCurrent = sumRunning(curSets);
       runningPrevious = sumRunning(prevSets);
@@ -131,6 +136,7 @@ export function useAnalytics(): AnalyticsView {
       strengthRecords,
       runningRecords,
       muscleFreq,
+      muscleSeries,
       streak,
       streakDates,
       currentRange: cur,

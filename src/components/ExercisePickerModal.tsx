@@ -15,7 +15,13 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useExercises } from "@/hooks/useExercises";
 import { MODALITIES, modalityLabel } from "@/data/modalities";
 import { MUSCLE_LABELS, MUSCLE_OPTIONS, muscleGroupLabel } from "@/data/muscleGroups";
+import { ModalityToggle } from "@/components/ModalityToggle";
 import type { Exercise, Modality, MuscleGroup } from "@/types";
+
+const FACTOR_OPTIONS = [
+  { key: "1", label: "1×" },
+  { key: "0.5", label: "½×" },
+] as const;
 
 interface Props {
   visible: boolean;
@@ -34,7 +40,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
   const [formModality, setFormModality] = useState<Modality>("musculacao");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  const [editMuscles, setEditMuscles] = useState<Set<MuscleGroup>>(new Set());
+  const [editMuscles, setEditMuscles] = useState<Map<MuscleGroup, number>>(new Map());
   const effModality: Modality = modality ?? formModality;
 
   const toggleFormMuscle = (mg: MuscleGroup) => {
@@ -48,21 +54,31 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
 
   const toggleEditMuscle = (mg: MuscleGroup) => {
     setEditMuscles((prev) => {
-      const next = new Set(prev);
+      const next = new Map(prev);
       if (next.has(mg)) next.delete(mg);
-      else next.add(mg);
+      else next.set(mg, 1);
       return next;
     });
   };
 
+  const setEditMuscleFactor = (mg: MuscleGroup, factor: number) => {
+    setEditMuscles((prev) => new Map(prev).set(mg, factor));
+  };
+
   const startEdit = (ex: Exercise) => {
     setEditingExercise(ex);
-    setEditMuscles(new Set(ex.muscle_groups as MuscleGroup[]));
+    setEditMuscles(new Map(ex.muscle_groups.map((g) => [g.muscle_group, g.counting_factor])));
   };
 
   const handleSaveEdit = () => {
     if (!editingExercise || editMuscles.size === 0) return;
-    updateMuscleGroups(editingExercise.id, Array.from(editMuscles));
+    updateMuscleGroups(
+      editingExercise.id,
+      Array.from(editMuscles.entries()).map(([muscle_group, counting_factor]) => ({
+        muscle_group,
+        counting_factor,
+      }))
+    );
     setEditingExercise(null);
   };
 
@@ -122,7 +138,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
   );
 
   const grouped = filtered.reduce<Record<string, Exercise[]>>((acc, ex) => {
-    for (const mg of ex.muscle_groups) {
+    for (const { muscle_group: mg } of ex.muscle_groups) {
       const group = muscleGroupLabel(mg);
       if (!acc[group]) acc[group] = [];
       acc[group].push(ex);
@@ -255,20 +271,32 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                   {MUSCLE_OPTIONS.map((mg) => {
                     const on = editMuscles.has(mg);
                     return (
-                      <TouchableOpacity
-                        key={mg}
-                        className="px-3 py-1.5 rounded-full"
-                        style={{
-                          borderWidth: 1,
-                          borderColor: on ? "#26241f" : "#ddd8ce",
-                          backgroundColor: on ? "#26241f" : "transparent",
-                        }}
-                        onPress={() => toggleEditMuscle(mg)}
-                      >
-                        <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
-                          {MUSCLE_LABELS[mg]}
-                        </Text>
-                      </TouchableOpacity>
+                      <View key={mg} style={{ alignItems: "flex-start" }}>
+                        <TouchableOpacity
+                          className="px-3 py-1.5 rounded-full"
+                          style={{
+                            borderWidth: 1,
+                            borderColor: on ? "#26241f" : "#ddd8ce",
+                            backgroundColor: on ? "#26241f" : "transparent",
+                          }}
+                          onPress={() => toggleEditMuscle(mg)}
+                        >
+                          <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+                            {MUSCLE_LABELS[mg]}
+                          </Text>
+                        </TouchableOpacity>
+                        {on && (
+                          <View style={{ marginTop: 4 }}>
+                            <ModalityToggle
+                              compact
+                              stretch={false}
+                              options={FACTOR_OPTIONS as unknown as { key: string; label: string }[]}
+                              value={String(editMuscles.get(mg))}
+                              onChange={(k) => setEditMuscleFactor(mg, Number(k))}
+                            />
+                          </View>
+                        )}
+                      </View>
                     );
                   })}
                 </View>
@@ -424,7 +452,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                         <View className="flex-1">
                           <Text className="text-ink text-sm">{item.exercise.name}</Text>
                           <Text className="text-ink-mute text-xs capitalize">
-                            {item.exercise.muscle_groups.map(muscleGroupLabel).join(", ")} · {item.exercise.equipment} · {item.exercise.type}
+                            {item.exercise.muscle_groups.map((g) => muscleGroupLabel(g.muscle_group)).join(", ")} · {item.exercise.equipment} · {item.exercise.type}
                           </Text>
                         </View>
                         {item.exercise.modality === "musculacao" && (

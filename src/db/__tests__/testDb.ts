@@ -47,5 +47,15 @@ export async function createInMemoryDb(): Promise<DbHandle> {
         },
       };
     },
+    withTransactionSync(task: () => void) {
+      raw.run("BEGIN");
+      try {
+        task();
+        raw.run("COMMIT");
+      } catch (err) {
+        raw.run("ROLLBACK");
+        throw err;
+      }
+    },
   };
 }

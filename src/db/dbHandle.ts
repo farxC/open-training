@@ -9,4 +9,5 @@ export interface DbHandle {
     executeSync(params: BindParam[]): void;
     finalizeSync(): void;
   };
+  withTransactionSync(task: () => void): void;
 }

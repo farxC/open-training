@@ -26,6 +26,8 @@ import {
   addSessionExercise,
   removeSessionExercise,
   reorderSessionExercises,
+  updateExerciseMuscleGroups,
+  getMuscleSeriesInRange,
 } from "../queries";
 
 function baseUnitExercise(unitId: number, exerciseId: number, order: number) {
@@ -180,5 +182,72 @@ describe("session_exercises", () => {
 
     const session = getSessionWithSets(sessionId);
     expect(session!.sets.map((s) => s.exercise_id)).toEqual([ex1.id, ex2.id]);
+  });
+});
+
+describe("getMuscleSeriesInRange", () => {
+  it("sums counting_factor per muscle group, fanning out sets that hit multiple muscles", () => {
+    // Bench press: chest full set, triceps/shoulders half set each.
+    const bench = createExercise({
+      name: "Supino reto", muscle_groups: ["chest", "triceps", "shoulders"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(bench.id, [
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 0.5 },
+      { muscle_group: "shoulders", counting_factor: 0.5 },
+    ]);
+    // Isolation curl, also hitting triceps at a different factor to prove the sum
+    // is per (exercise, muscle) — not a single global factor per muscle name.
+    const pushdown = createExercise({
+      name: "Tríceps pulley", muscle_groups: ["triceps"],
+      equipment: "cable", type: "isolation", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(pushdown.id, [{ muscle_group: "triceps", counting_factor: 1 }]);
+
+    const sessionId = createSession("2026-01-01");
+    addSet({
+      session_id: sessionId, exercise_id: bench.id, set_number: 1, reps: 10, weight_kg: 60,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+    addSet({
+      session_id: sessionId, exercise_id: bench.id, set_number: 2, reps: 8, weight_kg: 65,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+    addSet({
+      session_id: sessionId, exercise_id: pushdown.id, set_number: 1, reps: 12, weight_kg: 20,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+
+    const result = getMuscleSeriesInRange("musculacao", "2026-01-01", "2026-01-01");
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { muscle_group: "chest", total_series: 2 }, // 2 bench sets × 1.0
+        { muscle_group: "shoulders", total_series: 1 }, // 2 bench sets × 0.5
+        { muscle_group: "triceps", total_series: 2 }, // 2 bench sets × 0.5 + 1 pushdown set × 1.0
+      ])
+    );
+  });
+
+  it("excludes sets outside the date range and outside the requested modality", () => {
+    const ex = createExercise({
+      name: "Supino reto", muscle_groups: ["chest"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    const inRange = createSession("2026-01-15");
+    const outOfRange = createSession("2026-02-01");
+    addSet({
+      session_id: inRange, exercise_id: ex.id, set_number: 1, reps: 10, weight_kg: 60,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+    addSet({
+      session_id: outOfRange, exercise_id: ex.id, set_number: 1, reps: 10, weight_kg: 60,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+
+    const result = getMuscleSeriesInRange("musculacao", "2026-01-01", "2026-01-31");
+
+    expect(result).toEqual([{ muscle_group: "chest", total_series: 1 }]);
   });
 });

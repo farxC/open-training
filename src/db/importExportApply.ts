@@ -8,6 +8,7 @@ import {
 } from "./importExport";
 import type {
   ExportedExercise,
+  ExportedExerciseMuscleGroup,
   ExportedSession,
   ExportedSplit,
   ExportedProgram,
@@ -33,14 +34,17 @@ export function buildExportPayload(): ExportPayload {
   const exerciseUuidById = new Map(exerciseRows.map((e) => [e.id, e.uuid]));
 
   // Batch-fetch all muscle groups — not per-exercise N+1.
-  const allMuscleGroupRows = db.getAllSync<{ exercise_id: number; muscle_group: string }>(
-    "SELECT exercise_id, muscle_group FROM exercise_muscle_groups"
-  );
-  const muscleGroupsByExerciseId = new Map<number, string[]>();
-  for (const { exercise_id, muscle_group } of allMuscleGroupRows) {
+  const allMuscleGroupRows = db.getAllSync<{
+    exercise_id: number;
+    muscle_group: string;
+    counting_factor: number;
+  }>("SELECT exercise_id, muscle_group, counting_factor FROM exercise_muscle_groups");
+  const muscleGroupsByExerciseId = new Map<number, ExportedExerciseMuscleGroup[]>();
+  for (const { exercise_id, muscle_group, counting_factor } of allMuscleGroupRows) {
     const groups = muscleGroupsByExerciseId.get(exercise_id);
-    if (groups) groups.push(muscle_group);
-    else muscleGroupsByExerciseId.set(exercise_id, [muscle_group]);
+    const entry = { muscle_group, counting_factor };
+    if (groups) groups.push(entry);
+    else muscleGroupsByExerciseId.set(exercise_id, [entry]);
   }
 
   const exercises: ExportedExercise[] = exerciseRows.map((e) => ({
@@ -311,10 +315,10 @@ export function applyImport(payload: ExportPayload): ImportSummary {
         [ex.name, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid]
       );
       const exerciseId = result.lastInsertRowId;
-      for (const mg of ex.muscle_groups) {
+      for (const { muscle_group, counting_factor } of ex.muscle_groups) {
         db.runSync(
-          "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, ?)",
-          [exerciseId, mg]
+          "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group, counting_factor) VALUES (?, ?, ?)",
+          [exerciseId, muscle_group, counting_factor]
         );
       }
       exerciseIdByUuid.set(ex.uuid, exerciseId);
