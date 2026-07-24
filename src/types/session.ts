@@ -1,4 +1,4 @@
-import type { Modality } from "./exercise";
+import type { ExerciseConfig, ExerciseConfigOverride, Modality } from "./exercise";
 
 export interface Session {
   id: number;
@@ -31,6 +31,11 @@ export interface SessionExercise {
   order: number;
   exercise_name?: string;
   muscle_groups?: string[];
+  /** Resolved config for this exercise-in-session: session override, falling
+   *  back column-by-column to the exercise's default. */
+  config: ExerciseConfig;
+  /** Raw per-session override — each field is null where it inherits the default. */
+  config_override: ExerciseConfigOverride;
 }
 
 export interface WorkoutSet {

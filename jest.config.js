@@ -8,6 +8,7 @@ module.exports = {
         "/node_modules/",
         "<rootDir>/src/db/__tests__/",
         "<rootDir>/src/db/migrations.test.ts",
+        "<rootDir>/scripts/import-history/",
       ],
     },
     {
@@ -22,6 +23,14 @@ module.exports = {
       },
       moduleNameMapper: {
         "^expo-sqlite$": "<rootDir>/src/db/__tests__/mocks/expo-sqlite.js",
+      },
+    },
+    {
+      displayName: "import-history",
+      testEnvironment: "node",
+      testMatch: ["<rootDir>/scripts/import-history/**/*.test.ts"],
+      transform: {
+        "^.+\\.tsx?$": ["babel-jest", { configFile: "./babel.config.js" }],
       },
     },
   ],

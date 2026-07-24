@@ -1,6 +1,9 @@
 import type { Exercise, MuscleGroup } from "@/types";
 
-type SeedExercise = Omit<Exercise, "id" | "modality" | "uuid" | "muscle_groups"> & {
+// Seed data doesn't specify a config — every seeded exercise gets the app-wide
+// default physical config via the migration backfill (see runMigrations), same
+// as any other freshly created exercise.
+type SeedExercise = Omit<Exercise, "id" | "modality" | "uuid" | "muscle_groups" | "config"> & {
   muscle_groups: MuscleGroup[];
 };
 
@@ -53,7 +56,7 @@ export const SEED_EXERCISES: SeedExercise[] = [
 
   // Triceps
   { name: "Close-Grip Bench Press", muscle_groups: ["triceps", "chest", "shoulders"], equipment: "barbell", type: "compound", is_custom: 0 },
-  { name: "Tricep Dip", muscle_groups: ["triceps", "chest", "shoulders"], equipment: "bodyweight", type: "compound", is_custom: 0 },
+  { name: "Dips", muscle_groups: ["triceps", "chest", "shoulders"], equipment: "bodyweight", type: "compound", is_custom: 0 },
   { name: "Skull Crusher", muscle_groups: ["triceps"], equipment: "barbell", type: "isolation", is_custom: 0 },
   { name: "Tricep Pushdown", muscle_groups: ["triceps"], equipment: "cable", type: "isolation", is_custom: 0 },
   { name: "Overhead Tricep Extension", muscle_groups: ["triceps"], equipment: "dumbbell", type: "isolation", is_custom: 0 },

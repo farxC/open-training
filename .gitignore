@@ -42,3 +42,10 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# scripts/import-history: generated personal training data, never commit
+scripts/import-history/raw-workouts.json
+scripts/import-history/unparsed-lines.txt
+scripts/import-history/exercise-aliases.json
+scripts/import-history/import-payload.json
+scripts/import-history/**

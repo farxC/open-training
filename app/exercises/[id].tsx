@@ -1,15 +1,21 @@
+import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VolumeChart } from "@/components/VolumeChart";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { getExerciseSets } from "@/db/queries";
-import { getExercises } from "@/db/queries";
+import { ResistanceCurveChart } from "@/components/ResistanceCurveChart";
+import { ExerciseConfigEditor } from "@/components/ExerciseConfigEditor";
+import { getExerciseSets, getExercises, updateExerciseConfig } from "@/db/queries";
 import { muscleGroupLabel } from "@/data/muscleGroups";
+import { exerciseConfigSummary } from "@/data/exerciseConfig";
+import type { ExerciseConfig } from "@/types";
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const exerciseId = Number(id);
+  const [configModalVisible, setConfigModalVisible] = useState(false);
+  const [draftConfig, setDraftConfig] = useState<ExerciseConfig | null>(null);
 
   const exercises = getExercises();
   const exercise = exercises.find((e) => e.id === exerciseId);
@@ -62,6 +68,23 @@ export default function ExerciseDetailScreen() {
           </View>
         )}
 
+        {exercise.modality === "musculacao" && (
+          <TouchableOpacity
+            className="bg-surface-card rounded-2xl p-4 mb-4"
+            onPress={() => {
+              setDraftConfig(exercise.config);
+              setConfigModalVisible(true);
+            }}
+          >
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-ink-mute text-xs uppercase tracking-wider">Configuração</Text>
+              <Text className="text-ink-soft text-xs">Editar</Text>
+            </View>
+            <ResistanceCurveChart variant={exercise.config.resistance_curve} />
+            <Text className="text-ink-mute text-xs mt-2">{exerciseConfigSummary(exercise.config)}</Text>
+          </TouchableOpacity>
+        )}
+
         <Text className="text-ink-mute text-xs uppercase tracking-wider mb-3">
           Volume history
         </Text>
@@ -92,6 +115,41 @@ export default function ExerciseDetailScreen() {
           ))
         )}
       </ScrollView>
+
+      <Modal
+        visible={configModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setConfigModalVisible(false)}
+      >
+        <SafeAreaView className="flex-1 bg-surface">
+          <View className="flex-row items-center px-4 py-3">
+            <Text
+              className="text-ink font-display font-semibold text-2xl flex-1"
+              style={{ letterSpacing: -0.4 }}
+            >
+              Configuração
+            </Text>
+            <TouchableOpacity onPress={() => setConfigModalVisible(false)}>
+              <Text className="text-ink-soft text-base">Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            {draftConfig && (
+              <ExerciseConfigEditor mode="default" value={draftConfig} onChange={setDraftConfig} />
+            )}
+            <TouchableOpacity
+              className="mt-4 py-3 rounded-xl items-center bg-brand-500"
+              onPress={() => {
+                if (draftConfig) updateExerciseConfig(exerciseId, draftConfig);
+                setConfigModalVisible(false);
+              }}
+            >
+              <Text className="text-white font-semibold text-sm">Salvar</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }

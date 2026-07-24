@@ -28,7 +28,12 @@ import {
   reorderSessionExercises,
   updateExerciseMuscleGroups,
   getMuscleSeriesInRange,
+  getExercises,
+  getExerciseConfig,
+  updateExerciseConfig,
+  updateSessionExerciseConfig,
 } from "../queries";
+import { DEFAULT_EXERCISE_CONFIG } from "../../data/exerciseConfig";
 
 function baseUnitExercise(unitId: number, exerciseId: number, order: number) {
   return {
@@ -182,6 +187,244 @@ describe("session_exercises", () => {
 
     const session = getSessionWithSets(sessionId);
     expect(session!.sets.map((s) => s.exercise_id)).toEqual([ex1.id, ex2.id]);
+  });
+});
+
+describe("exercise_config", () => {
+  it("createExercise seeds a default-valued config row", () => {
+    const ex = createExercise({
+      name: "Supino", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    expect(getExerciseConfig(ex.id)).toEqual(DEFAULT_EXERCISE_CONFIG);
+    expect(getExercises().find((e) => e.id === ex.id)!.config).toEqual(DEFAULT_EXERCISE_CONFIG);
+  });
+
+  it("updateExerciseConfig fully replaces the config", () => {
+    const ex = createExercise({
+      name: "Supino", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    updateExerciseConfig(ex.id, {
+      resistance_curve: "bell",
+      load_type: "pulley",
+      pulley_type: "fixed",
+      laterality: "unilateral",
+      rom: "partial",
+      uses_bench: 1,
+      bench_angle_degrees: 30,
+    });
+
+    expect(getExerciseConfig(ex.id)).toEqual({
+      resistance_curve: "bell",
+      load_type: "pulley",
+      pulley_type: "fixed",
+      laterality: "unilateral",
+      rom: "partial",
+      uses_bench: 1,
+      bench_angle_degrees: 30,
+    });
+  });
+
+  it("updateExerciseConfig forces pulley_type to null when load_type isn't pulley", () => {
+    const ex = createExercise({
+      name: "Supino", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    updateExerciseConfig(ex.id, {
+      resistance_curve: "descending",
+      load_type: "free",
+      pulley_type: "mobile", // inconsistent input — should be dropped
+      laterality: "bilateral",
+      rom: "full",
+      uses_bench: 0,
+      bench_angle_degrees: null,
+    });
+
+    expect(getExerciseConfig(ex.id).pulley_type).toBeNull();
+  });
+
+  it("updateExerciseConfig forces bench_angle_degrees to null when uses_bench is 0", () => {
+    const ex = createExercise({
+      name: "Supino", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    updateExerciseConfig(ex.id, {
+      resistance_curve: "descending",
+      load_type: "free",
+      pulley_type: null,
+      laterality: "bilateral",
+      rom: "full",
+      uses_bench: 0,
+      bench_angle_degrees: 30, // inconsistent input — should be dropped
+    });
+
+    expect(getExerciseConfig(ex.id).bench_angle_degrees).toBeNull();
+  });
+
+  it("updateExerciseConfig keeps a positive/negative bench angle when uses_bench is 1", () => {
+    const ex = createExercise({
+      name: "Supino inclinado", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    updateExerciseConfig(ex.id, {
+      resistance_curve: "ascending",
+      load_type: "free",
+      pulley_type: null,
+      laterality: "bilateral",
+      rom: "full",
+      uses_bench: 1,
+      bench_angle_degrees: -15,
+    });
+
+    expect(getExerciseConfig(ex.id).bench_angle_degrees).toBe(-15);
+  });
+});
+
+describe("session_exercise_config", () => {
+  function setupExercise() {
+    const ex = createExercise({
+      name: "Cadeira extensora", muscle_groups: ["legs"], equipment: "machine", type: "isolation", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseConfig(ex.id, {
+      resistance_curve: "ascending",
+      load_type: "pulley",
+      pulley_type: "mobile",
+      laterality: "bilateral",
+      rom: "full",
+      uses_bench: 0,
+      bench_angle_degrees: null,
+    });
+    return ex;
+  }
+
+  it("getSessionExercises resolves to the exercise default when there is no override", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    addSessionExercise(sessionId, ex.id);
+
+    const [row] = getSessionExercises(sessionId);
+    expect(row.config).toEqual({
+      resistance_curve: "ascending",
+      load_type: "pulley",
+      pulley_type: "mobile",
+      laterality: "bilateral",
+      rom: "full",
+      uses_bench: 0,
+      bench_angle_degrees: null,
+    });
+    expect(row.config_override).toEqual({
+      resistance_curve: null,
+      load_type: null,
+      pulley_type: null,
+      laterality: null,
+      rom: null,
+      uses_bench: null,
+      bench_angle_degrees: null,
+    });
+  });
+
+  it("a partial override resolves column-by-column, inheriting the rest from the default", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    addSessionExercise(sessionId, ex.id);
+    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
+
+    updateSessionExerciseConfig(sessionExerciseId, {
+      resistance_curve: null,
+      load_type: null,
+      pulley_type: "fixed", // only the pulley type is overridden for this session
+      laterality: null,
+      rom: null,
+      uses_bench: null,
+      bench_angle_degrees: null,
+    });
+
+    const [row] = getSessionExercises(sessionId);
+    expect(row.config).toEqual({
+      resistance_curve: "ascending", // inherited
+      load_type: "pulley", // inherited
+      pulley_type: "fixed", // overridden
+      laterality: "bilateral", // inherited
+      rom: "full", // inherited
+      uses_bench: 0, // inherited
+      bench_angle_degrees: null, // inherited
+    });
+    expect(row.config_override.pulley_type).toBe("fixed");
+    expect(row.config_override.resistance_curve).toBeNull();
+  });
+
+  it("a bench-only override resolves the angle while inheriting everything else", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    addSessionExercise(sessionId, ex.id);
+    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
+
+    updateSessionExerciseConfig(sessionExerciseId, {
+      resistance_curve: null,
+      load_type: null,
+      pulley_type: null,
+      laterality: null,
+      rom: null,
+      uses_bench: 1,
+      bench_angle_degrees: 30,
+    });
+
+    const [row] = getSessionExercises(sessionId);
+    expect(row.config.uses_bench).toBe(1);
+    expect(row.config.bench_angle_degrees).toBe(30);
+    expect(row.config.load_type).toBe("pulley"); // still inherited
+  });
+
+  it("updateSessionExerciseConfig forces bench_angle_degrees to null when uses_bench override is 0", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    addSessionExercise(sessionId, ex.id);
+    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
+
+    updateSessionExerciseConfig(sessionExerciseId, {
+      resistance_curve: null,
+      load_type: null,
+      pulley_type: null,
+      laterality: null,
+      rom: null,
+      uses_bench: 0,
+      bench_angle_degrees: 45, // inconsistent input — should be dropped
+    });
+
+    expect(getSessionExercises(sessionId)[0].config.bench_angle_degrees).toBeNull();
+  });
+
+  it("updateSessionExerciseConfig deletes the override row once every field is set back to null", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    addSessionExercise(sessionId, ex.id);
+    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
+
+    updateSessionExerciseConfig(sessionExerciseId, {
+      resistance_curve: "constant",
+      load_type: null,
+      pulley_type: null,
+      laterality: null,
+      rom: null,
+      uses_bench: null,
+      bench_angle_degrees: null,
+    });
+    expect(getSessionExercises(sessionId)[0].config.resistance_curve).toBe("constant");
+
+    updateSessionExerciseConfig(sessionExerciseId, {
+      resistance_curve: null,
+      load_type: null,
+      pulley_type: null,
+      laterality: null,
+      rom: null,
+      uses_bench: null,
+      bench_angle_degrees: null,
+    });
+
+    const [row] = getSessionExercises(sessionId);
+    expect(row.config.resistance_curve).toBe("ascending"); // back to the exercise default
+    expect(Object.values(row.config_override).every((v) => v === null)).toBe(true);
   });
 });
 

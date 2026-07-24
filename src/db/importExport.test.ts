@@ -4,6 +4,7 @@ import {
   planExerciseMerge,
   planSessionMerge,
 } from "./importExport";
+import { DEFAULT_EXERCISE_CONFIG } from "../data/exerciseConfig";
 import type { ExportedExercise, ExportedSession } from "./importExport";
 
 function validPayload() {
@@ -49,6 +50,7 @@ function exercise(overrides: Partial<ExportedExercise> = {}): ExportedExercise {
     type: "compound",
     is_custom: 0,
     modality: "musculacao",
+    config: DEFAULT_EXERCISE_CONFIG,
     ...overrides,
   };
 }

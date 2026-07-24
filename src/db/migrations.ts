@@ -62,6 +62,24 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     }
   }
 
+  // Same recovery, for an interrupted v16 exercise_config rebuild.
+  if (hasTable(dbHandle, "exercise_config_new")) {
+    if (!hasTable(dbHandle, "exercise_config")) {
+      dbHandle.execSync("ALTER TABLE exercise_config_new RENAME TO exercise_config;");
+    } else {
+      dbHandle.execSync("DROP TABLE exercise_config_new;");
+    }
+  }
+
+  // Same recovery, for an interrupted v16 session_exercise_config rebuild.
+  if (hasTable(dbHandle, "session_exercise_config_new")) {
+    if (!hasTable(dbHandle, "session_exercise_config")) {
+      dbHandle.execSync("ALTER TABLE session_exercise_config_new RENAME TO session_exercise_config;");
+    } else {
+      dbHandle.execSync("DROP TABLE session_exercise_config_new;");
+    }
+  }
+
   dbHandle.execSync("PRAGMA foreign_keys = ON;");
   dbHandle.execSync("PRAGMA journal_mode = WAL;");
 
@@ -357,6 +375,107 @@ export function runMigrations(dbHandle: DbHandle = db): void {
       []
     );
     if (correr) insertExerciseMuscleGroups(dbHandle, correr.id, ["cardio"]);
+  }
+
+  // v15: every exercise must carry a physical configuration (resistance curve,
+  // load type, pulley type, laterality, range of motion). exercise_config is a
+  // brand-new table (no rebuild needed, unlike v13/v14) — just backfill a
+  // default-valued row for every exercise that doesn't have one yet. Runs every
+  // launch, unconditionally (placed after the Correr seed above so a freshly
+  // inserted Correr also gets a row), so it self-heals any exercise created
+  // before this migration existed and is a no-op once every exercise has one.
+  dbHandle.execSync(
+    `INSERT INTO exercise_config (exercise_id)
+     SELECT id FROM exercises
+     WHERE id NOT IN (SELECT exercise_id FROM exercise_config)`
+  );
+
+  // v16: exercise config gains a bench angle (uses_bench + bench_angle_degrees,
+  // in degrees — 0 flat, positive incline, negative decline). SQLite's ALTER
+  // TABLE ADD COLUMN can't attach the CHECK constraints these need, so — same
+  // as v14's counting_factor rebuild — adding them to an upgrading install
+  // requires rebuilding both exercise_config and session_exercise_config
+  // rather than `ensureColumn`. Gated on column absence ALONE, not
+  // `currentVersion`, so it self-heals even if schema_version was already
+  // bumped to >= 16 without the columns actually existing.
+  if (!hasColumn(dbHandle, "exercise_config", "uses_bench")) {
+    dbHandle.execSync("PRAGMA foreign_keys = OFF;");
+
+    dbHandle.execSync(
+      `CREATE TABLE exercise_config_new (
+        exercise_id INTEGER PRIMARY KEY REFERENCES exercises(id) ON DELETE CASCADE,
+        resistance_curve TEXT NOT NULL DEFAULT 'descending'
+          CHECK (resistance_curve IN ('ascending','descending','constant','bell')),
+        load_type TEXT NOT NULL DEFAULT 'free'
+          CHECK (load_type IN ('free','plate','pulley')),
+        pulley_type TEXT CHECK (pulley_type IS NULL OR pulley_type IN ('mobile','fixed')),
+        laterality TEXT NOT NULL DEFAULT 'bilateral'
+          CHECK (laterality IN ('bilateral','unilateral')),
+        rom TEXT NOT NULL DEFAULT 'full' CHECK (rom IN ('full','partial')),
+        uses_bench INTEGER NOT NULL DEFAULT 0 CHECK (uses_bench IN (0, 1)),
+        bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90)
+      )`
+    );
+    // No existing row has a bench angle yet — every exercise simply inherits
+    // uses_bench = 0 (no bench), left for the user to set per exercise.
+    dbHandle.execSync(
+      `INSERT INTO exercise_config_new (exercise_id, resistance_curve, load_type, pulley_type, laterality, rom)
+       SELECT exercise_id, resistance_curve, load_type, pulley_type, laterality, rom FROM exercise_config`
+    );
+    dbHandle.execSync("DROP TABLE exercise_config;");
+    dbHandle.execSync("ALTER TABLE exercise_config_new RENAME TO exercise_config;");
+
+    dbHandle.execSync(
+      `CREATE TABLE session_exercise_config_new (
+        session_exercise_id INTEGER PRIMARY KEY REFERENCES session_exercises(id) ON DELETE CASCADE,
+        resistance_curve TEXT CHECK (resistance_curve IS NULL OR resistance_curve IN ('ascending','descending','constant','bell')),
+        load_type TEXT CHECK (load_type IS NULL OR load_type IN ('free','plate','pulley')),
+        pulley_type TEXT CHECK (pulley_type IS NULL OR pulley_type IN ('mobile','fixed')),
+        laterality TEXT CHECK (laterality IS NULL OR laterality IN ('bilateral','unilateral')),
+        rom TEXT CHECK (rom IS NULL OR rom IN ('full','partial')),
+        uses_bench INTEGER CHECK (uses_bench IS NULL OR uses_bench IN (0, 1)),
+        bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90)
+      )`
+    );
+    dbHandle.execSync(
+      `INSERT INTO session_exercise_config_new (session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom)
+       SELECT session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom FROM session_exercise_config`
+    );
+    dbHandle.execSync("DROP TABLE session_exercise_config;");
+    dbHandle.execSync("ALTER TABLE session_exercise_config_new RENAME TO session_exercise_config;");
+
+    // Scoped to these two tables — an unscoped `PRAGMA foreign_key_check` audits
+    // every table in the database, so a dev DB with unrelated pre-existing
+    // dangling references elsewhere must not make this rebuild abort.
+    const benchViolations = ["exercise_config", "session_exercise_config"].flatMap((table) =>
+      dbHandle.getAllSync<unknown>(`PRAGMA foreign_key_check(${table});`, [])
+    );
+    if (benchViolations.length > 0) {
+      throw new Error(
+        `Migration v16 bench-angle rebuild left ${benchViolations.length} dangling foreign key reference(s).`
+      );
+    }
+    dbHandle.execSync("PRAGMA foreign_keys = ON;");
+  }
+
+  // v17: renamed the seed exercise "Tricep Dip" to "Dips". A pre-existing
+  // install already seeded a row named "Tricep Dip" (the `currentVersion < 1`
+  // seed loop above only ever fires once, on a brand-new database), so the
+  // source-code rename in src/data/exercises.ts alone never reaches it —
+  // rename it in place here. Skipped if a "Dips" row already exists (e.g. a
+  // custom exercise the user made themselves), since `exercises.name` is
+  // UNIQUE and the UPDATE would otherwise throw and abort every future launch.
+  if (currentVersion < 17) {
+    const dipsExists = dbHandle.getFirstSync<{ id: number }>(
+      "SELECT id FROM exercises WHERE name = 'Dips'",
+      []
+    );
+    if (!dipsExists) {
+      dbHandle.runSync(
+        "UPDATE exercises SET name = 'Dips' WHERE is_custom = 0 AND name = 'Tricep Dip'",
+        []
+      );
+    }
   }
 
   if (currentVersion < SCHEMA_VERSION) {

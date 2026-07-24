@@ -306,6 +306,261 @@ describe("runMigrations rebuilds exercise_muscle_groups for counting_factor (v13
   });
 });
 
+describe("runMigrations backfills exercise_config (v14 -> v15)", () => {
+  it("gives every exercise exactly one default-valued config row", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v14-pre-exercise-config.sql"));
+
+    runMigrations(dbHandle);
+
+    // Narrow SELECT (not *) so this test only asserts what the v15 migration
+    // itself introduced — it must stay green regardless of later columns (e.g.
+    // v16's bench angle) added to exercise_config afterward.
+    const configs = dbHandle.getAllSync<{
+      exercise_id: number;
+      resistance_curve: string;
+      load_type: string;
+      pulley_type: string | null;
+      laterality: string;
+      rom: string;
+    }>(
+      "SELECT exercise_id, resistance_curve, load_type, pulley_type, laterality, rom FROM exercise_config ORDER BY exercise_id",
+      []
+    );
+    expect(configs).toEqual([
+      { exercise_id: 1, resistance_curve: "descending", load_type: "free", pulley_type: null, laterality: "bilateral", rom: "full" },
+      { exercise_id: 2, resistance_curve: "descending", load_type: "free", pulley_type: null, laterality: "bilateral", rom: "full" },
+      { exercise_id: 3, resistance_curve: "descending", load_type: "free", pulley_type: null, laterality: "bilateral", rom: "full" },
+    ]);
+
+    const versionRow = dbHandle.getFirstSync<{ value: string }>(
+      "SELECT value FROM user_meta WHERE key = 'schema_version'",
+      []
+    );
+    expect(versionRow!.value).toBe(String(SCHEMA_VERSION));
+  });
+
+  it("is idempotent when run twice — no duplicate rows, no overwritten edits", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v14-pre-exercise-config.sql"));
+
+    runMigrations(dbHandle);
+    // Simulate the user having since customized exercise 1's config.
+    dbHandle.runSync(
+      "UPDATE exercise_config SET resistance_curve = 'bell', load_type = 'pulley', pulley_type = 'fixed' WHERE exercise_id = 1",
+      []
+    );
+
+    runMigrations(dbHandle);
+
+    const count = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM exercise_config",
+      []
+    );
+    expect(count!.count).toBe(3);
+
+    const custom = dbHandle.getFirstSync<{ resistance_curve: string; load_type: string; pulley_type: string | null }>(
+      "SELECT resistance_curve, load_type, pulley_type FROM exercise_config WHERE exercise_id = 1",
+      []
+    );
+    expect(custom).toEqual({ resistance_curve: "bell", load_type: "pulley", pulley_type: "fixed" });
+  });
+
+  it("enforces the CHECK constraints on resistance_curve, load_type, and pulley_type", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v14-pre-exercise-config.sql"));
+
+    runMigrations(dbHandle);
+
+    expect(() =>
+      dbHandle.runSync("UPDATE exercise_config SET resistance_curve = 'zigzag' WHERE exercise_id = 1", [])
+    ).toThrow();
+    expect(() =>
+      dbHandle.runSync("UPDATE exercise_config SET load_type = 'elastic' WHERE exercise_id = 1", [])
+    ).toThrow();
+    expect(() =>
+      dbHandle.runSync("UPDATE exercise_config SET pulley_type = 'sideways' WHERE exercise_id = 1", [])
+    ).toThrow();
+  });
+
+  it("backfills a config row for an exercise inserted after this migration existed", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v14-pre-exercise-config.sql"));
+
+    runMigrations(dbHandle);
+    dbHandle.runSync(
+      "INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid) VALUES ('Novo exercício', 'other', 'isolation', 1, 'musculacao', 'fixed-uuid-ex-4')",
+      []
+    );
+
+    runMigrations(dbHandle);
+
+    const config = dbHandle.getFirstSync<{ exercise_id: number }>(
+      "SELECT exercise_id FROM exercise_config WHERE exercise_id = (SELECT id FROM exercises WHERE name = 'Novo exercício')",
+      []
+    );
+    expect(config).not.toBeNull();
+  });
+});
+
+describe("runMigrations rebuilds exercise_config/session_exercise_config for bench angle (v15 -> v16)", () => {
+  it("adds the bench columns, defaulting to no bench, while preserving existing values", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    const configs = dbHandle.getAllSync<{
+      exercise_id: number;
+      resistance_curve: string;
+      load_type: string;
+      pulley_type: string | null;
+      uses_bench: number;
+      bench_angle_degrees: number | null;
+    }>(
+      "SELECT exercise_id, resistance_curve, load_type, pulley_type, uses_bench, bench_angle_degrees FROM exercise_config ORDER BY exercise_id",
+      []
+    );
+    expect(configs).toEqual([
+      { exercise_id: 1, resistance_curve: "ascending", load_type: "pulley", pulley_type: "fixed", uses_bench: 0, bench_angle_degrees: null },
+      { exercise_id: 2, resistance_curve: "descending", load_type: "free", pulley_type: null, uses_bench: 0, bench_angle_degrees: null },
+      { exercise_id: 3, resistance_curve: "descending", load_type: "free", pulley_type: null, uses_bench: 0, bench_angle_degrees: null },
+    ]);
+
+    // The pre-existing session-exercise override survives the rebuild untouched.
+    const override = dbHandle.getFirstSync<{
+      pulley_type: string | null;
+      uses_bench: number | null;
+      bench_angle_degrees: number | null;
+    }>(
+      "SELECT pulley_type, uses_bench, bench_angle_degrees FROM session_exercise_config WHERE session_exercise_id = 1",
+      []
+    );
+    expect(override).toEqual({ pulley_type: "mobile", uses_bench: null, bench_angle_degrees: null });
+
+    const versionRow = dbHandle.getFirstSync<{ value: string }>(
+      "SELECT value FROM user_meta WHERE key = 'schema_version'",
+      []
+    );
+    expect(versionRow!.value).toBe(String(SCHEMA_VERSION));
+  });
+
+  it("is idempotent when run twice — no duplicate rows, no overwritten edits", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+    dbHandle.runSync(
+      "UPDATE exercise_config SET uses_bench = 1, bench_angle_degrees = 30 WHERE exercise_id = 1",
+      []
+    );
+
+    runMigrations(dbHandle);
+
+    const count = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM exercise_config",
+      []
+    );
+    expect(count!.count).toBe(3);
+
+    const custom = dbHandle.getFirstSync<{ uses_bench: number; bench_angle_degrees: number }>(
+      "SELECT uses_bench, bench_angle_degrees FROM exercise_config WHERE exercise_id = 1",
+      []
+    );
+    expect(custom).toEqual({ uses_bench: 1, bench_angle_degrees: 30 });
+  });
+
+  it("enforces the CHECK constraints on uses_bench and bench_angle_degrees", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    expect(() =>
+      dbHandle.runSync("UPDATE exercise_config SET uses_bench = 2 WHERE exercise_id = 1", [])
+    ).toThrow();
+    expect(() =>
+      dbHandle.runSync("UPDATE exercise_config SET bench_angle_degrees = 120 WHERE exercise_id = 1", [])
+    ).toThrow();
+  });
+
+  it("still adds the columns even if schema_version was already recorded as current", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+    dbHandle.runSync("UPDATE user_meta SET value = '16' WHERE key = 'schema_version'", []);
+
+    runMigrations(dbHandle);
+
+    const columns = dbHandle.getAllSync<{ name: string }>("PRAGMA table_info(exercise_config)", []);
+    expect(columns.some((c) => c.name === "uses_bench")).toBe(true);
+    expect(columns.some((c) => c.name === "bench_angle_degrees")).toBe(true);
+  });
+
+  it("succeeds even when an unrelated table already has a dangling foreign key", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+    dbHandle.execSync(
+      `INSERT INTO session_photos (session_id, uri, "order") VALUES (999, 'orphan.jpg', 0)`
+    );
+
+    expect(() => runMigrations(dbHandle)).not.toThrow();
+
+    const columns = dbHandle.getAllSync<{ name: string }>("PRAGMA table_info(session_exercise_config)", []);
+    expect(columns.some((c) => c.name === "uses_bench")).toBe(true);
+  });
+});
+
+describe("runMigrations renames the seed exercise Tricep Dip to Dips (v16 -> v17)", () => {
+  it("renames an existing built-in row still carrying the old name", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    // Bootstrap a fully current database, then roll just this one exercise back
+    // to how an upgrading install would have it — named by the pre-rename seed,
+    // on schema_version 16 — without needing a whole new frozen fixture.
+    runMigrations(dbHandle);
+    dbHandle.runSync("UPDATE exercises SET name = 'Tricep Dip' WHERE name = 'Dips'", []);
+    dbHandle.runSync("UPDATE user_meta SET value = '16' WHERE key = 'schema_version'", []);
+
+    runMigrations(dbHandle);
+
+    const dips = dbHandle.getFirstSync<{ id: number; is_custom: number }>(
+      "SELECT id, is_custom FROM exercises WHERE name = 'Dips'",
+      []
+    );
+    expect(dips).not.toBeNull();
+    expect(dips!.is_custom).toBe(0);
+    const stillTricepDip = dbHandle.getFirstSync("SELECT id FROM exercises WHERE name = 'Tricep Dip'", []);
+    expect(stillTricepDip).toBeNull();
+  });
+
+  it("does not rename (or crash) when the user already has their own custom 'Dips' exercise", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    runMigrations(dbHandle);
+    dbHandle.runSync("UPDATE exercises SET name = 'Tricep Dip' WHERE name = 'Dips'", []);
+    dbHandle.runSync(
+      "INSERT INTO exercises (name, equipment, type, is_custom, modality) VALUES ('Dips', 'bodyweight', 'compound', 1, 'musculacao')",
+      []
+    );
+    dbHandle.runSync("UPDATE user_meta SET value = '16' WHERE key = 'schema_version'", []);
+
+    expect(() => runMigrations(dbHandle)).not.toThrow();
+
+    const tricepDip = dbHandle.getFirstSync<{ is_custom: number }>(
+      "SELECT is_custom FROM exercises WHERE name = 'Tricep Dip'",
+      []
+    );
+    expect(tricepDip).not.toBeNull();
+    expect(tricepDip!.is_custom).toBe(0);
+  });
+
+  it("is a no-op on a fresh install, which seeds 'Dips' directly", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    runMigrations(dbHandle);
+
+    const dips = dbHandle.getAllSync("SELECT id FROM exercises WHERE name = 'Dips'", []);
+    expect(dips).toHaveLength(1);
+  });
+});
+
 describe("runMigrations against an already-current device", () => {
   it("is a no-op: no rows added or removed, existing uuids untouched", async () => {
     const dbHandle: DbHandle = await createInMemoryDb();

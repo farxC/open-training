@@ -1,4 +1,5 @@
 import { reducer, type RecorderState } from "./SessionRecorderContext";
+import { DEFAULT_EXERCISE_CONFIG } from "@/data/exerciseConfig";
 import type { Exercise } from "@/types";
 
 function makeExercise(id: number, name: string): Exercise {
@@ -11,6 +12,7 @@ function makeExercise(id: number, name: string): Exercise {
     is_custom: 0,
     modality: "musculacao",
     uuid: `uuid-${id}`,
+    config: DEFAULT_EXERCISE_CONFIG,
   };
 }
 

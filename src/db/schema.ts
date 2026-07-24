@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 14;
+export const SCHEMA_VERSION = 17;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -16,6 +16,39 @@ export const CREATE_TABLES: string[] = [
     muscle_group TEXT NOT NULL,
     counting_factor REAL NOT NULL DEFAULT 1 CHECK (counting_factor IN (0.5, 1)),
     PRIMARY KEY (exercise_id, muscle_group)
+  )`,
+
+  // Default physical configuration of an exercise (resistance curve, load type,
+  // pulley type, laterality, range of motion, bench angle). Every exercise must
+  // have exactly one row — enforced by the migration backfill, not by
+  // application code.
+  `CREATE TABLE IF NOT EXISTS exercise_config (
+    exercise_id INTEGER PRIMARY KEY REFERENCES exercises(id) ON DELETE CASCADE,
+    resistance_curve TEXT NOT NULL DEFAULT 'descending'
+      CHECK (resistance_curve IN ('ascending','descending','constant','bell')),
+    load_type TEXT NOT NULL DEFAULT 'free'
+      CHECK (load_type IN ('free','plate','pulley')),
+    pulley_type TEXT CHECK (pulley_type IS NULL OR pulley_type IN ('mobile','fixed')),
+    laterality TEXT NOT NULL DEFAULT 'bilateral'
+      CHECK (laterality IN ('bilateral','unilateral')),
+    rom TEXT NOT NULL DEFAULT 'full' CHECK (rom IN ('full','partial')),
+    uses_bench INTEGER NOT NULL DEFAULT 0 CHECK (uses_bench IN (0, 1)),
+    -- Degrees: 0 = flat, positive = incline, negative = decline. NULL when uses_bench = 0.
+    bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90)
+  )`,
+
+  // Per-session-exercise override of exercise_config. Every column is nullable —
+  // NULL means "inherit the exercise's default for this column". A row here is
+  // optional (0..1 per session_exercise); no row at all means "no overrides".
+  `CREATE TABLE IF NOT EXISTS session_exercise_config (
+    session_exercise_id INTEGER PRIMARY KEY REFERENCES session_exercises(id) ON DELETE CASCADE,
+    resistance_curve TEXT CHECK (resistance_curve IS NULL OR resistance_curve IN ('ascending','descending','constant','bell')),
+    load_type TEXT CHECK (load_type IS NULL OR load_type IN ('free','plate','pulley')),
+    pulley_type TEXT CHECK (pulley_type IS NULL OR pulley_type IN ('mobile','fixed')),
+    laterality TEXT CHECK (laterality IS NULL OR laterality IN ('bilateral','unilateral')),
+    rom TEXT CHECK (rom IS NULL OR rom IN ('full','partial')),
+    uses_bench INTEGER CHECK (uses_bench IS NULL OR uses_bench IN (0, 1)),
+    bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90)
   )`,
 
   `CREATE TABLE IF NOT EXISTS sessions (

@@ -1,11 +1,19 @@
 import { db } from "./client";
 import { todayISO } from "../utils/cycle";
 import { generateUuid } from "../utils/uuid";
+import { DEFAULT_EXERCISE_CONFIG } from "../data/exerciseConfig";
 import type {
   Exercise,
+  ExerciseConfig,
+  ExerciseConfigOverride,
   ExerciseMuscleGroup,
+  Laterality,
+  LoadType,
   MuscleGroup,
   Modality,
+  PulleyType,
+  RangeOfMotion,
+  ResistanceCurve,
   Session,
   SessionPhoto,
   SessionExercise,
@@ -195,19 +203,144 @@ export function moveSessionPhoto(sessionId: number, id: number, direction: "up" 
 // ─── Session exercises ─────────────────────────────────────────────────────────
 
 export function getSessionExercises(sessionId: number): SessionExercise[] {
-  const rows = db.getAllSync<Omit<SessionExercise, "muscle_groups"> & { muscle_groups_csv: string | null }>(
+  const rows = db.getAllSync<
+    Omit<SessionExercise, "muscle_groups" | "config" | "config_override"> & {
+      muscle_groups_csv: string | null;
+      resistance_curve: ResistanceCurve | null;
+      load_type: LoadType | null;
+      pulley_type: PulleyType | null;
+      laterality: Laterality | null;
+      rom: RangeOfMotion | null;
+      uses_bench: 0 | 1 | null;
+      bench_angle_degrees: number | null;
+      override_resistance_curve: ResistanceCurve | null;
+      override_load_type: LoadType | null;
+      override_pulley_type: PulleyType | null;
+      override_laterality: Laterality | null;
+      override_rom: RangeOfMotion | null;
+      override_uses_bench: 0 | 1 | null;
+      override_bench_angle_degrees: number | null;
+    }
+  >(
     `SELECT se.*, e.name AS exercise_name,
-            (SELECT GROUP_CONCAT(emg.muscle_group) FROM exercise_muscle_groups emg WHERE emg.exercise_id = e.id) AS muscle_groups_csv
+            (SELECT GROUP_CONCAT(emg.muscle_group) FROM exercise_muscle_groups emg WHERE emg.exercise_id = e.id) AS muscle_groups_csv,
+            COALESCE(sec.resistance_curve, ec.resistance_curve) AS resistance_curve,
+            COALESCE(sec.load_type, ec.load_type) AS load_type,
+            COALESCE(sec.pulley_type, ec.pulley_type) AS pulley_type,
+            COALESCE(sec.laterality, ec.laterality) AS laterality,
+            COALESCE(sec.rom, ec.rom) AS rom,
+            COALESCE(sec.uses_bench, ec.uses_bench) AS uses_bench,
+            COALESCE(sec.bench_angle_degrees, ec.bench_angle_degrees) AS bench_angle_degrees,
+            sec.resistance_curve AS override_resistance_curve,
+            sec.load_type AS override_load_type,
+            sec.pulley_type AS override_pulley_type,
+            sec.laterality AS override_laterality,
+            sec.rom AS override_rom,
+            sec.uses_bench AS override_uses_bench,
+            sec.bench_angle_degrees AS override_bench_angle_degrees
      FROM session_exercises se
      JOIN exercises e ON e.id = se.exercise_id
+     LEFT JOIN exercise_config ec ON ec.exercise_id = e.id
+     LEFT JOIN session_exercise_config sec ON sec.session_exercise_id = se.id
      WHERE se.session_id = ?
      ORDER BY se."order"`,
     [sessionId]
   );
-  return rows.map(({ muscle_groups_csv, ...rest }) => ({
-    ...rest,
-    muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
-  }));
+  return rows.map(
+    ({
+      muscle_groups_csv,
+      resistance_curve,
+      load_type,
+      pulley_type,
+      laterality,
+      rom,
+      uses_bench,
+      bench_angle_degrees,
+      override_resistance_curve,
+      override_load_type,
+      override_pulley_type,
+      override_laterality,
+      override_rom,
+      override_uses_bench,
+      override_bench_angle_degrees,
+      ...rest
+    }) => ({
+      ...rest,
+      muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
+      config: {
+        resistance_curve: resistance_curve ?? DEFAULT_EXERCISE_CONFIG.resistance_curve,
+        load_type: load_type ?? DEFAULT_EXERCISE_CONFIG.load_type,
+        pulley_type: pulley_type ?? DEFAULT_EXERCISE_CONFIG.pulley_type,
+        laterality: laterality ?? DEFAULT_EXERCISE_CONFIG.laterality,
+        rom: rom ?? DEFAULT_EXERCISE_CONFIG.rom,
+        uses_bench: uses_bench ?? DEFAULT_EXERCISE_CONFIG.uses_bench,
+        bench_angle_degrees: bench_angle_degrees ?? DEFAULT_EXERCISE_CONFIG.bench_angle_degrees,
+      },
+      config_override: {
+        resistance_curve: override_resistance_curve ?? null,
+        load_type: override_load_type ?? null,
+        pulley_type: override_pulley_type ?? null,
+        laterality: override_laterality ?? null,
+        rom: override_rom ?? null,
+        uses_bench: override_uses_bench ?? null,
+        bench_angle_degrees: override_bench_angle_degrees ?? null,
+      },
+    })
+  );
+}
+
+/** Full replace of a session-exercise's config override — each null field
+ *  means "inherit the exercise default". Deletes the override row entirely
+ *  when every field is null, keeping "no override" clean rather than a row
+ *  of all-NULLs. */
+export function updateSessionExerciseConfig(
+  sessionExerciseId: number,
+  override: ExerciseConfigOverride
+): void {
+  const allNull = Object.values(override).every((v) => v === null);
+  if (allNull) {
+    db.runSync("DELETE FROM session_exercise_config WHERE session_exercise_id = ?", [sessionExerciseId]);
+    return;
+  }
+  // Mirror updateExerciseConfig's rule: an explicit non-pulley load_type override
+  // must not carry a stale pulley_type override alongside it. When load_type
+  // itself isn't being overridden (null = inherit), leave pulley_type as given —
+  // that's how a pulley-type-only override (exercise already uses a pulley) works.
+  const pulleyType =
+    override.load_type != null && override.load_type !== "pulley" ? null : override.pulley_type;
+  // Same rule for bench angle: an explicit "no bench" override must not carry a
+  // stale angle. When uses_bench isn't being overridden (null = inherit), leave
+  // the angle as given — an angle-only override (exercise already uses a bench).
+  const benchAngle = override.uses_bench === 0 ? null : override.bench_angle_degrees;
+  db.runSync(
+    `INSERT INTO session_exercise_config (session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(session_exercise_id) DO UPDATE SET
+       resistance_curve = excluded.resistance_curve,
+       load_type = excluded.load_type,
+       pulley_type = excluded.pulley_type,
+       laterality = excluded.laterality,
+       rom = excluded.rom,
+       uses_bench = excluded.uses_bench,
+       bench_angle_degrees = excluded.bench_angle_degrees`,
+    [
+      sessionExerciseId,
+      override.resistance_curve,
+      override.load_type,
+      pulleyType,
+      override.laterality,
+      override.rom,
+      override.uses_bench,
+      benchAngle,
+    ]
+  );
+}
+
+/** A single session-exercise's resolved config + raw override, by (session, exercise).
+ *  Small convenience over getSessionExercises for callers (e.g. SetLogger) that only
+ *  care about one exercise within a session. */
+export function getSessionExercise(sessionId: number, exerciseId: number): SessionExercise | null {
+  return getSessionExercises(sessionId).find((se) => se.exercise_id === exerciseId) ?? null;
 }
 
 export function addSessionExercise(sessionId: number, exerciseId: number, order?: number): number {
@@ -318,8 +451,22 @@ export function getExercises(filter?: {
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const rows = db.getAllSync<Omit<Exercise, "muscle_groups">>(
-    `SELECT * FROM exercises ${where} ORDER BY name`,
+  const rows = db.getAllSync<
+    Omit<Exercise, "muscle_groups" | "config"> & {
+      resistance_curve: ResistanceCurve | null;
+      load_type: LoadType | null;
+      pulley_type: PulleyType | null;
+      laterality: Laterality | null;
+      rom: RangeOfMotion | null;
+      uses_bench: 0 | 1 | null;
+      bench_angle_degrees: number | null;
+    }
+  >(
+    `SELECT e.*, ec.resistance_curve, ec.load_type, ec.pulley_type, ec.laterality, ec.rom, ec.uses_bench, ec.bench_angle_degrees
+     FROM exercises e
+     LEFT JOIN exercise_config ec ON ec.exercise_id = e.id
+     ${where}
+     ORDER BY e.name`,
     params
   );
   if (rows.length === 0) return [];
@@ -337,11 +484,26 @@ export function getExercises(filter?: {
     if (groups) groups.push(entry);
     else groupsByExerciseId.set(exercise_id, [entry]);
   }
-  return rows.map((r) => ({ ...r, muscle_groups: groupsByExerciseId.get(r.id) ?? [] }));
+  return rows.map(({ resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees, ...r }) => ({
+    ...r,
+    muscle_groups: groupsByExerciseId.get(r.id) ?? [],
+    // LEFT JOIN default guards a theoretical exercise missing its config row
+    // (shouldn't happen post-migration, but createExercise/getExercises must
+    // never crash on it) — falls back to the app-wide defaults.
+    config: {
+      resistance_curve: resistance_curve ?? DEFAULT_EXERCISE_CONFIG.resistance_curve,
+      load_type: load_type ?? DEFAULT_EXERCISE_CONFIG.load_type,
+      pulley_type: pulley_type ?? DEFAULT_EXERCISE_CONFIG.pulley_type,
+      laterality: laterality ?? DEFAULT_EXERCISE_CONFIG.laterality,
+      rom: rom ?? DEFAULT_EXERCISE_CONFIG.rom,
+      uses_bench: uses_bench ?? DEFAULT_EXERCISE_CONFIG.uses_bench,
+      bench_angle_degrees: bench_angle_degrees ?? DEFAULT_EXERCISE_CONFIG.bench_angle_degrees,
+    },
+  }));
 }
 
 export function createExercise(
-  ex: Omit<Exercise, "id" | "uuid" | "muscle_groups"> & { muscle_groups: MuscleGroup[] }
+  ex: Omit<Exercise, "id" | "uuid" | "muscle_groups" | "config"> & { muscle_groups: MuscleGroup[] }
 ): { id: number; uuid: string } {
   const uuid = generateUuid();
   const result = db.runSync(
@@ -352,7 +514,47 @@ export function createExercise(
   for (const mg of ex.muscle_groups) {
     db.runSync("INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, ?)", [id, mg]);
   }
+  // Every exercise gets a config row at creation time, seeded with the app defaults.
+  db.runSync("INSERT INTO exercise_config (exercise_id) VALUES (?)", [id]);
   return { id, uuid };
+}
+
+/** An exercise's own default config, without the muscle-group/other fields —
+ *  used by the session-exercise override editor to know what "Herdar" resolves to. */
+export function getExerciseConfig(exerciseId: number): ExerciseConfig {
+  const row = db.getFirstSync<ExerciseConfig>(
+    "SELECT resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees FROM exercise_config WHERE exercise_id = ?",
+    [exerciseId]
+  );
+  return row ?? DEFAULT_EXERCISE_CONFIG;
+}
+
+/** Full replace (UPSERT) of an exercise's default physical configuration. */
+export function updateExerciseConfig(exerciseId: number, config: ExerciseConfig): void {
+  const pulleyType = config.load_type === "pulley" ? config.pulley_type : null;
+  const benchAngle = config.uses_bench ? config.bench_angle_degrees : null;
+  db.runSync(
+    `INSERT INTO exercise_config (exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(exercise_id) DO UPDATE SET
+       resistance_curve = excluded.resistance_curve,
+       load_type = excluded.load_type,
+       pulley_type = excluded.pulley_type,
+       laterality = excluded.laterality,
+       rom = excluded.rom,
+       uses_bench = excluded.uses_bench,
+       bench_angle_degrees = excluded.bench_angle_degrees`,
+    [
+      exerciseId,
+      config.resistance_curve,
+      config.load_type,
+      pulleyType,
+      config.laterality,
+      config.rom,
+      config.uses_bench,
+      benchAngle,
+    ]
+  );
 }
 
 /** Full replace of an exercise's muscle groups — used by the picker's edit UI. */

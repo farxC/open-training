@@ -3,5 +3,7 @@
   "v11-snapshot.sql": "8058dd1a072f31fc57cc94ed814db59744d8839ab35438cf389cfc0b2dbeab8d",
   "v11-multi-exercise-session.sql": "ec76478046bc813a8cc4ef94035a94669925d292d10c12b94e4c5290114584f7",
   "v12-pre-composite-muscle-groups.sql": "78e3dc0db705b06f2276438bb65dcce5f4bf11bf9d10d92c1ef3cf814401d8a1",
-  "v13-pre-counting-factor.sql": "daf904481a701487cf1f7d14e07dafe8943a61394e962b6b72e8001598485b01"
+  "v13-pre-counting-factor.sql": "daf904481a701487cf1f7d14e07dafe8943a61394e962b6b72e8001598485b01",
+  "v14-pre-exercise-config.sql": "837096861a1ea689e7b84d987f114b3029cccfc885d97cd84bf156b4a6164972",
+  "v15-pre-bench-angle.sql": "43fc1715e4ea90813a2f610426128ebad86ef541a55c52eef056fbaef184b988"
 }

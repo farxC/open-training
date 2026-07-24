@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
-import { getExercises, createExercise, updateExerciseMuscleGroups } from "@/db/queries";
-import type { Exercise, ExerciseMuscleGroup, MuscleGroup } from "@/types";
+import { getExercises, createExercise, updateExerciseConfig, updateExerciseMuscleGroups } from "@/db/queries";
+import { DEFAULT_EXERCISE_CONFIG } from "@/data/exerciseConfig";
+import type { Exercise, ExerciseConfig, ExerciseMuscleGroup, MuscleGroup } from "@/types";
 
 interface Filter {
   muscle_group?: MuscleGroup;
@@ -17,7 +18,7 @@ export function useExercises(filter?: Filter) {
   }, [filter]);
 
   const createCustom = useCallback(
-    (ex: Omit<Exercise, "id" | "uuid" | "muscle_groups"> & { muscle_groups: MuscleGroup[] }): Exercise => {
+    (ex: Omit<Exercise, "id" | "uuid" | "muscle_groups" | "config"> & { muscle_groups: MuscleGroup[] }): Exercise => {
       const { id, uuid } = createExercise(ex);
       refresh();
       return {
@@ -26,6 +27,7 @@ export function useExercises(filter?: Filter) {
         uuid,
         is_custom: 1,
         muscle_groups: ex.muscle_groups.map((muscle_group) => ({ muscle_group, counting_factor: 1 })),
+        config: DEFAULT_EXERCISE_CONFIG,
       };
     },
     [refresh]
@@ -39,5 +41,13 @@ export function useExercises(filter?: Filter) {
     [refresh]
   );
 
-  return { exercises, refresh, createCustom, updateMuscleGroups };
+  const updateConfig = useCallback(
+    (exerciseId: number, config: ExerciseConfig): void => {
+      updateExerciseConfig(exerciseId, config);
+      refresh();
+    },
+    [refresh]
+  );
+
+  return { exercises, refresh, createCustom, updateMuscleGroups, updateConfig };
 }

@@ -1,6 +1,7 @@
-import type { Modality, SplitMode } from "@/types";
+import type { ExerciseConfig, ExerciseConfigOverride, Modality, SplitMode } from "@/types";
 import { db } from "./client";
 import { SCHEMA_VERSION } from "./schema";
+import { DEFAULT_EXERCISE_CONFIG } from "../data/exerciseConfig";
 import {
   CURRENT_EXPORT_FORMAT_VERSION,
   planExerciseMerge,
@@ -10,6 +11,7 @@ import type {
   ExportedExercise,
   ExportedExerciseMuscleGroup,
   ExportedSession,
+  ExportedSessionExercise,
   ExportedSplit,
   ExportedProgram,
   ExportPayload,
@@ -47,6 +49,14 @@ export function buildExportPayload(): ExportPayload {
     else muscleGroupsByExerciseId.set(exercise_id, [entry]);
   }
 
+  // Batch-fetch every exercise's default config — not per-exercise N+1.
+  const configRows = db.getAllSync<{ exercise_id: number } & ExerciseConfig>(
+    "SELECT exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees FROM exercise_config"
+  );
+  const configByExerciseId = new Map<number, ExerciseConfig>(
+    configRows.map(({ exercise_id, ...config }) => [exercise_id, config])
+  );
+
   const exercises: ExportedExercise[] = exerciseRows.map((e) => ({
     uuid: e.uuid,
     name: e.name,
@@ -55,6 +65,7 @@ export function buildExportPayload(): ExportPayload {
     type: e.type,
     is_custom: e.is_custom as 0 | 1,
     modality: e.modality,
+    config: configByExerciseId.get(e.id) ?? DEFAULT_EXERCISE_CONFIG,
   }));
 
   const sessionRows = db.getAllSync<{
@@ -70,8 +81,23 @@ export function buildExportPayload(): ExportPayload {
   }>("SELECT id, uuid, date, name, notes, duration_seconds, start_time, end_time, modality FROM sessions");
 
   const sessions: ExportedSession[] = sessionRows.map((s) => {
-    const sessionExerciseRows = db.getAllSync<{ exercise_id: number; order: number }>(
-      `SELECT exercise_id, "order" FROM session_exercises WHERE session_id = ? ORDER BY "order"`,
+    const sessionExerciseRows = db.getAllSync<
+      { id: number; exercise_id: number; order: number } & {
+        [K in keyof ExerciseConfig as `override_${K}`]: ExerciseConfig[K] | null;
+      }
+    >(
+      `SELECT se.id, se.exercise_id, se."order",
+              sec.resistance_curve AS override_resistance_curve,
+              sec.load_type AS override_load_type,
+              sec.pulley_type AS override_pulley_type,
+              sec.laterality AS override_laterality,
+              sec.rom AS override_rom,
+              sec.uses_bench AS override_uses_bench,
+              sec.bench_angle_degrees AS override_bench_angle_degrees
+       FROM session_exercises se
+       LEFT JOIN session_exercise_config sec ON sec.session_exercise_id = se.id
+       WHERE se.session_id = ?
+       ORDER BY se."order"`,
       [s.id]
     );
     const sets = db.getAllSync<{
@@ -113,10 +139,23 @@ export function buildExportPayload(): ExportPayload {
         pace_sec: st.pace_sec,
         failure: st.failure,
       })),
-      exercises: sessionExerciseRows.map((se) => ({
-        exercise_uuid: exerciseUuidById.get(se.exercise_id) ?? "",
-        order: se.order,
-      })),
+      exercises: sessionExerciseRows.map((se) => {
+        const override: ExerciseConfigOverride = {
+          resistance_curve: se.override_resistance_curve,
+          load_type: se.override_load_type,
+          pulley_type: se.override_pulley_type,
+          laterality: se.override_laterality,
+          rom: se.override_rom,
+          uses_bench: se.override_uses_bench,
+          bench_angle_degrees: se.override_bench_angle_degrees,
+        };
+        const hasOverride = Object.values(override).some((v) => v !== null);
+        return {
+          exercise_uuid: exerciseUuidById.get(se.exercise_id) ?? "",
+          order: se.order,
+          ...(hasOverride ? { config_override: override } : {}),
+        };
+      }),
     };
   });
 
@@ -321,6 +360,21 @@ export function applyImport(payload: ExportPayload): ImportSummary {
           [exerciseId, muscle_group, counting_factor]
         );
       }
+      const cfg = ex.config ?? DEFAULT_EXERCISE_CONFIG;
+      db.runSync(
+        `INSERT INTO exercise_config (exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          exerciseId,
+          cfg.resistance_curve,
+          cfg.load_type,
+          cfg.pulley_type,
+          cfg.laterality,
+          cfg.rom,
+          cfg.uses_bench,
+          cfg.bench_angle_degrees,
+        ]
+      );
       exerciseIdByUuid.set(ex.uuid, exerciseId);
       summary.exercisesAdded++;
     }
@@ -399,10 +453,27 @@ export function applyImport(payload: ExportPayload): ImportSummary {
         for (const se of session.exercises) {
           const exerciseId = exerciseIdByUuid.get(se.exercise_uuid);
           if (exerciseId === undefined) continue;
-          db.runSync(
+          const seResult = db.runSync(
             `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
             [sessionId, exerciseId, se.order]
           );
+          if (se.config_override) {
+            const o = se.config_override;
+            db.runSync(
+              `INSERT INTO session_exercise_config (session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                seResult.lastInsertRowId,
+                o.resistance_curve,
+                o.load_type,
+                o.pulley_type,
+                o.laterality,
+                o.rom,
+                o.uses_bench,
+                o.bench_angle_degrees,
+              ]
+            );
+          }
         }
       } else {
         // Backups made before exercise ordering existed have no `exercises` field —

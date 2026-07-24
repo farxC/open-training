@@ -1,6 +1,10 @@
-import type { Modality, SplitMode } from "@/types";
+import type { ExerciseConfig, ExerciseConfigOverride, Modality, SplitMode } from "@/types";
 
-export const CURRENT_EXPORT_FORMAT_VERSION = 3;
+// v5: exercise config gained a bench angle (uses_bench + bench_angle_degrees).
+// Bumping this means older backup files (format 4 and earlier) are rejected
+// outright rather than silently importing with an incomplete config — see
+// validateExportPayload below.
+export const CURRENT_EXPORT_FORMAT_VERSION = 5;
 
 export interface ExportedExerciseMuscleGroup {
   muscle_group: string;
@@ -15,6 +19,7 @@ export interface ExportedExercise {
   type: string;
   is_custom: 0 | 1;
   modality: Modality;
+  config: ExerciseConfig;
 }
 
 export interface ExportedSet {
@@ -34,6 +39,8 @@ export interface ExportedSet {
 export interface ExportedSessionExercise {
   exercise_uuid: string;
   order: number;
+  /** Present only when at least one field is overridden for this session-exercise. */
+  config_override?: ExerciseConfigOverride;
 }
 
 export interface ExportedSession {
