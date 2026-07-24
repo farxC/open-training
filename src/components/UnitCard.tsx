@@ -4,7 +4,7 @@ import type { Modality, RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { modalityConfig } from "@/data/modalities";
 import { NumField, RunTargetFields } from "@/components/TargetFields";
-import { DraggableList } from "@/components/DraggableList";
+import { SortableExerciseList } from "@/components/SortableExerciseList";
 
 interface Props {
   unit: RoutineUnit;
@@ -108,16 +108,18 @@ export function UnitCard({
 
           {expanded && (
             <View className="px-4 pb-4">
-              <DraggableList
+              <SortableExerciseList
                 data={exercises}
                 keyExtractor={(re) => String(re.id)}
                 onReorder={(reordered) => onReorderExercises(reordered.map((re) => re.id))}
-                renderItem={({ item: re, index, dragHandle }) => (
+                renderItem={({ item: re, index, dragHandleIcon, DragHandle }) => (
                   <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}>
                     <View className="flex-row items-center justify-between mb-2">
-                      {dragHandle}
-                      <Text className="text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
-                      <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
+                      <DragHandle style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                        {dragHandleIcon}
+                        <Text className="text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
+                        <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
+                      </DragHandle>
                       <TouchableOpacity onPress={() => onRemoveExercise(re.id)} className="px-2">
                         <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
                       </TouchableOpacity>

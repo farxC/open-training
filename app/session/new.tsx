@@ -19,7 +19,7 @@ import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
-import { DraggableList } from "@/components/DraggableList";
+import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { SessionTimer } from "@/components/SessionTimer";
 import { SessionFinishModal } from "@/components/SessionFinishModal";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -601,11 +601,11 @@ export default function NewSessionScreen() {
                   </Text>
                 )}
 
-                <DraggableList
+                <SortableExerciseList
                   data={recorder.selectedExercises}
                   keyExtractor={(exercise) => String(exercise.id)}
                   onReorder={(reordered) => recorder.reorderExercisesInSession(reordered.map((e) => e.id))}
-                  renderItem={({ item: exercise, index, dragHandle }) =>
+                  renderItem={({ item: exercise, index, dragHandleIcon, DragHandle }) =>
                     exercise.modality === "corrida" ? (
                       <RunLogger
                         exerciseId={exercise.id}
@@ -613,7 +613,8 @@ export default function NewSessionScreen() {
                         sessionId={recorder.sessionId!}
                         targets={recorder.targetsByExerciseId[exercise.id]}
                         onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
-                        dragHandle={dragHandle}
+                        dragHandleIcon={dragHandleIcon}
+                        DragHandle={DragHandle}
                         index={index}
                         onSetsChanged={bumpSetsTick}
                       />
@@ -624,7 +625,8 @@ export default function NewSessionScreen() {
                         sessionId={recorder.sessionId!}
                         targets={recorder.targetsByExerciseId[exercise.id]}
                         onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
-                        dragHandle={dragHandle}
+                        dragHandleIcon={dragHandleIcon}
+                        DragHandle={DragHandle}
                         index={index}
                         onSetsChanged={bumpSetsTick}
                       />

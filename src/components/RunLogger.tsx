@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
 import { Text, TouchableOpacity, View } from "react-native";
 import { RunRow } from "./RunRow";
 import {
@@ -16,7 +17,8 @@ interface Props {
   sessionId: number;
   onRemoveExercise: () => void;
   targets?: RoutineUnitExercise;
-  dragHandle?: React.ReactNode;
+  dragHandleIcon?: React.ReactNode;
+  DragHandle?: React.ComponentType<{ style?: StyleProp<ViewStyle>; children?: React.ReactNode }>;
   index?: number;
   onSetsChanged?: () => void;
 }
@@ -27,8 +29,9 @@ function targetLabel(targets: RoutineUnitExercise): string | null {
   return `Meta: ${targets.target_distance_km}km${pace ? ` · pace ${pace}` : ""}`;
 }
 
-export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandle, index, onSetsChanged }: Props) {
+export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandleIcon, DragHandle, index, onSetsChanged }: Props) {
   const [sets, setSets] = useState<WorkoutSet[]>([]);
+  const HandleWrapper = DragHandle ?? View;
 
   const refreshSets = useCallback(() => {
     setSets(
@@ -96,8 +99,8 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
   return (
     <View className="mb-5">
       <View className="flex-row justify-between items-center mb-2">
-        <View className="flex-row items-center" style={{ gap: 8 }}>
-          {dragHandle}
+        <HandleWrapper style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+          {dragHandleIcon}
           {index != null && (
             <Text className="text-ink-mute text-xs" style={{ width: 16 }}>{index + 1}.</Text>
           )}
@@ -108,7 +111,7 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
               <Text className="text-ink-faint text-xs mt-0.5">{targetLabel(targets)}</Text>
             )}
           </View>
-        </View>
+        </HandleWrapper>
         <TouchableOpacity onPress={onRemoveExercise}>
           <Text className="text-ink-mute text-sm">Remove</Text>
         </TouchableOpacity>

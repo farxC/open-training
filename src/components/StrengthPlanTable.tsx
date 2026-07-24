@@ -3,7 +3,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
-import { DraggableList } from "@/components/DraggableList";
+import { SortableExerciseList } from "@/components/SortableExerciseList";
 
 export function strengthSummary(exercises: RoutineUnitExercise[]): string {
   if (exercises.length === 0) return "—";
@@ -137,16 +137,18 @@ export function StrengthPlanTable({
                   )}
                 </View>
 
-                <DraggableList
+                <SortableExerciseList
                   data={exercises}
                   keyExtractor={(ex) => String(ex.id)}
                   onReorder={(reordered) => onReorderExercises(unit.id, reordered.map((ex) => ex.id))}
-                  renderItem={({ item: ex, index, dragHandle }) => (
+                  renderItem={({ item: ex, index, dragHandleIcon, DragHandle }) => (
                     <View className="py-2" style={{ borderTopWidth: 1, borderTopColor: "#ebe7df" }}>
                       <View className="flex-row items-center justify-between mb-2">
-                        {dragHandle}
-                        <Text className="text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
-                        <Text className="text-ink text-sm flex-1">{ex.exercise_name}</Text>
+                        <DragHandle style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                          {dragHandleIcon}
+                          <Text className="text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
+                          <Text className="text-ink text-sm flex-1">{ex.exercise_name}</Text>
+                        </DragHandle>
                         <TouchableOpacity onPress={() => onRemoveExercise(ex.id)} className="px-2">
                           <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
                         </TouchableOpacity>

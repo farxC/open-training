@@ -23,7 +23,7 @@ import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { RunLogger } from "@/components/RunLogger";
-import { DraggableList } from "@/components/DraggableList";
+import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { ExerciseSessionCard } from "@/components/ExerciseSessionCard";
 import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
 import { modalityLabel, formatClock, parseClock } from "@/data/modalities";
@@ -256,14 +256,14 @@ export default function SessionDetailScreen() {
             />
 
             <View style={{ marginTop: 20 }}>
-              <DraggableList
+              <SortableExerciseList
                 data={exerciseGroups}
                 keyExtractor={(group) => String(group.id)}
                 onReorder={(reordered) => {
                   setExerciseGroups(reordered);
                   reorderSessionExercises(session.id, reordered.map((g) => g.id));
                 }}
-                renderItem={({ item: group, index, dragHandle }) =>
+                renderItem={({ item: group, index, dragHandleIcon, DragHandle }) =>
                   isCorrida ? (
                     <RunLogger
                       exerciseId={group.id}
@@ -273,7 +273,8 @@ export default function SessionDetailScreen() {
                         removeSessionExercise(session.id, group.id);
                         setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
                       }}
-                      dragHandle={dragHandle}
+                      dragHandleIcon={dragHandleIcon}
+                      DragHandle={DragHandle}
                       index={index}
                     />
                   ) : (
@@ -285,7 +286,8 @@ export default function SessionDetailScreen() {
                         removeSessionExercise(session.id, group.id);
                         setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
                       }}
-                      dragHandle={dragHandle}
+                      dragHandleIcon={dragHandleIcon}
+                      DragHandle={DragHandle}
                       index={index}
                     />
                   )
