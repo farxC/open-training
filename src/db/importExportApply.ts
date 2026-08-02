@@ -370,9 +370,14 @@ export function applyImport(payload: ExportPayload): ImportSummary {
           [exerciseId, muscle_group, counting_factor]
         );
       }
+      // Through rowToConfig, not straight into configValues: a payload's config
+      // is external input and may predate a config dimension even at the current
+      // format version (a hand-built payload, or one written before the columns
+      // landed). Every missing key falls back to its default — binding an
+      // undefined would abort the whole import with a driver-level error.
       db.runSync(
         `INSERT INTO exercise_config (exercise_id, ${CONFIG_COLUMN_LIST}) VALUES (?, ${CONFIG_PLACEHOLDERS})`,
-        [exerciseId, ...configValues(ex.config ?? DEFAULT_EXERCISE_CONFIG)]
+        [exerciseId, ...configValues(rowToConfig(ex.config))]
       );
       exerciseIdByUuid.set(ex.uuid, exerciseId);
       summary.exercisesAdded++;
@@ -465,7 +470,7 @@ export function applyImport(payload: ExportPayload): ImportSummary {
           db.runSync(
             `INSERT INTO session_exercise_config (session_exercise_id, ${CONFIG_COLUMN_LIST})
              VALUES (?, ${CONFIG_PLACEHOLDERS})`,
-            [sessionExerciseId, ...configValues(se.config ?? DEFAULT_EXERCISE_CONFIG)]
+            [sessionExerciseId, ...configValues(rowToConfig(se.config))]
           );
           for (const { muscle_group, counting_factor } of se.muscle_groups ?? []) {
             db.runSync(
