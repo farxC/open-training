@@ -33,6 +33,7 @@ import {
   upsertProgramEntry,
   deleteProgramEntry as deleteProgramEntryQuery,
 } from "@/db/queries";
+import { isDistanceModality, modalityConfig } from "@/data/modalities";
 import { cyclicSlotIndex, weekday, weekIndexSince } from "@/utils/cycle";
 import type {
   Exercise,
@@ -93,10 +94,12 @@ function buildPrograms(splits: RoutineSplit[]): Record<number, TrainingProgram[]
   return m;
 }
 
-/** Every corrida unit gets exactly one auto-provisioned "Correr" exercise — there's no per-exercise picker for corrida. */
-function provisionCorridaExercise(unitId: number): void {
-  const corridas = getExercises({ modality: "corrida" });
-  const defaultEx = corridas.find((e) => e.name === "Correr") ?? corridas[0];
+/** Every distance unit gets exactly one auto-provisioned exercise (Correr,
+ *  Pedalar, Nadar, Caminhar) — distance modalities have no per-exercise picker. */
+function provisionDistanceExercise(unitId: number, modality: Modality): void {
+  const candidates = getExercises({ modality });
+  const defaultName = modalityConfig(modality).defaultExerciseName;
+  const defaultEx = candidates.find((e) => e.name === defaultName) ?? candidates[0];
   if (!defaultEx) return;
   addUnitExercise({
     unit_id: unitId,
@@ -206,8 +209,8 @@ export function useRoutine() {
         if (opts?.ordinal === undefined) return; // weekly needs a weekday
         unitId = createUnit({ split_id: split.id, ordinal: opts.ordinal, label: opts.label ?? split.name });
       }
-      // Auto-add default running exercise so corrida units are never empty.
-      if (split.modality === "corrida") provisionCorridaExercise(unitId);
+      // Auto-add the modality's default exercise so distance units are never empty.
+      if (isDistanceModality(split.modality)) provisionDistanceExercise(unitId, split.modality);
       refreshAll();
     },
     [refreshAll]
@@ -232,7 +235,7 @@ export function useRoutine() {
   const addExercise = useCallback(
     (unitId: number, exercise: Exercise) => {
       const existing = getUnitExercises(unitId);
-      const isDistance = exercise.modality === "corrida";
+      const isDistance = isDistanceModality(exercise.modality);
       addUnitExercise({
         unit_id: unitId,
         exercise_id: exercise.id,

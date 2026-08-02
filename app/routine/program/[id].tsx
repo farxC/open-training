@@ -7,7 +7,8 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRoutine } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { runSummary } from "@/components/RunPlanTable";
+import { distanceSummary } from "@/components/DistancePlanTable";
+import { isDistanceModality } from "@/data/modalities";
 import { strengthSummary } from "@/components/StrengthPlanTable";
 import { mergedTarget } from "@/utils/programEntry";
 import { addDays, todayISO, weekIndexSince } from "@/utils/cycle";
@@ -118,7 +119,7 @@ export default function EditProgramScreen() {
   };
 
   // ── "Where are we in this plan right now" — anchored to when it was activated ──
-  const isDistance = split.modality === "corrida";
+  const isDistance = isDistanceModality(split.modality);
   const units = r.unitsBySplit[split.id] ?? [];
   const elapsedWeeks = program.is_active && program.started_at
     ? weekIndexSince(program.started_at, todayISO())
@@ -140,7 +141,7 @@ export default function EditProgramScreen() {
               const t = mergedTarget(ex, entryFor(unit.id, ex.exercise_id));
               return { ...ex, ...t, target_sets: t.target_sets ?? ex.target_sets, target_reps: t.target_reps ?? ex.target_reps };
             });
-            const summary = isDistance ? runSummary(merged[0]) : strengthSummary(merged);
+            const summary = isDistance ? distanceSummary(merged[0], split.modality) : strengthSummary(merged);
             return { unitId: unit.id, label: unit.label, summary };
           })
           .filter((d): d is { unitId: number; label: string; summary: string } => d !== null);

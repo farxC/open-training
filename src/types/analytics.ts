@@ -42,7 +42,10 @@ export interface StrengthSummary {
   maxWeight: number; // heaviest single set in range
 }
 
-export interface RunningSummary {
+/** Summary for any distance modality (corrida, ciclismo, natação, caminhada).
+ *  Values are canonical — km and seconds-per-km — and are converted to the
+ *  modality's display units at render time (see src/data/modalities.ts). */
+export interface DistanceSummary {
   distance: number; // Σ distance_km
   runCount: number; // distinct sessions
   totalDuration: number; // Σ duration_sec
@@ -57,7 +60,9 @@ export interface StrengthRecord {
   achieved_on: string; // 'YYYY-MM-DD' — enables the "NOVO" badge
 }
 
-export interface RunningRecords {
+/** Personal records for one distance modality. `fastest_pace_sec` is canonical
+ *  seconds-per-km, so "lower is better" holds even where it's shown as km/h. */
+export interface DistanceRecords {
   longest_distance_km: number | null;
   longest_distance_on: string | null;
   fastest_pace_sec: number | null;

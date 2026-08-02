@@ -1,5 +1,5 @@
 import type { Delta } from "@/types";
-import { formatCount, formatDeltaText, formatDistance, formatVolume } from "./analyticsFormat";
+import { formatCount, formatDeltaText, formatVolume } from "./analyticsFormat";
 
 function d(overrides: Partial<Delta> = {}): Delta {
   return { better: null, pct: null, absChange: null, ...overrides };
@@ -16,16 +16,6 @@ describe("formatVolume", () => {
 
   it("formats exactly 1000kg as tonnes", () => {
     expect(formatVolume(1000)).toBe("1.0t");
-  });
-});
-
-describe("formatDistance", () => {
-  it("formats km to one decimal", () => {
-    expect(formatDistance(12.34)).toBe("12.3 km");
-  });
-
-  it("formats zero", () => {
-    expect(formatDistance(0)).toBe("0.0 km");
   });
 });
 
@@ -90,5 +80,21 @@ describe("formatDeltaText", () => {
     it("renders a down arrow for a flat (zero) absChange", () => {
       expect(formatDeltaText(d({ pct: 0, absChange: 0 }), "pace")).toBe("↓ 0:00/km");
     });
+  });
+});
+
+describe("formatDeltaText pace basis per modality", () => {
+  it("keeps a /km modality's change as-is", () => {
+    expect(formatDeltaText(d({ pct: -4, absChange: -12 }), "pace", "corrida")).toBe("↓ 0:12/km");
+    expect(formatDeltaText(d({ pct: -4, absChange: -12 }), "pace", "caminhada")).toBe("↓ 0:12/km");
+  });
+
+  it("rescales the change to natação's 100m basis", () => {
+    // 120 s/km slower is 12 s per 100m.
+    expect(formatDeltaText(d({ pct: 6, absChange: 120 }), "pace", "natacao")).toBe("↑ 0:12/100m");
+  });
+
+  it("falls back to /km when no modality is given", () => {
+    expect(formatDeltaText(d({ pct: -4, absChange: -12 }), "pace")).toBe("↓ 0:12/km");
   });
 });

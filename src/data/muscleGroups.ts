@@ -14,7 +14,10 @@ export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   full_body: "Full Body",
 };
 
-// Muscle groups offered when creating/editing a strength exercise (cardio is implied for corrida).
+// Muscle groups offered when creating/editing a strength exercise. `cardio` is
+// omitted on purpose: it's carried by the gym-machine seeds (Treadmill Run,
+// Rowing Machine, …) but isn't something you'd assign by hand, and endurance
+// modalities carry no muscle groups at all.
 export const MUSCLE_OPTIONS: MuscleGroup[] = [
   "chest", "back", "shoulders", "biceps", "triceps", "legs", "femoral", "glutes", "core", "full_body",
 ];

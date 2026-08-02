@@ -27,13 +27,22 @@ import {
   removeSessionExercise,
   reorderSessionExercises,
   updateExerciseMuscleGroups,
+  getMuscleSeriesForSession,
   getMuscleSeriesInRange,
   getExercises,
+  getDistanceRecords,
+  getStrengthRecords,
   getExerciseConfig,
   updateExerciseConfig,
   updateSessionExerciseConfig,
+  resetSessionExerciseConfig,
+  updateExercise,
+  archiveExercise,
+  unarchiveExercise,
+  ExerciseNameTakenError,
 } from "../queries";
 import { DEFAULT_EXERCISE_CONFIG } from "../../data/exerciseConfig";
+import type { ExerciseConfig, Modality } from "../../types";
 
 function baseUnitExercise(unitId: number, exerciseId: number, order: number) {
   return {
@@ -205,7 +214,7 @@ describe("exercise_config", () => {
       name: "Supino", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
     });
 
-    updateExerciseConfig(ex.id, {
+    const config: ExerciseConfig = {
       resistance_curve: "bell",
       load_type: "pulley",
       pulley_type: "fixed",
@@ -213,17 +222,14 @@ describe("exercise_config", () => {
       rom: "partial",
       uses_bench: 1,
       bench_angle_degrees: 30,
-    });
+      grip_type: "supinated",
+      grip_width: "close",
+      uses_bodyweight: 1,
+      load_mode: "assisted",
+    };
+    updateExerciseConfig(ex.id, config);
 
-    expect(getExerciseConfig(ex.id)).toEqual({
-      resistance_curve: "bell",
-      load_type: "pulley",
-      pulley_type: "fixed",
-      laterality: "unilateral",
-      rom: "partial",
-      uses_bench: 1,
-      bench_angle_degrees: 30,
-    });
+    expect(getExerciseConfig(ex.id)).toEqual(config);
   });
 
   it("updateExerciseConfig forces pulley_type to null when load_type isn't pulley", () => {
@@ -232,13 +238,9 @@ describe("exercise_config", () => {
     });
 
     updateExerciseConfig(ex.id, {
-      resistance_curve: "descending",
+      ...DEFAULT_EXERCISE_CONFIG,
       load_type: "free",
       pulley_type: "mobile", // inconsistent input — should be dropped
-      laterality: "bilateral",
-      rom: "full",
-      uses_bench: 0,
-      bench_angle_degrees: null,
     });
 
     expect(getExerciseConfig(ex.id).pulley_type).toBeNull();
@@ -250,11 +252,7 @@ describe("exercise_config", () => {
     });
 
     updateExerciseConfig(ex.id, {
-      resistance_curve: "descending",
-      load_type: "free",
-      pulley_type: null,
-      laterality: "bilateral",
-      rom: "full",
+      ...DEFAULT_EXERCISE_CONFIG,
       uses_bench: 0,
       bench_angle_degrees: 30, // inconsistent input — should be dropped
     });
@@ -268,126 +266,190 @@ describe("exercise_config", () => {
     });
 
     updateExerciseConfig(ex.id, {
+      ...DEFAULT_EXERCISE_CONFIG,
       resistance_curve: "ascending",
-      load_type: "free",
-      pulley_type: null,
-      laterality: "bilateral",
-      rom: "full",
       uses_bench: 1,
       bench_angle_degrees: -15,
     });
 
     expect(getExerciseConfig(ex.id).bench_angle_degrees).toBe(-15);
   });
+
+  it("updateExerciseConfig forces load_mode to null when uses_bodyweight is 0", () => {
+    const ex = createExercise({
+      name: "Remada", muscle_groups: ["back"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    updateExerciseConfig(ex.id, {
+      ...DEFAULT_EXERCISE_CONFIG,
+      uses_bodyweight: 0,
+      load_mode: "assisted", // inconsistent input — should be dropped
+    });
+
+    expect(getExerciseConfig(ex.id).load_mode).toBeNull();
+  });
+
+  it("keeps a null grip as 'not applicable' rather than coercing it to a value", () => {
+    const ex = createExercise({
+      name: "Leg press", muscle_groups: ["legs"], equipment: "machine", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    updateExerciseConfig(ex.id, { ...DEFAULT_EXERCISE_CONFIG, grip_type: null, grip_width: null });
+
+    const config = getExerciseConfig(ex.id);
+    expect(config.grip_type).toBeNull();
+    expect(config.grip_width).toBeNull();
+  });
 });
 
-describe("session_exercise_config", () => {
+describe("exercise identity edits", () => {
+  function setup() {
+    return createExercise({
+      name: "Supino reto", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+  }
+
+  it("a rename propagates to sessions already recorded", () => {
+    const ex = setup();
+    const sessionId = createSession("2026-01-01");
+    addSessionExercise(sessionId, ex.id);
+
+    updateExercise(ex.id, {
+      name: "Supino reto com barra", equipment: "barbell", type: "compound", modality: "musculacao",
+    });
+
+    expect(getSessionExercises(sessionId)[0].exercise_name).toBe("Supino reto com barra");
+  });
+
+  it("rejects a rename that collides with another exercise", () => {
+    const ex = setup();
+    createExercise({
+      name: "Supino inclinado", muscle_groups: ["chest"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+
+    expect(() =>
+      updateExercise(ex.id, {
+        name: "Supino inclinado", equipment: "barbell", type: "compound", modality: "musculacao",
+      })
+    ).toThrow(ExerciseNameTakenError);
+    expect(getExercises().find((e) => e.id === ex.id)!.name).toBe("Supino reto");
+  });
+
+  it("allows saving an exercise under its own unchanged name", () => {
+    const ex = setup();
+    expect(() =>
+      updateExercise(ex.id, {
+        name: "Supino reto", equipment: "dumbbell", type: "compound", modality: "musculacao",
+      })
+    ).not.toThrow();
+    expect(getExercises().find((e) => e.id === ex.id)!.equipment).toBe("dumbbell");
+  });
+
+  it("archiving hides the exercise from listings but keeps its history readable", () => {
+    const ex = setup();
+    const sessionId = createSession("2026-01-01");
+    addSessionExercise(sessionId, ex.id);
+
+    archiveExercise(ex.id);
+
+    expect(getExercises().find((e) => e.id === ex.id)).toBeUndefined();
+    expect(getExercises({ include_archived: true }).find((e) => e.id === ex.id)!.is_archived).toBe(1);
+    expect(getSessionExercises(sessionId)[0].exercise_name).toBe("Supino reto");
+
+    unarchiveExercise(ex.id);
+    expect(getExercises().find((e) => e.id === ex.id)).toBeDefined();
+  });
+});
+
+describe("session_exercise_config snapshots", () => {
+  const SETUP_CONFIG: ExerciseConfig = {
+    ...DEFAULT_EXERCISE_CONFIG,
+    resistance_curve: "ascending",
+    load_type: "pulley",
+    pulley_type: "mobile",
+    grip_type: "pronated",
+  };
+
   function setupExercise() {
     const ex = createExercise({
       name: "Cadeira extensora", muscle_groups: ["legs"], equipment: "machine", type: "isolation", modality: "musculacao", is_custom: 0,
     });
-    updateExerciseConfig(ex.id, {
-      resistance_curve: "ascending",
-      load_type: "pulley",
-      pulley_type: "mobile",
-      laterality: "bilateral",
-      rom: "full",
-      uses_bench: 0,
-      bench_angle_degrees: null,
-    });
+    updateExerciseConfig(ex.id, SETUP_CONFIG);
     return ex;
   }
 
-  it("getSessionExercises resolves to the exercise default when there is no override", () => {
+  it("adding an exercise to a session copies the exercise's current config", () => {
     const ex = setupExercise();
     const sessionId = createSession("2026-01-01");
     addSessionExercise(sessionId, ex.id);
 
-    const [row] = getSessionExercises(sessionId);
-    expect(row.config).toEqual({
-      resistance_curve: "ascending",
-      load_type: "pulley",
-      pulley_type: "mobile",
-      laterality: "bilateral",
-      rom: "full",
-      uses_bench: 0,
-      bench_angle_degrees: null,
-    });
-    expect(row.config_override).toEqual({
-      resistance_curve: null,
-      load_type: null,
-      pulley_type: null,
-      laterality: null,
-      rom: null,
-      uses_bench: null,
-      bench_angle_degrees: null,
-    });
+    expect(getSessionExercises(sessionId)[0].config).toEqual(SETUP_CONFIG);
   });
 
-  it("a partial override resolves column-by-column, inheriting the rest from the default", () => {
+  it("editing the default leaves recorded sessions alone and applies to the next one", () => {
     const ex = setupExercise();
-    const sessionId = createSession("2026-01-01");
-    addSessionExercise(sessionId, ex.id);
-    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
+    const past = createSession("2026-01-01");
+    addSessionExercise(past, ex.id);
 
-    updateSessionExerciseConfig(sessionExerciseId, {
-      resistance_curve: null,
-      load_type: null,
-      pulley_type: "fixed", // only the pulley type is overridden for this session
-      laterality: null,
-      rom: null,
-      uses_bench: null,
-      bench_angle_degrees: null,
-    });
+    updateExerciseConfig(ex.id, { ...SETUP_CONFIG, resistance_curve: "bell", grip_type: "neutral" });
 
-    const [row] = getSessionExercises(sessionId);
-    expect(row.config).toEqual({
-      resistance_curve: "ascending", // inherited
-      load_type: "pulley", // inherited
-      pulley_type: "fixed", // overridden
-      laterality: "bilateral", // inherited
-      rom: "full", // inherited
-      uses_bench: 0, // inherited
-      bench_angle_degrees: null, // inherited
-    });
-    expect(row.config_override.pulley_type).toBe("fixed");
-    expect(row.config_override.resistance_curve).toBeNull();
+    const future = createSession("2026-02-01");
+    addSessionExercise(future, ex.id);
+
+    expect(getSessionExercises(past)[0].config.resistance_curve).toBe("ascending");
+    expect(getSessionExercises(past)[0].config.grip_type).toBe("pronated");
+    expect(getSessionExercises(future)[0].config.resistance_curve).toBe("bell");
+    expect(getSessionExercises(future)[0].config.grip_type).toBe("neutral");
   });
 
-  it("a bench-only override resolves the angle while inheriting everything else", () => {
+  it("applyToHistory rewrites the snapshots of sessions already recorded", () => {
     const ex = setupExercise();
-    const sessionId = createSession("2026-01-01");
-    addSessionExercise(sessionId, ex.id);
-    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
+    const past = createSession("2026-01-01");
+    addSessionExercise(past, ex.id);
 
-    updateSessionExerciseConfig(sessionExerciseId, {
-      resistance_curve: null,
-      load_type: null,
-      pulley_type: null,
-      laterality: null,
-      rom: null,
-      uses_bench: 1,
-      bench_angle_degrees: 30,
-    });
+    updateExerciseConfig(
+      ex.id,
+      { ...SETUP_CONFIG, resistance_curve: "bell" },
+      { applyToHistory: true }
+    );
 
-    const [row] = getSessionExercises(sessionId);
-    expect(row.config.uses_bench).toBe(1);
-    expect(row.config.bench_angle_degrees).toBe(30);
-    expect(row.config.load_type).toBe("pulley"); // still inherited
+    expect(getSessionExercises(past)[0].config.resistance_curve).toBe("bell");
   });
 
-  it("updateSessionExerciseConfig forces bench_angle_degrees to null when uses_bench override is 0", () => {
+  it("only rewrites the edited exercise's snapshots", () => {
     const ex = setupExercise();
+    const other = createExercise({
+      name: "Mesa flexora", muscle_groups: ["femoral"], equipment: "machine", type: "isolation", modality: "musculacao", is_custom: 0,
+    });
     const sessionId = createSession("2026-01-01");
     addSessionExercise(sessionId, ex.id);
-    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
+    addSessionExercise(sessionId, other.id);
+
+    updateExerciseConfig(ex.id, { ...SETUP_CONFIG, rom: "partial" }, { applyToHistory: true });
+
+    const rows = getSessionExercises(sessionId);
+    expect(rows.find((r) => r.exercise_id === ex.id)!.config.rom).toBe("partial");
+    expect(rows.find((r) => r.exercise_id === other.id)!.config.rom).toBe("full");
+  });
+
+  it("updateSessionExerciseConfig edits one session without touching the exercise default", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    const sessionExerciseId = addSessionExercise(sessionId, ex.id);
+
+    updateSessionExerciseConfig(sessionExerciseId, { ...SETUP_CONFIG, pulley_type: "fixed" });
+
+    expect(getSessionExercises(sessionId)[0].config.pulley_type).toBe("fixed");
+    expect(getExerciseConfig(ex.id).pulley_type).toBe("mobile");
+  });
+
+  it("normalises a session snapshot the same way the default is normalised", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    const sessionExerciseId = addSessionExercise(sessionId, ex.id);
 
     updateSessionExerciseConfig(sessionExerciseId, {
-      resistance_curve: null,
-      load_type: null,
-      pulley_type: null,
-      laterality: null,
-      rom: null,
+      ...SETUP_CONFIG,
       uses_bench: 0,
       bench_angle_degrees: 45, // inconsistent input — should be dropped
     });
@@ -395,36 +457,48 @@ describe("session_exercise_config", () => {
     expect(getSessionExercises(sessionId)[0].config.bench_angle_degrees).toBeNull();
   });
 
-  it("updateSessionExerciseConfig deletes the override row once every field is set back to null", () => {
+  it("resetSessionExerciseConfig re-copies the exercise's current default", () => {
     const ex = setupExercise();
     const sessionId = createSession("2026-01-01");
+    const sessionExerciseId = addSessionExercise(sessionId, ex.id);
+    updateSessionExerciseConfig(sessionExerciseId, { ...SETUP_CONFIG, rom: "partial" });
+
+    updateExerciseConfig(ex.id, { ...SETUP_CONFIG, resistance_curve: "constant" });
+    resetSessionExerciseConfig(sessionExerciseId, ex.id);
+
+    const config = getSessionExercises(sessionId)[0].config;
+    expect(config.rom).toBe("full");
+    expect(config.resistance_curve).toBe("constant");
+  });
+
+  it("re-adding an exercise already in the session preserves its edited snapshot", () => {
+    const ex = setupExercise();
+    const sessionId = createSession("2026-01-01");
+    const sessionExerciseId = addSessionExercise(sessionId, ex.id);
+    updateSessionExerciseConfig(sessionExerciseId, { ...SETUP_CONFIG, rom: "partial" });
+
+    const again = addSessionExercise(sessionId, ex.id);
+
+    expect(again).toBe(sessionExerciseId);
+    expect(getSessionExercises(sessionId)[0].config.rom).toBe("partial");
+    expect(getSessionExercises(sessionId)).toHaveLength(1);
+  });
+
+  it("snapshots the muscle groups and their counting factors", () => {
+    const ex = setupExercise();
+    updateExerciseMuscleGroups(ex.id, [
+      { muscle_group: "legs", counting_factor: 1 },
+      { muscle_group: "glutes", counting_factor: 0.5 },
+    ]);
+    const sessionId = createSession("2026-01-01");
     addSessionExercise(sessionId, ex.id);
-    const [{ id: sessionExerciseId }] = getSessionExercises(sessionId);
 
-    updateSessionExerciseConfig(sessionExerciseId, {
-      resistance_curve: "constant",
-      load_type: null,
-      pulley_type: null,
-      laterality: null,
-      rom: null,
-      uses_bench: null,
-      bench_angle_degrees: null,
-    });
-    expect(getSessionExercises(sessionId)[0].config.resistance_curve).toBe("constant");
-
-    updateSessionExerciseConfig(sessionExerciseId, {
-      resistance_curve: null,
-      load_type: null,
-      pulley_type: null,
-      laterality: null,
-      rom: null,
-      uses_bench: null,
-      bench_angle_degrees: null,
-    });
-
-    const [row] = getSessionExercises(sessionId);
-    expect(row.config.resistance_curve).toBe("ascending"); // back to the exercise default
-    expect(Object.values(row.config_override).every((v) => v === null)).toBe(true);
+    expect(getSessionExercises(sessionId)[0].muscle_groups).toEqual(
+      expect.arrayContaining([
+        { muscle_group: "legs", counting_factor: 1 },
+        { muscle_group: "glutes", counting_factor: 0.5 },
+      ])
+    );
   });
 });
 
@@ -473,6 +547,56 @@ describe("getMuscleSeriesInRange", () => {
     );
   });
 
+  it("reads the snapshot: re-weighting an exercise doesn't move series already logged", () => {
+    const bench = createExercise({
+      name: "Supino reto", muscle_groups: ["chest", "triceps"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(bench.id, [
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 0.5 },
+    ]);
+    const sessionId = createSession("2026-01-01");
+    addSet({
+      session_id: sessionId, exercise_id: bench.id, set_number: 1, reps: 10, weight_kg: 60,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+
+    // Triceps re-weighted up, and a whole new muscle group added, after the fact.
+    updateExerciseMuscleGroups(bench.id, [
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 1 },
+      { muscle_group: "shoulders", counting_factor: 0.5 },
+    ]);
+
+    expect(getMuscleSeriesInRange("musculacao", "2026-01-01", "2026-01-31")).toEqual(
+      expect.arrayContaining([
+        { muscle_group: "chest", total_series: 1 },
+        { muscle_group: "triceps", total_series: 0.5 }, // still the logged weighting
+      ])
+    );
+    expect(
+      getMuscleSeriesForSession(sessionId).some((r) => r.muscle_group === "shoulders")
+    ).toBe(false);
+
+    // …until the user explicitly says the weighting was wrong all along.
+    updateExerciseMuscleGroups(
+      bench.id,
+      [
+        { muscle_group: "chest", counting_factor: 1 },
+        { muscle_group: "triceps", counting_factor: 1 },
+      ],
+      { applyToHistory: true }
+    );
+
+    expect(getMuscleSeriesForSession(sessionId)).toEqual(
+      expect.arrayContaining([
+        { muscle_group: "chest", total_series: 1 },
+        { muscle_group: "triceps", total_series: 1 },
+      ])
+    );
+  });
+
   it("excludes sets outside the date range and outside the requested modality", () => {
     const ex = createExercise({
       name: "Supino reto", muscle_groups: ["chest"],
@@ -492,5 +616,66 @@ describe("getMuscleSeriesInRange", () => {
     const result = getMuscleSeriesInRange("musculacao", "2026-01-01", "2026-01-31");
 
     expect(result).toEqual([{ muscle_group: "chest", total_series: 1 }]);
+  });
+});
+
+describe("records are scoped to a single modality", () => {
+  // No muscle groups: endurance exercises carry none, matching what the seeds
+  // and the picker now create.
+  function logDistance(modality: Modality, date: string, distanceKm: number, paceSec: number): number {
+    const ex = createExercise({
+      name: `Atividade ${modality}-${date}`, muscle_groups: [],
+      equipment: "bodyweight", type: "compound", modality, is_custom: 0,
+    });
+    const sessionId = createSession(date, { modality });
+    addSet({
+      session_id: sessionId, exercise_id: ex.id, set_number: 1, reps: 0, weight_kg: 0,
+      rpe: null, rir: null, notes: null,
+      distance_km: distanceKm, duration_sec: distanceKm * paceSec, pace_sec: paceSec, failure: 0,
+    });
+    return sessionId;
+  }
+
+  it("reports no muscle series for an endurance session", () => {
+    const swim = logDistance("natacao", "2026-01-14", 1.5, 1200);
+    expect(getMuscleSeriesForSession(swim)).toEqual([]);
+  });
+
+  it("never mixes one distance modality's records into another's", () => {
+    logDistance("corrida", "2026-01-10", 10, 300); // 10 km @ 5:00/km
+    logDistance("ciclismo", "2026-01-11", 40, 120); // 40 km @ 30 km/h
+
+    const run = getDistanceRecords("corrida");
+    expect(run.longest_distance_km).toBe(10);
+    expect(run.fastest_pace_sec).toBe(300);
+    expect(run.longest_distance_on).toBe("2026-01-10");
+
+    const bike = getDistanceRecords("ciclismo");
+    expect(bike.longest_distance_km).toBe(40);
+    expect(bike.fastest_pace_sec).toBe(120);
+
+    // Natação has nothing logged — it must read empty, not fall back to another modality.
+    const swim = getDistanceRecords("natacao");
+    expect(swim.longest_distance_km).toBeNull();
+    expect(swim.fastest_pace_sec).toBeNull();
+    expect(swim.longest_duration_sec).toBeNull();
+  });
+
+  it("keeps strength records out of distance sessions", () => {
+    const bench = createExercise({
+      name: "Supino", muscle_groups: ["chest"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    const strengthSession = createSession("2026-01-12", { modality: "musculacao" });
+    addSet({
+      session_id: strengthSession, exercise_id: bench.id, set_number: 1, reps: 5, weight_kg: 100,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+    logDistance("caminhada", "2026-01-13", 6, 600);
+
+    const records = getStrengthRecords("musculacao");
+    expect(records).toHaveLength(1);
+    expect(records[0].max_weight_kg).toBe(100);
+    expect(getStrengthRecords("caminhada")).toEqual([]);
   });
 });

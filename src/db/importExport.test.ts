@@ -51,6 +51,7 @@ function exercise(overrides: Partial<ExportedExercise> = {}): ExportedExercise {
     is_custom: 0,
     modality: "musculacao",
     config: DEFAULT_EXERCISE_CONFIG,
+    is_archived: 0,
     ...overrides,
   };
 }

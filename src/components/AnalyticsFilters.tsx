@@ -1,11 +1,8 @@
 import { Text, useWindowDimensions, View } from "react-native";
-import { ModalityToggle } from "@/components/ModalityToggle";
+import { ModalityChips } from "@/components/ModalityChips";
 import { PeriodChips } from "@/components/PeriodChips";
 import { PeriodTabs } from "@/components/PeriodTabs";
-import { MODALITIES } from "@/data/modalities";
 import type { Granularity, Modality } from "@/types";
-
-const MODALITY_OPTIONS = MODALITIES.map((m) => ({ key: m.key, label: m.label, icon: m.icon }));
 
 const PERIOD_OPTIONS: { key: Granularity; label: string }[] = [
   { key: "week", label: "Semana" },
@@ -57,14 +54,9 @@ export function AnalyticsFilters({
           paddingHorizontal: 20,
         }}
       >
-        <View>
+        <View style={{ flexShrink: 1, marginRight: 16 }}>
           <FilterLabel>MODALIDADE</FilterLabel>
-          <ModalityToggle
-            options={MODALITY_OPTIONS}
-            value={modality}
-            onChange={onModalityChange}
-            stretch={false}
-          />
+          <ModalityChips value={modality} onChange={onModalityChange} />
         </View>
 
         <View style={{ alignItems: "flex-end" }}>
@@ -83,7 +75,7 @@ export function AnalyticsFilters({
   return (
     <View className="bg-surface-card rounded-2xl p-4">
       <FilterLabel>MODALIDADE</FilterLabel>
-      <ModalityToggle options={MODALITY_OPTIONS} value={modality} onChange={onModalityChange} />
+      <ModalityChips value={modality} onChange={onModalityChange} />
 
       <View style={{ height: 1, backgroundColor: "#f0ede6", marginVertical: 16 }} />
 

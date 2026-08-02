@@ -18,13 +18,21 @@ import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
-import { RunLogger } from "@/components/RunLogger";
+import { DistanceLogger } from "@/components/DistanceLogger";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { SessionTimer } from "@/components/SessionTimer";
 import { SessionFinishModal } from "@/components/SessionFinishModal";
 import { SectionHeader } from "@/components/SectionHeader";
 import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
-import { MODALITIES, modalityConfig, modalityLabel, formatClock, formatPaceSec } from "@/data/modalities";
+import { ModalityCardGrid } from "@/components/ModalityCardGrid";
+import {
+  formatDistanceValue,
+  formatEffort,
+  isDistanceModality,
+  isStrengthCategory,
+  modalityConfig,
+  modalityLabel,
+} from "@/data/modalities";
 import {
   getExercises,
   getSessionById,
@@ -60,10 +68,10 @@ function formatDatePill(dateISO: string): string {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function describeTarget(t: RoutineUnitExercise): string {
+function describeTarget(t: RoutineUnitExercise, modality: Modality): string {
   if (t.target_distance_km) {
-    const pace = formatPaceSec(t.target_pace_sec);
-    return `${t.target_distance_km}km${pace ? ` · pace ${pace}` : ""}`;
+    const effort = formatEffort(t.target_pace_sec, modality);
+    return `${formatDistanceValue(t.target_distance_km, modality)}${effort ? ` · ${effort}` : ""}`;
   }
   if (!t.target_sets) return "—";
   const reps = t.target_reps_max ? `${t.target_reps}–${t.target_reps_max}` : `${t.target_reps}`;
@@ -103,7 +111,7 @@ export default function NewSessionScreen() {
   const [finishModalVisible, setFinishModalVisible] = useState(false);
   const [finishInitialDuration, setFinishInitialDuration] = useState(0);
 
-  // Sets are persisted straight to SQLite by SetLogger/RunLogger (not the
+  // Sets are persisted straight to SQLite by SetLogger/DistanceLogger (not the
   // recorder reducer), so this tick just forces a re-render to pick up the
   // latest getMuscleSeriesForSession() read after each mutation.
   const [, bumpSetsTick] = useReducer((c: number) => c + 1, 0);
@@ -114,7 +122,7 @@ export default function NewSessionScreen() {
 
   // The details step *is* the recording screen now — there's no separate page to hop
   // to just to add exercises. Reaching it lazily creates the live session (once) so
-  // SetLogger/RunLogger below can log real sets immediately, exactly like /session/record used to.
+  // SetLogger/DistanceLogger below can log real sets immediately, exactly like /session/record used to.
   const goToDetails = (params: {
     modality: Modality;
     splitId: number | null;
@@ -132,10 +140,14 @@ export default function NewSessionScreen() {
         })
         .filter((x): x is { exercise: Exercise; targets: RoutineUnitExercise } => x != null);
 
-      // Corrida has no exercise picker — a run session just *is* the run, so seed
-      // it with the default running exercise when the day didn't already resolve one.
-      if (params.modality === "corrida" && items.length === 0 && modalityExercises.length > 0) {
-        items.push({ exercise: modalityExercises[0] });
+      // Distance modalities have no exercise picker — the session just *is* the
+      // activity — so seed it with the modality's auto-provisioned exercise when
+      // the day didn't already resolve one. Matched by name so a modality with
+      // extra custom exercises still lands on the canonical one.
+      if (isDistanceModality(params.modality) && items.length === 0 && modalityExercises.length > 0) {
+        const defaultName = modalityConfig(params.modality).defaultExerciseName;
+        const seeded = modalityExercises.find((e) => e.name === defaultName) ?? modalityExercises[0];
+        items.push({ exercise: seeded });
       }
 
       recorder.startResolvedSession({
@@ -344,31 +356,7 @@ export default function NewSessionScreen() {
                 <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                   MODALIDADE
                 </Text>
-                <View className="flex-row" style={{ gap: 10 }}>
-                  {MODALITIES.map((m) => (
-                    <TouchableOpacity
-                      key={m.key}
-                      className="flex-1 items-center justify-center rounded-2xl"
-                      style={{ paddingVertical: 18, gap: 8, borderWidth: 1, borderColor: "#ddd8ce", backgroundColor: "#ffffff" }}
-                      onPress={() => chooseModality(m.key)}
-                      activeOpacity={0.85}
-                    >
-                      <View
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 22,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: "#f4f2ee",
-                        }}
-                      >
-                        <MaterialCommunityIcons name={m.icon as MciName} size={24} color="#5c594f" />
-                      </View>
-                      <Text style={{ color: "#5c594f", fontSize: 13, fontWeight: "600" }}>{m.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <ModalityCardGrid onSelect={chooseModality} />
               </>
             )}
 
@@ -425,7 +413,7 @@ export default function NewSessionScreen() {
                             style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
                           >
                             <Text className="text-ink text-sm font-medium">{ex.exercise_name}</Text>
-                            <Text className="text-ink-mute text-xs">{describeTarget(ex)}</Text>
+                            <Text className="text-ink-mute text-xs">{describeTarget(ex, modality)}</Text>
                           </View>
                         ))}
                       </View>
@@ -521,7 +509,7 @@ export default function NewSessionScreen() {
                   <SessionTimer startTime={recorder.startTime} onStart={recorder.startTimer} />
                 </View>
 
-                {muscleSeries.length > 0 && (
+                {isStrengthCategory(modality) && muscleSeries.length > 0 && (
                   <View style={{ marginBottom: 16 }}>
                     <SectionHeader title="Séries por grupo muscular" />
                     <MuscleSeriesSessionCard data={muscleSeries} />
@@ -592,7 +580,7 @@ export default function NewSessionScreen() {
                   />
                 </View>
 
-                {modality !== "corrida" && (
+                {!isDistanceModality(modality) && (
                   <Text
                     className="text-ink-mute"
                     style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
@@ -606,11 +594,12 @@ export default function NewSessionScreen() {
                   keyExtractor={(exercise) => String(exercise.id)}
                   onReorder={(reordered) => recorder.reorderExercisesInSession(reordered.map((e) => e.id))}
                   renderItem={({ item: exercise, index, dragHandleIcon, DragHandle }) =>
-                    exercise.modality === "corrida" ? (
-                      <RunLogger
+                    isDistanceModality(exercise.modality) ? (
+                      <DistanceLogger
                         exerciseId={exercise.id}
                         exerciseName={exercise.name}
                         sessionId={recorder.sessionId!}
+                        modality={exercise.modality}
                         targets={recorder.targetsByExerciseId[exercise.id]}
                         onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
                         dragHandleIcon={dragHandleIcon}
@@ -634,7 +623,7 @@ export default function NewSessionScreen() {
                   }
                 />
 
-                {modality !== "corrida" && (
+                {!isDistanceModality(modality) && (
                   <TouchableOpacity
                     className="py-3 rounded-xl items-center mb-6"
                     style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}

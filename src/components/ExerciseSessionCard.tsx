@@ -1,14 +1,16 @@
 import { router } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { formatClock, formatPaceSec } from "@/data/modalities";
-import type { WorkoutSet } from "@/types";
+import { formatClock, formatDistanceValue, formatEffort } from "@/data/modalities";
+import type { Modality, WorkoutSet } from "@/types";
 
 interface Props {
   exerciseId: number;
   exerciseName: string;
   ordinal: number;
   sets: (WorkoutSet & { exercise_name: string })[];
+  /** The session's modality — drives the units distances and pace render in. */
+  modality: Modality;
 }
 
 /** Inserts "." every 3 digits from the right — pt-BR thousands separator. Avoids toLocaleString (Hermes support is spotty). */
@@ -26,7 +28,7 @@ function intensityColor(rpe: number | null, rir: number | null, failure: 0 | 1):
   return "#928d80";
 }
 
-export function ExerciseSessionCard({ exerciseId, exerciseName, ordinal, sets }: Props) {
+export function ExerciseSessionCard({ exerciseId, exerciseName, ordinal, sets, modality }: Props) {
   const isRunGroup = sets.some((s) => s.distance_km != null);
   const vol = sets.reduce((s, x) => s + x.reps * x.weight_kg, 0);
   const dist = sets.reduce((s, x) => s + (x.distance_km ?? 0), 0);
@@ -86,7 +88,13 @@ export function ExerciseSessionCard({ exerciseId, exerciseName, ordinal, sets }:
           className="text-ink-soft"
           style={{ fontSize: 12, fontFamily: "JetBrains Mono, Menlo, Courier New, monospace" }}
         >
-          {isRunGroup ? (dist > 0 ? `${dist.toFixed(1)} km` : setLabel) : vol > 0 ? `${formatThousands(vol)} kg` : setLabel}
+          {isRunGroup
+            ? dist > 0
+              ? formatDistanceValue(dist, modality)
+              : setLabel
+            : vol > 0
+              ? `${formatThousands(vol)} kg`
+              : setLabel}
         </Text>
         <MaterialCommunityIcons name="chevron-right" size={16} color="#bdb8aa" />
       </TouchableOpacity>
@@ -137,8 +145,8 @@ export function ExerciseSessionCard({ exerciseId, exerciseName, ordinal, sets }:
 
                 {s.distance_km != null ? (
                   <Text className="text-ink flex-1" style={{ fontSize: 14 }}>
-                    {s.distance_km} km em {formatClock(s.duration_sec)}
-                    {formatPaceSec(s.pace_sec) ? ` · pace ${formatPaceSec(s.pace_sec)}` : ""}
+                    {formatDistanceValue(s.distance_km, modality)} em {formatClock(s.duration_sec)}
+                    {formatEffort(s.pace_sec, modality) ? ` · ${formatEffort(s.pace_sec, modality)}` : ""}
                   </Text>
                 ) : (
                   <Text className="text-ink flex-1" style={{ fontSize: 14 }}>

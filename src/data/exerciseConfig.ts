@@ -1,6 +1,9 @@
 import type {
   ExerciseConfig,
+  GripType,
+  GripWidth,
   Laterality,
+  LoadMode,
   LoadType,
   PulleyType,
   RangeOfMotion,
@@ -15,6 +18,10 @@ export const DEFAULT_EXERCISE_CONFIG: ExerciseConfig = {
   rom: "full",
   uses_bench: 0,
   bench_angle_degrees: null,
+  grip_type: null,
+  grip_width: null,
+  uses_bodyweight: 0,
+  load_mode: null,
 };
 
 export const RESISTANCE_CURVE_OPTIONS: ResistanceCurve[] = [
@@ -60,6 +67,31 @@ export const ROM_LABELS: Record<RangeOfMotion, string> = {
   partial: "Parcial",
 };
 
+export const GRIP_TYPE_OPTIONS: GripType[] = ["pronated", "supinated", "neutral", "mixed"];
+
+export const GRIP_TYPE_LABELS: Record<GripType, string> = {
+  pronated: "Pronada",
+  supinated: "Supinada",
+  neutral: "Neutra",
+  mixed: "Mista",
+};
+
+export const GRIP_WIDTH_OPTIONS: GripWidth[] = ["close", "medium", "wide"];
+
+export const GRIP_WIDTH_LABELS: Record<GripWidth, string> = {
+  close: "Fechada",
+  medium: "Média",
+  wide: "Aberta",
+};
+
+export const LOAD_MODE_OPTIONS: LoadMode[] = ["total", "added", "assisted"];
+
+export const LOAD_MODE_LABELS: Record<LoadMode, string> = {
+  total: "Carga total",
+  added: "Peso adicionado",
+  assisted: "Assistido",
+};
+
 // Common bench angles offered as one-tap chips; anything else is entered as a
 // custom degree value (positive = incline, negative = decline, 0 = flat).
 export const BENCH_ANGLE_PRESETS: number[] = [-15, 0, 15, 30, 45, 60];
@@ -81,5 +113,25 @@ export function exerciseConfigSummary(config: ExerciseConfig): string {
   if (config.uses_bench && config.bench_angle_degrees != null) {
     parts.push(`Banco: ${benchAngleLabel(config.bench_angle_degrees)}`);
   }
+  // Grip width alone ("Aberta") reads as a fragment, so the two grip fields are
+  // joined into one part when both are set.
+  const grip = [
+    config.grip_type && GRIP_TYPE_LABELS[config.grip_type],
+    config.grip_width && GRIP_WIDTH_LABELS[config.grip_width].toLowerCase(),
+  ].filter(Boolean);
+  if (grip.length) parts.push(`Pegada ${grip.join(" ")}`);
+  if (config.uses_bodyweight && config.load_mode) parts.push(LOAD_MODE_LABELS[config.load_mode]);
   return parts.join(" · ");
+}
+
+/** Enforces the config's cross-field invariants: a dependent field is null
+ *  whenever the field that enables it is off. Applied on every write so a
+ *  toggle flipped back off can never leave a stale value behind. */
+export function normalizeExerciseConfig(config: ExerciseConfig): ExerciseConfig {
+  return {
+    ...config,
+    pulley_type: config.load_type === "pulley" ? config.pulley_type : null,
+    bench_angle_degrees: config.uses_bench ? config.bench_angle_degrees : null,
+    load_mode: config.uses_bodyweight ? config.load_mode : null,
+  };
 }

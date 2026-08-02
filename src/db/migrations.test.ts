@@ -4,7 +4,40 @@ import * as crypto from "crypto";
 import { createInMemoryDb } from "./__tests__/testDb";
 import { runMigrations } from "./migrations";
 import { SCHEMA_VERSION } from "./schema";
+import { SEED_DISTANCE_EXERCISES } from "../data/exercises";
+import { modalitiesOfCategory } from "../data/modalities";
 import type { DbHandle } from "./dbHandle";
+
+// Every distance modality's auto-provisioned exercise is (re)seeded on EVERY
+// run, which is how a device that predates a modality still gets it. Derived
+// from the registry so adding a modality doesn't silently break these tests.
+const DISTANCE_SEED_NAMES = SEED_DISTANCE_EXERCISES.map((d) => d.exercise.name);
+const NEW_DISTANCE_SEEDS = DISTANCE_SEED_NAMES.filter((n) => n !== "Correr");
+
+/** Muscle-group breakdown is a strength-training concept: no exercise of an
+ *  endurance modality may carry one, however it was seeded or imported. */
+function expectNoEnduranceMuscleGroups(dbHandle: DbHandle): void {
+  const keys = modalitiesOfCategory("endurance").map((m) => m.key);
+  const row = dbHandle.getFirstSync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM exercise_muscle_groups
+     WHERE exercise_id IN (SELECT id FROM exercises WHERE modality IN (${keys.map(() => "?").join(",")}))`,
+    keys
+  );
+  expect(row!.count).toBe(0);
+}
+
+/** The seeds share the backfill with everything else, so assert the invariant
+ *  rather than a fixture-specific id list: one config row per exercise. */
+function expectOneConfigPerExercise(dbHandle: DbHandle): void {
+  const row = dbHandle.getFirstSync<{ exercises: number; configs: number; orphans: number }>(
+    `SELECT (SELECT COUNT(*) FROM exercises) AS exercises,
+            (SELECT COUNT(*) FROM exercise_config) AS configs,
+            (SELECT COUNT(*) FROM exercises WHERE id NOT IN (SELECT exercise_id FROM exercise_config)) AS orphans`,
+    []
+  );
+  expect(row!.configs).toBe(row!.exercises);
+  expect(row!.orphans).toBe(0);
+}
 
 const FIXTURES_DIR = path.join(__dirname, "__fixtures__");
 
@@ -29,6 +62,7 @@ describe("runMigrations upgrade from frozen snapshots", () => {
       "Supino reto",
       "Rosca direta customizada",
       "Correr",
+      ...NEW_DISTANCE_SEEDS,
     ]);
     expect(exercises.every((e) => typeof e.uuid === "string" && e.uuid!.length > 0)).toBe(true);
 
@@ -72,7 +106,7 @@ describe("runMigrations upgrade from frozen snapshots", () => {
       "SELECT COUNT(*) as count FROM exercises",
       []
     );
-    expect(exerciseCount!.count).toBe(3); // the unconditional 'Correr' seed matches the existing row by name — no duplicate
+    expect(exerciseCount!.count).toBe(3 + NEW_DISTANCE_SEEDS.length); // the unconditional 'Correr' seed matches the existing row by name — no duplicate
   });
 });
 
@@ -136,13 +170,15 @@ describe("runMigrations rebuilds exercises for the muscle-groups join table (v12
       "SELECT exercise_id, muscle_group FROM exercise_muscle_groups WHERE exercise_id IN (1, 2, 3) ORDER BY exercise_id, muscle_group",
       []
     );
+    // Exercise 3 is "Correr": the v13 re-curation gives it no group, and the
+    // endurance cleanup would strip one anyway.
     expect(groups).toEqual([
       { exercise_id: 1, muscle_group: "chest" },
       { exercise_id: 1, muscle_group: "shoulders" },
       { exercise_id: 1, muscle_group: "triceps" },
       { exercise_id: 2, muscle_group: "biceps" },
-      { exercise_id: 3, muscle_group: "cardio" },
     ]);
+    expectNoEnduranceMuscleGroups(dbHandle);
 
     // Custom exercise's id/uuid survived the table rebuild intact.
     const custom = dbHandle.getFirstSync<{ id: number; uuid: string; is_custom: number }>(
@@ -213,7 +249,8 @@ describe("runMigrations rebuilds exercise_muscle_groups for counting_factor (v13
       muscle_group: string;
       counting_factor: number;
     }>(
-      "SELECT exercise_id, muscle_group, counting_factor FROM exercise_muscle_groups ORDER BY exercise_id, muscle_group",
+      `SELECT exercise_id, muscle_group, counting_factor FROM exercise_muscle_groups
+       WHERE exercise_id <= 3 ORDER BY exercise_id, muscle_group`,
       []
     );
     expect(groups).toEqual([
@@ -221,8 +258,19 @@ describe("runMigrations rebuilds exercise_muscle_groups for counting_factor (v13
       { exercise_id: 1, muscle_group: "shoulders", counting_factor: 1 },
       { exercise_id: 1, muscle_group: "triceps", counting_factor: 1 },
       { exercise_id: 2, muscle_group: "biceps", counting_factor: 1 },
-      { exercise_id: 3, muscle_group: "cardio", counting_factor: 1 },
     ]);
+
+    // The distance seeds are added after the rebuild, and carry no muscle group
+    // — exercise 3 ("Correr") had a legacy "cardio" row, now stripped.
+    const seededGroups = dbHandle.getAllSync<{ name: string; muscle_group: string }>(
+      `SELECT e.name, emg.muscle_group FROM exercises e
+       JOIN exercise_muscle_groups emg ON emg.exercise_id = e.id
+       WHERE e.name IN (${DISTANCE_SEED_NAMES.map(() => "?").join(", ")})
+       ORDER BY e.id`,
+      DISTANCE_SEED_NAMES
+    );
+    expect(seededGroups).toEqual([]);
+    expectNoEnduranceMuscleGroups(dbHandle);
 
     expect(() =>
       dbHandle.runSync(
@@ -252,11 +300,14 @@ describe("runMigrations rebuilds exercise_muscle_groups for counting_factor (v13
     runMigrations(dbHandle);
     runMigrations(dbHandle);
 
+    // 4 strength pairs from the fixture; the distance seeds contribute none.
     const count = dbHandle.getFirstSync<{ count: number }>(
       "SELECT COUNT(*) as count FROM exercise_muscle_groups",
       []
     );
-    expect(count!.count).toBe(5);
+    expect(count!.count).toBe(4);
+    expectNoEnduranceMuscleGroups(dbHandle);
+    expect(NEW_DISTANCE_SEEDS.length).toBeGreaterThan(0);
   });
 
   // Regression: a dev Fast Refresh cycle can pick up the bumped SCHEMA_VERSION
@@ -324,14 +375,21 @@ describe("runMigrations backfills exercise_config (v14 -> v15)", () => {
       laterality: string;
       rom: string;
     }>(
-      "SELECT exercise_id, resistance_curve, load_type, pulley_type, laterality, rom FROM exercise_config ORDER BY exercise_id",
+      `SELECT exercise_id, resistance_curve, load_type, pulley_type, laterality, rom FROM exercise_config
+       WHERE exercise_id <= 3 ORDER BY exercise_id`,
       []
     );
-    expect(configs).toEqual([
-      { exercise_id: 1, resistance_curve: "descending", load_type: "free", pulley_type: null, laterality: "bilateral", rom: "full" },
-      { exercise_id: 2, resistance_curve: "descending", load_type: "free", pulley_type: null, laterality: "bilateral", rom: "full" },
-      { exercise_id: 3, resistance_curve: "descending", load_type: "free", pulley_type: null, laterality: "bilateral", rom: "full" },
-    ]);
+    expect(configs).toEqual(
+      [1, 2, 3].map((exercise_id) => ({
+        exercise_id,
+        resistance_curve: "descending",
+        load_type: "free",
+        pulley_type: null,
+        laterality: "bilateral",
+        rom: "full",
+      }))
+    );
+    expectOneConfigPerExercise(dbHandle);
 
     const versionRow = dbHandle.getFirstSync<{ value: string }>(
       "SELECT value FROM user_meta WHERE key = 'schema_version'",
@@ -357,7 +415,7 @@ describe("runMigrations backfills exercise_config (v14 -> v15)", () => {
       "SELECT COUNT(*) as count FROM exercise_config",
       []
     );
-    expect(count!.count).toBe(3);
+    expect(count!.count).toBe(3 + NEW_DISTANCE_SEEDS.length);
 
     const custom = dbHandle.getFirstSync<{ resistance_curve: string; load_type: string; pulley_type: string | null }>(
       "SELECT resistance_curve, load_type, pulley_type FROM exercise_config WHERE exercise_id = 1",
@@ -418,7 +476,8 @@ describe("runMigrations rebuilds exercise_config/session_exercise_config for ben
       uses_bench: number;
       bench_angle_degrees: number | null;
     }>(
-      "SELECT exercise_id, resistance_curve, load_type, pulley_type, uses_bench, bench_angle_degrees FROM exercise_config ORDER BY exercise_id",
+      `SELECT exercise_id, resistance_curve, load_type, pulley_type, uses_bench, bench_angle_degrees FROM exercise_config
+       WHERE exercise_id <= 3 ORDER BY exercise_id`,
       []
     );
     expect(configs).toEqual([
@@ -426,9 +485,12 @@ describe("runMigrations rebuilds exercise_config/session_exercise_config for ben
       { exercise_id: 2, resistance_curve: "descending", load_type: "free", pulley_type: null, uses_bench: 0, bench_angle_degrees: null },
       { exercise_id: 3, resistance_curve: "descending", load_type: "free", pulley_type: null, uses_bench: 0, bench_angle_degrees: null },
     ]);
+    expectOneConfigPerExercise(dbHandle);
 
-    // The pre-existing session-exercise override survives the rebuild untouched.
-    const override = dbHandle.getFirstSync<{
+    // The pre-existing session-exercise override survives — as of v18 it's no
+    // longer a sparse override but a snapshot, so the fields it used to inherit
+    // are now materialised from the exercise's default (see the v18 block below).
+    const snapshot = dbHandle.getFirstSync<{
       pulley_type: string | null;
       uses_bench: number | null;
       bench_angle_degrees: number | null;
@@ -436,7 +498,7 @@ describe("runMigrations rebuilds exercise_config/session_exercise_config for ben
       "SELECT pulley_type, uses_bench, bench_angle_degrees FROM session_exercise_config WHERE session_exercise_id = 1",
       []
     );
-    expect(override).toEqual({ pulley_type: "mobile", uses_bench: null, bench_angle_degrees: null });
+    expect(snapshot).toEqual({ pulley_type: "mobile", uses_bench: 0, bench_angle_degrees: null });
 
     const versionRow = dbHandle.getFirstSync<{ value: string }>(
       "SELECT value FROM user_meta WHERE key = 'schema_version'",
@@ -461,7 +523,7 @@ describe("runMigrations rebuilds exercise_config/session_exercise_config for ben
       "SELECT COUNT(*) as count FROM exercise_config",
       []
     );
-    expect(count!.count).toBe(3);
+    expect(count!.count).toBe(3 + NEW_DISTANCE_SEEDS.length);
 
     const custom = dbHandle.getFirstSync<{ uses_bench: number; bench_angle_degrees: number }>(
       "SELECT uses_bench, bench_angle_degrees FROM exercise_config WHERE exercise_id = 1",
@@ -507,6 +569,163 @@ describe("runMigrations rebuilds exercise_config/session_exercise_config for ben
 
     const columns = dbHandle.getAllSync<{ name: string }>("PRAGMA table_info(session_exercise_config)", []);
     expect(columns.some((c) => c.name === "uses_bench")).toBe(true);
+  });
+});
+
+describe("runMigrations turns session_exercise_config into a snapshot (v17 -> v18)", () => {
+  it("materialises what the app rendered before the upgrade, for every session-exercise", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    const snapshots = dbHandle.getAllSync<{
+      session_exercise_id: number;
+      resistance_curve: string;
+      load_type: string;
+      pulley_type: string | null;
+      laterality: string;
+      rom: string;
+    }>(
+      `SELECT session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom
+       FROM session_exercise_config ORDER BY session_exercise_id`,
+      []
+    );
+    expect(snapshots).toEqual([
+      // Had a pulley_type-only override; the rest resolved from exercise 1's default.
+      { session_exercise_id: 1, resistance_curve: "ascending", load_type: "pulley", pulley_type: "mobile", laterality: "bilateral", rom: "full" },
+      // Had no override row at all — backfilled wholesale from exercise 2's default.
+      { session_exercise_id: 2, resistance_curve: "descending", load_type: "free", pulley_type: null, laterality: "bilateral", rom: "full" },
+    ]);
+  });
+
+  it("gives every session-exercise exactly one config snapshot and its muscle groups", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    const counts = dbHandle.getFirstSync<{ sessionExercises: number; configs: number; missing: number }>(
+      `SELECT (SELECT COUNT(*) FROM session_exercises) AS sessionExercises,
+              (SELECT COUNT(*) FROM session_exercise_config) AS configs,
+              (SELECT COUNT(*) FROM session_exercises
+                WHERE id NOT IN (SELECT session_exercise_id FROM session_exercise_config)) AS missing`,
+      []
+    );
+    expect(counts!.configs).toBe(counts!.sessionExercises);
+    expect(counts!.missing).toBe(0);
+
+    // Exercise 1 carries chest/triceps/shoulders; the snapshot copies all three.
+    const groups = dbHandle.getAllSync<{ muscle_group: string; counting_factor: number }>(
+      `SELECT muscle_group, counting_factor FROM session_exercise_muscle_groups
+       WHERE session_exercise_id = 1 ORDER BY muscle_group`,
+      []
+    );
+    expect(groups).toEqual([
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "shoulders", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 1 },
+    ]);
+  });
+
+  it("is idempotent — a second run neither duplicates nor rewrites edited snapshots", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+    dbHandle.runSync(
+      "UPDATE session_exercise_config SET rom = 'partial' WHERE session_exercise_id = 1",
+      []
+    );
+    // A muscle group dropped from the exercise must not creep back into the
+    // snapshot on the next launch's backfill.
+    dbHandle.runSync(
+      "DELETE FROM session_exercise_muscle_groups WHERE session_exercise_id = 1 AND muscle_group = 'shoulders'",
+      []
+    );
+
+    runMigrations(dbHandle);
+
+    const row = dbHandle.getFirstSync<{ rom: string }>(
+      "SELECT rom FROM session_exercise_config WHERE session_exercise_id = 1",
+      []
+    );
+    expect(row!.rom).toBe("partial");
+
+    const groupCount = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM session_exercise_muscle_groups WHERE session_exercise_id = 1",
+      []
+    );
+    expect(groupCount!.count).toBe(2);
+  });
+
+  it("adds the grip/bodyweight columns and enforces their CHECK constraints", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    const columns = dbHandle.getAllSync<{ name: string }>("PRAGMA table_info(exercise_config)", []);
+    for (const name of ["grip_type", "grip_width", "uses_bodyweight", "load_mode"]) {
+      expect(columns.some((c) => c.name === name)).toBe(true);
+    }
+    expect(() =>
+      dbHandle.runSync("UPDATE exercise_config SET grip_type = 'sideways' WHERE exercise_id = 1", [])
+    ).toThrow();
+    expect(() =>
+      dbHandle.runSync("UPDATE exercise_config SET load_mode = 'guessed' WHERE exercise_id = 1", [])
+    ).toThrow();
+  });
+
+  it("adds is_archived to exercises, defaulting every existing row to visible", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    const archived = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM exercises WHERE is_archived != 0",
+      []
+    );
+    expect(archived!.count).toBe(0);
+    expect(() =>
+      dbHandle.runSync("UPDATE exercises SET is_archived = 7 WHERE id = 1", [])
+    ).toThrow();
+  });
+
+  it("recovers from a rebuild interrupted between DROP and RENAME", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+    // Simulate the app being killed mid-rebuild: the fully-populated new table
+    // exists, the old one is already dropped, the RENAME never ran.
+    dbHandle.execSync("DROP TABLE session_exercise_config;");
+    dbHandle.execSync(
+      `CREATE TABLE session_exercise_config_new (
+        session_exercise_id INTEGER PRIMARY KEY REFERENCES session_exercises(id) ON DELETE CASCADE,
+        resistance_curve TEXT NOT NULL DEFAULT 'descending',
+        load_type TEXT NOT NULL DEFAULT 'free',
+        pulley_type TEXT,
+        laterality TEXT NOT NULL DEFAULT 'bilateral',
+        rom TEXT NOT NULL DEFAULT 'full',
+        uses_bench INTEGER NOT NULL DEFAULT 0,
+        bench_angle_degrees REAL,
+        grip_type TEXT,
+        grip_width TEXT,
+        uses_bodyweight INTEGER NOT NULL DEFAULT 0,
+        load_mode TEXT
+      )`
+    );
+    dbHandle.execSync(
+      "INSERT INTO session_exercise_config_new (session_exercise_id, resistance_curve) VALUES (1, 'constant')"
+    );
+
+    expect(() => runMigrations(dbHandle)).not.toThrow();
+
+    const row = dbHandle.getFirstSync<{ resistance_curve: string }>(
+      "SELECT resistance_curve FROM session_exercise_config WHERE session_exercise_id = 1",
+      []
+    );
+    expect(row!.resistance_curve).toBe("constant");
   });
 });
 
@@ -562,7 +781,7 @@ describe("runMigrations renames the seed exercise Tricep Dip to Dips (v16 -> v17
 });
 
 describe("runMigrations against an already-current device", () => {
-  it("is a no-op: no rows added or removed, existing uuids untouched", async () => {
+  it("leaves existing rows untouched, adding only the missing modality seeds", async () => {
     const dbHandle: DbHandle = await createInMemoryDb();
     dbHandle.execSync(loadFixture("v11-snapshot.sql"));
 
@@ -572,11 +791,17 @@ describe("runMigrations against an already-current device", () => {
       "SELECT id, uuid FROM exercises ORDER BY id",
       []
     );
-    expect(exercises).toEqual([
+    expect(exercises.slice(0, 3)).toEqual([
       { id: 1, uuid: "fixed-uuid-ex-1" },
       { id: 2, uuid: "fixed-uuid-ex-2" },
       { id: 3, uuid: "fixed-uuid-ex-3" },
     ]);
+    // The only additions are the distance modalities this device predates.
+    const seeded = dbHandle.getAllSync<{ name: string }>(
+      "SELECT name FROM exercises WHERE id > 3 ORDER BY id",
+      []
+    );
+    expect(seeded.map((e) => e.name)).toEqual(NEW_DISTANCE_SEEDS);
 
     const sessionCount = dbHandle.getFirstSync<{ count: number }>(
       "SELECT COUNT(*) as count FROM sessions",
@@ -610,7 +835,61 @@ describe("runMigrations against an already-current device", () => {
       "SELECT COUNT(*) as count FROM exercises",
       []
     );
-    expect(exerciseCount!.count).toBe(3);
+    expect(exerciseCount!.count).toBe(3 + NEW_DISTANCE_SEEDS.length);
+  });
+});
+
+describe("runMigrations strips muscle groups from endurance exercises", () => {
+  it("clears them for every endurance modality while leaving strength exercises alone", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v11-snapshot.sql"));
+
+    // First pass brings the device to the current shape, seeding one exercise
+    // per distance modality.
+    runMigrations(dbHandle);
+
+    // Re-create the state every real install is in: each endurance exercise
+    // tagged "cardio", the way they used to be seeded. A musculação exercise
+    // gets the same tag — there it's legitimate (Treadmill Run, Rowing Machine…)
+    // and must survive.
+    const enduranceIds = dbHandle.getAllSync<{ id: number }>(
+      `SELECT id FROM exercises WHERE name IN (${DISTANCE_SEED_NAMES.map(() => "?").join(",")})`,
+      DISTANCE_SEED_NAMES
+    );
+    expect(enduranceIds.length).toBe(DISTANCE_SEED_NAMES.length);
+    for (const { id } of enduranceIds) {
+      dbHandle.runSync(
+        "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (?, 'cardio')",
+        [id]
+      );
+    }
+    dbHandle.runSync(
+      "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group) VALUES (1, 'cardio')",
+      []
+    );
+
+    runMigrations(dbHandle);
+
+    expectNoEnduranceMuscleGroups(dbHandle);
+    const strengthCardio = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM exercise_muscle_groups WHERE exercise_id = 1 AND muscle_group = 'cardio'",
+      []
+    );
+    expect(strengthCardio!.count).toBe(1);
+  });
+
+  it("keeps the endurance exercises themselves, and their config rows", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v11-snapshot.sql"));
+
+    runMigrations(dbHandle);
+
+    const seeds = dbHandle.getAllSync<{ name: string }>(
+      `SELECT name FROM exercises WHERE name IN (${DISTANCE_SEED_NAMES.map(() => "?").join(",")}) ORDER BY id`,
+      DISTANCE_SEED_NAMES
+    );
+    expect(seeds.map((e) => e.name)).toEqual(DISTANCE_SEED_NAMES);
+    expectOneConfigPerExercise(dbHandle);
   });
 });
 

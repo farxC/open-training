@@ -13,6 +13,7 @@ function makeExercise(id: number, name: string): Exercise {
     modality: "musculacao",
     uuid: `uuid-${id}`,
     config: DEFAULT_EXERCISE_CONFIG,
+    is_archived: 0,
   };
 }
 

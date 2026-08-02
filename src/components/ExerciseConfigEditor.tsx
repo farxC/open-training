@@ -3,10 +3,17 @@ import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import {
   BENCH_ANGLE_PRESETS,
   benchAngleLabel,
+  GRIP_TYPE_LABELS,
+  GRIP_TYPE_OPTIONS,
+  GRIP_WIDTH_LABELS,
+  GRIP_WIDTH_OPTIONS,
   LATERALITY_LABELS,
   LATERALITY_OPTIONS,
+  LOAD_MODE_LABELS,
+  LOAD_MODE_OPTIONS,
   LOAD_TYPE_LABELS,
   LOAD_TYPE_OPTIONS,
+  normalizeExerciseConfig,
   PULLEY_TYPE_LABELS,
   PULLEY_TYPE_OPTIONS,
   RESISTANCE_CURVE_LABELS,
@@ -15,23 +22,14 @@ import {
   ROM_OPTIONS,
 } from "@/data/exerciseConfig";
 import { ResistanceCurveChart } from "@/components/ResistanceCurveChart";
-import type { ExerciseConfig, ExerciseConfigOverride } from "@/types";
+import type { ExerciseConfig } from "@/types";
 
 type Field = keyof ExerciseConfig;
 
-type Props =
-  | {
-      mode: "default";
-      value: ExerciseConfig;
-      onChange: (config: ExerciseConfig) => void;
-    }
-  | {
-      mode: "override";
-      value: ExerciseConfigOverride;
-      /** The exercise's resolved default — used to show what "Herdar" resolves to and to draw the chart. */
-      defaultConfig: ExerciseConfig;
-      onChange: (override: ExerciseConfigOverride) => void;
-    };
+interface Props {
+  value: ExerciseConfig;
+  onChange: (config: ExerciseConfig) => void;
+}
 
 function Chip({
   label,
@@ -62,17 +60,18 @@ function DimensionGroup<T extends string>({
   options,
   labels,
   active,
-  inherited,
   onSelect,
-  onInherit,
+  /** Label for an extra chip meaning "this dimension doesn't apply" (⇒ null). */
+  noneLabel,
+  onSelectNone,
 }: {
   title: string;
   options: T[];
   labels: Record<T, string>;
-  active: T;
-  inherited?: boolean;
+  active: T | null;
   onSelect: (v: T) => void;
-  onInherit?: () => void;
+  noneLabel?: string;
+  onSelectNone?: () => void;
 }) {
   return (
     <View className="mb-4">
@@ -80,12 +79,12 @@ function DimensionGroup<T extends string>({
         {title.toUpperCase()}
       </Text>
       <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-        {options.map((opt) => (
-          <Chip key={opt} label={labels[opt]} active={!inherited && active === opt} onPress={() => onSelect(opt)} />
-        ))}
-        {onInherit && (
-          <Chip label={`Herdar (${labels[active]})`} active={!!inherited} onPress={onInherit} />
+        {onSelectNone && (
+          <Chip label={noneLabel ?? "Não se aplica"} active={active === null} onPress={onSelectNone} />
         )}
+        {options.map((opt) => (
+          <Chip key={opt} label={labels[opt]} active={active === opt} onPress={() => onSelect(opt)} />
+        ))}
       </View>
     </View>
   );
@@ -94,17 +93,13 @@ function DimensionGroup<T extends string>({
 function BenchSection({
   usesBench,
   angle,
-  inherited,
   onSetUsesBench,
   onSetAngle,
-  onInherit,
 }: {
   usesBench: boolean;
   angle: number;
-  inherited: boolean;
   onSetUsesBench: (v: 0 | 1) => void;
   onSetAngle: (degrees: number) => void;
-  onInherit?: () => void;
 }) {
   const [customOpen, setCustomOpen] = useState(false);
   const [customText, setCustomText] = useState("");
@@ -125,12 +120,11 @@ function BenchSection({
         BANCO
       </Text>
       <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-        <Chip label="Sem banco" active={!inherited && !usesBench} onPress={() => onSetUsesBench(0)} />
-        <Chip label="Usa banco" active={!inherited && usesBench} onPress={() => onSetUsesBench(1)} />
-        {onInherit && <Chip label="Herdar" active={inherited} onPress={onInherit} />}
+        <Chip label="Sem banco" active={!usesBench} onPress={() => onSetUsesBench(0)} />
+        <Chip label="Usa banco" active={usesBench} onPress={() => onSetUsesBench(1)} />
       </View>
 
-      {!inherited && usesBench && (
+      {usesBench && (
         <View className="flex-row flex-wrap mt-2" style={{ gap: 8 }}>
           {BENCH_ANGLE_PRESETS.map((preset) => (
             <Chip
@@ -145,7 +139,7 @@ function BenchSection({
         </View>
       )}
 
-      {!inherited && usesBench && customOpen && (
+      {usesBench && customOpen && (
         <View className="flex-row items-center mt-2" style={{ gap: 8 }}>
           <TextInput
             className="bg-surface-card text-ink rounded-xl px-3 py-2"
@@ -166,99 +160,55 @@ function BenchSection({
   );
 }
 
-export function ExerciseConfigEditor(props: Props) {
-  const resolved: ExerciseConfig =
-    props.mode === "default"
-      ? props.value
-      : {
-          resistance_curve: props.value.resistance_curve ?? props.defaultConfig.resistance_curve,
-          load_type: props.value.load_type ?? props.defaultConfig.load_type,
-          pulley_type: props.value.pulley_type ?? props.defaultConfig.pulley_type,
-          laterality: props.value.laterality ?? props.defaultConfig.laterality,
-          rom: props.value.rom ?? props.defaultConfig.rom,
-          uses_bench: props.value.uses_bench ?? props.defaultConfig.uses_bench,
-          bench_angle_degrees: props.value.bench_angle_degrees ?? props.defaultConfig.bench_angle_degrees,
-        };
-
-  const isInherited = (field: Field): boolean => props.mode === "override" && props.value[field] === null;
+/** Editor for one exercise config. Single-mode by design: since v18 a session
+ *  carries a full snapshot rather than a sparse override, so every field always
+ *  holds a concrete value and there is nothing to inherit. Callers editing a
+ *  session's snapshot offer a "restore the exercise default" action instead. */
+export function ExerciseConfigEditor({ value, onChange }: Props) {
+  // Normalising on the way out keeps the dependent fields (pulley type, bench
+  // angle, load mode) from lingering after their toggle is switched off.
+  const emit = (next: ExerciseConfig) => onChange(normalizeExerciseConfig(next));
 
   const setField = <K extends Field>(field: K, val: ExerciseConfig[K]) => {
-    if (props.mode === "default") {
-      const next = { ...props.value, [field]: val };
-      if (field === "load_type" && val !== "pulley") next.pulley_type = null;
-      props.onChange(next);
-      return;
-    }
-    const next = { ...props.value, [field]: val };
-    if (field === "load_type" && val !== "pulley") next.pulley_type = null;
-    props.onChange(next);
-  };
-
-  const inheritField = (field: Field) => {
-    if (props.mode !== "override") return;
-    const next = { ...props.value, [field]: null };
-    if (field === "load_type") next.pulley_type = null;
-    props.onChange(next);
+    emit({ ...value, [field]: val });
   };
 
   const setUsesBench = (v: 0 | 1) => {
-    const angle = v ? resolved.bench_angle_degrees ?? 0 : null;
-    if (props.mode === "default") {
-      props.onChange({ ...props.value, uses_bench: v, bench_angle_degrees: angle });
-      return;
-    }
-    props.onChange({ ...props.value, uses_bench: v, bench_angle_degrees: angle });
+    emit({ ...value, uses_bench: v, bench_angle_degrees: v ? value.bench_angle_degrees ?? 0 : null });
   };
 
-  const setBenchAngle = (degrees: number) => {
-    if (props.mode === "default") {
-      props.onChange({ ...props.value, uses_bench: 1, bench_angle_degrees: degrees });
-      return;
-    }
-    props.onChange({ ...props.value, uses_bench: 1, bench_angle_degrees: degrees });
+  const setUsesBodyweight = (v: 0 | 1) => {
+    emit({ ...value, uses_bodyweight: v, load_mode: v ? value.load_mode ?? "total" : null });
   };
-
-  const inheritBench = () => {
-    if (props.mode !== "override") return;
-    props.onChange({ ...props.value, uses_bench: null, bench_angle_degrees: null });
-  };
-
-  const benchInherited = props.mode === "override" && props.value.uses_bench === null;
 
   return (
     <View>
-      <ResistanceCurveChart variant={resolved.resistance_curve} />
+      <ResistanceCurveChart variant={value.resistance_curve} />
 
       <View style={{ marginTop: 16 }}>
         <DimensionGroup
           title="Curva de resistência"
           options={RESISTANCE_CURVE_OPTIONS}
           labels={RESISTANCE_CURVE_LABELS}
-          active={resolved.resistance_curve}
-          inherited={isInherited("resistance_curve")}
+          active={value.resistance_curve}
           onSelect={(v) => setField("resistance_curve", v)}
-          onInherit={props.mode === "override" ? () => inheritField("resistance_curve") : undefined}
         />
 
         <DimensionGroup
           title="Tipo de carga"
           options={LOAD_TYPE_OPTIONS}
           labels={LOAD_TYPE_LABELS}
-          active={resolved.load_type}
-          inherited={isInherited("load_type")}
+          active={value.load_type}
           onSelect={(v) => setField("load_type", v)}
-          onInherit={props.mode === "override" ? () => inheritField("load_type") : undefined}
         />
 
-        {resolved.load_type === "pulley" && (
+        {value.load_type === "pulley" && (
           <DimensionGroup
             title="Tipo de polia"
             options={PULLEY_TYPE_OPTIONS}
             labels={PULLEY_TYPE_LABELS}
-            active={resolved.pulley_type ?? "mobile"}
-            inherited={isInherited("pulley_type")}
+            active={value.pulley_type ?? "mobile"}
             onSelect={(v) => setField("pulley_type", v)}
-            onInherit={props.mode === "override" ? () => inheritField("pulley_type") : undefined}
           />
         )}
 
@@ -266,30 +216,70 @@ export function ExerciseConfigEditor(props: Props) {
           title="Lateralidade"
           options={LATERALITY_OPTIONS}
           labels={LATERALITY_LABELS}
-          active={resolved.laterality}
-          inherited={isInherited("laterality")}
+          active={value.laterality}
           onSelect={(v) => setField("laterality", v)}
-          onInherit={props.mode === "override" ? () => inheritField("laterality") : undefined}
         />
 
         <DimensionGroup
           title="Amplitude"
           options={ROM_OPTIONS}
           labels={ROM_LABELS}
-          active={resolved.rom}
-          inherited={isInherited("rom")}
+          active={value.rom}
           onSelect={(v) => setField("rom", v)}
-          onInherit={props.mode === "override" ? () => inheritField("rom") : undefined}
+        />
+
+        <DimensionGroup
+          title="Pegada"
+          options={GRIP_TYPE_OPTIONS}
+          labels={GRIP_TYPE_LABELS}
+          active={value.grip_type}
+          onSelect={(v) => setField("grip_type", v)}
+          onSelectNone={() => setField("grip_type", null)}
+        />
+
+        <DimensionGroup
+          title="Largura da pegada"
+          options={GRIP_WIDTH_OPTIONS}
+          labels={GRIP_WIDTH_LABELS}
+          active={value.grip_width}
+          onSelect={(v) => setField("grip_width", v)}
+          onSelectNone={() => setField("grip_width", null)}
         />
 
         <BenchSection
-          usesBench={!!resolved.uses_bench}
-          angle={resolved.bench_angle_degrees ?? 0}
-          inherited={benchInherited}
+          usesBench={!!value.uses_bench}
+          angle={value.bench_angle_degrees ?? 0}
           onSetUsesBench={setUsesBench}
-          onSetAngle={setBenchAngle}
-          onInherit={props.mode === "override" ? inheritBench : undefined}
+          onSetAngle={(degrees) => emit({ ...value, uses_bench: 1, bench_angle_degrees: degrees })}
         />
+
+        <View className="mb-4">
+          <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+            PESO CORPORAL
+          </Text>
+          <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+            <Chip label="Não usa" active={!value.uses_bodyweight} onPress={() => setUsesBodyweight(0)} />
+            <Chip label="Usa" active={!!value.uses_bodyweight} onPress={() => setUsesBodyweight(1)} />
+          </View>
+          {!!value.uses_bodyweight && (
+            <>
+              <View className="flex-row flex-wrap mt-2" style={{ gap: 8 }}>
+                {LOAD_MODE_OPTIONS.map((opt) => (
+                  <Chip
+                    key={opt}
+                    label={LOAD_MODE_LABELS[opt]}
+                    active={value.load_mode === opt}
+                    onPress={() => setField("load_mode", opt)}
+                  />
+                ))}
+              </View>
+              <Text className="text-ink-faint text-xs mt-2">
+                Como ler a carga registrada: o peso total movido, o peso extra somado ao corpo, ou a
+                assistência subtraída dele.
+              </Text>
+            </>
+          )}
+        </View>
       </View>
     </View>
   );

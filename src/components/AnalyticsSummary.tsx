@@ -1,14 +1,14 @@
 import { Text, View } from "react-native";
 import { ComparisonTile } from "@/components/ComparisonTile";
 import { SectionHeader } from "@/components/SectionHeader";
-import { formatPaceSec } from "@/data/modalities";
-import type { RunningSummary, StrengthSummary } from "@/types";
+import { distanceDisplay, formatDistanceValue, formatEffort, modalityConfig } from "@/data/modalities";
+import type { DistanceSummary, Modality, StrengthSummary } from "@/types";
 import { delta } from "@/utils/analyticsAgg";
-import { formatCount, formatDeltaText, formatDistance, formatVolume } from "@/utils/analyticsFormat";
+import { formatCount, formatDeltaText, formatVolume } from "@/utils/analyticsFormat";
 
 type Props =
-  | { modality: "musculacao"; current: StrengthSummary; previous: StrengthSummary }
-  | { modality: "corrida"; current: RunningSummary; previous: RunningSummary };
+  | { kind: "strength"; modality: Modality; current: StrengthSummary; previous: StrengthSummary }
+  | { kind: "distance"; modality: Modality; current: DistanceSummary; previous: DistanceSummary };
 
 /** The "vs período anterior" hero: 3 ComparisonTiles for the active modality. */
 export function AnalyticsSummary(props: Props) {
@@ -16,10 +16,10 @@ export function AnalyticsSummary(props: Props) {
     <View>
       <SectionHeader title="Resumo" />
       <View className="flex-row" style={{ gap: 8 }}>
-        {props.modality === "musculacao" ? (
-          <StrengthTiles current={props.current} previous={props.previous} />
+        {props.kind === "strength" ? (
+          <StrengthTiles modality={props.modality} current={props.current} previous={props.previous} />
         ) : (
-          <RunningTiles current={props.current} previous={props.previous} />
+          <DistanceTiles modality={props.modality} current={props.current} previous={props.previous} />
         )}
       </View>
       <Text className="text-ink-mute" style={{ fontSize: 10, marginTop: 6 }}>
@@ -30,9 +30,11 @@ export function AnalyticsSummary(props: Props) {
 }
 
 function StrengthTiles({
+  modality,
   current,
   previous,
 }: {
+  modality: Modality;
   current: StrengthSummary;
   previous: StrengthSummary;
 }) {
@@ -49,7 +51,7 @@ function StrengthTiles({
         better={volumeDelta.better}
       />
       <ComparisonTile
-        label="Treinos"
+        label={modalityConfig(modality).sessionNoun}
         value={formatCount(current.sessionCount)}
         deltaText={formatDeltaText(sessionDelta, "count")}
         better={sessionDelta.better}
@@ -64,39 +66,52 @@ function StrengthTiles({
   );
 }
 
-function RunningTiles({
+function DistanceTiles({
+  modality,
   current,
   previous,
 }: {
-  current: RunningSummary;
-  previous: RunningSummary;
+  modality: Modality;
+  current: DistanceSummary;
+  previous: DistanceSummary;
 }) {
+  const display = distanceDisplay(modality);
   const distanceDelta = delta(current.distance, previous.distance, true);
-  const runCountDelta = delta(current.runCount, previous.runCount, true);
-  const hasPace = current.avgPaceSec != null;
-  const paceDelta = hasPace
-    ? delta(current.avgPaceSec as number, previous.avgPaceSec ?? 0, false)
-    : null;
+  const countDelta = delta(current.runCount, previous.runCount, true);
+
+  // Both summaries store canonical seconds-per-km, where lower is better. A
+  // pace modality can show that difference directly; a speed modality can't —
+  // a constant seconds-per-km change isn't a constant km/h change — so it
+  // compares the km/h values themselves, as a percentage.
+  const isSpeed = display.effortMode === "speed";
+  const hasEffort = current.avgPaceSec != null;
+  const effortDelta = !hasEffort
+    ? null
+    : isSpeed
+      ? delta(3600 / (current.avgPaceSec as number), previous.avgPaceSec ? 3600 / previous.avgPaceSec : 0, true)
+      : delta(current.avgPaceSec as number, previous.avgPaceSec ?? 0, false);
 
   return (
     <>
       <ComparisonTile
         label="Distância"
-        value={formatDistance(current.distance)}
+        value={formatDistanceValue(current.distance, modality) ?? "—"}
         deltaText={formatDeltaText(distanceDelta, "percent")}
         better={distanceDelta.better}
       />
       <ComparisonTile
-        label="Pace médio"
-        value={formatPaceSec(current.avgPaceSec) ?? "—"}
-        deltaText={paceDelta ? formatDeltaText(paceDelta, "pace") : null}
-        better={paceDelta?.better ?? null}
+        label={display.effortTileLabel}
+        value={formatEffort(current.avgPaceSec, modality) ?? "—"}
+        deltaText={
+          effortDelta ? formatDeltaText(effortDelta, isSpeed ? "percent" : "pace", modality) : null
+        }
+        better={effortDelta?.better ?? null}
       />
       <ComparisonTile
-        label="Corridas"
+        label={modalityConfig(modality).sessionNoun}
         value={formatCount(current.runCount)}
-        deltaText={formatDeltaText(runCountDelta, "count")}
-        better={runCountDelta.better}
+        deltaText={formatDeltaText(countDelta, "count")}
+        better={countDelta.better}
       />
     </>
   );

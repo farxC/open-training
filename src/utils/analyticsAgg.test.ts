@@ -4,7 +4,7 @@ import {
   bucketSum,
   computeStreak,
   delta,
-  sumRunning,
+  sumDistance,
   sumStrength,
   toMuscleSeriesRows,
 } from "./analyticsAgg";
@@ -43,13 +43,13 @@ describe("sumStrength", () => {
   });
 });
 
-describe("sumRunning", () => {
+describe("sumDistance", () => {
   it("computes weighted average pace across qualifying rows", () => {
     const sets = [
       strengthRow({ session_id: 1, distance_km: 5, duration_sec: 1200 }),
       strengthRow({ session_id: 2, distance_km: 10, duration_sec: 3000 }),
     ];
-    const summary = sumRunning(sets);
+    const summary = sumDistance(sets);
     expect(summary.distance).toBe(15);
     expect(summary.runCount).toBe(2);
     expect(summary.totalDuration).toBe(4200);
@@ -63,7 +63,7 @@ describe("sumRunning", () => {
       strengthRow({ session_id: 2, distance_km: 3, duration_sec: null }),
       strengthRow({ session_id: 3, distance_km: null, duration_sec: 900 }),
     ];
-    const summary = sumRunning(sets);
+    const summary = sumDistance(sets);
     expect(summary.distance).toBe(8); // 5 + 3, null treated as 0
     expect(summary.totalDuration).toBe(2100); // 1200 + 900, null treated as 0
     // only row 1 qualifies (both non-null, distance > 0): 1200/5 = 240
@@ -72,12 +72,12 @@ describe("sumRunning", () => {
 
   it("returns null avgPaceSec when there are no qualifying rows", () => {
     const sets = [strengthRow({ session_id: 1, distance_km: null, duration_sec: null })];
-    expect(sumRunning(sets).avgPaceSec).toBeNull();
+    expect(sumDistance(sets).avgPaceSec).toBeNull();
   });
 
   it("returns null avgPaceSec for an empty array", () => {
-    expect(sumRunning([]).avgPaceSec).toBeNull();
-    expect(sumRunning([])).toEqual({
+    expect(sumDistance([]).avgPaceSec).toBeNull();
+    expect(sumDistance([])).toEqual({
       distance: 0,
       runCount: 0,
       totalDuration: 0,
@@ -90,7 +90,7 @@ describe("sumRunning", () => {
       strengthRow({ session_id: 1, distance_km: 0, duration_sec: 500 }),
       strengthRow({ session_id: 2, distance_km: 5, duration_sec: 1000 }),
     ];
-    const summary = sumRunning(sets);
+    const summary = sumDistance(sets);
     expect(summary.avgPaceSec).toBe(200); // only row 2 qualifies: 1000/5
   });
 });

@@ -4,20 +4,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRoutine } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
+import { isDistanceModality, modalityLabel } from "@/data/modalities";
 import { getProgramWeeks } from "@/db/queries";
 
 export default function NewProgramScreen() {
   const { splitId } = useLocalSearchParams<{ splitId: string }>();
   const r = useRoutine();
   const split = r.splits.find((s) => s.id === Number(splitId));
-  const isCorrida = split?.modality === "corrida";
+  const isDistance = split != null && isDistanceModality(split.modality);
   const units = r.unitsBySplit[Number(splitId)] ?? [];
 
   const [name, setName] = useState("");
   const [totalWeeks, setTotalWeeks] = useState<number | null>(8);
 
   const create = () => {
-    const finalName = name.trim() || (isCorrida ? "Plano de Corrida" : "Plano");
+    const finalName = name.trim() || (isDistance ? `Plano de ${modalityLabel(split!.modality)}` : "Plano");
     const weeks = totalWeeks && totalWeeks > 0 ? totalWeeks : 8;
     const programId = r.addProgram(Number(splitId), finalName, weeks);
     r.activateProgram(Number(splitId), programId);
@@ -42,7 +43,7 @@ export default function NewProgramScreen() {
         <Text className="text-ink font-display font-semibold text-2xl flex-1" style={{ letterSpacing: -0.4 }}>
           Novo Plano
         </Text>
-        {!isCorrida && (
+        {!isDistance && (
           <TouchableOpacity onPress={() => router.back()}>
             <Text className="text-ink-soft text-base">Cancelar</Text>
           </TouchableOpacity>
@@ -50,7 +51,7 @@ export default function NewProgramScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-        {isCorrida && (
+        {isDistance && (
           <Text className="text-ink-mute text-sm mb-4">
             Um split de corrida precisa de um plano com pelo menos uma semana definida.
           </Text>
@@ -58,7 +59,7 @@ export default function NewProgramScreen() {
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder={isCorrida ? "Nome (ex.: Plano de Corrida)" : "Nome (ex.: Bloco de força)"}
+          placeholder={isDistance ? "Nome (ex.: Plano de Corrida)" : "Nome (ex.: Bloco de força)"}
           placeholderTextColor="#bdb8aa"
           className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-3"
         />

@@ -10,8 +10,10 @@ export type {
   PulleyType,
   Laterality,
   RangeOfMotion,
+  GripType,
+  GripWidth,
+  LoadMode,
   ExerciseConfig,
-  ExerciseConfigOverride,
 } from "./exercise";
 export type { Session, SessionPhoto, SessionExercise, WorkoutSet, SessionWithSets, SessionSummary } from "./session";
 export type { SplitMode, RoutineSplit, RoutineUnit, RoutineUnitExercise, OverrideStatus, RoutineOverride, TrainingProgram, ProgramWeek, ProgramEntry } from "./routine";
@@ -21,9 +23,9 @@ export type {
   TrendBucket,
   AnalyticsSetRow,
   StrengthSummary,
-  RunningSummary,
+  DistanceSummary,
   StrengthRecord,
-  RunningRecords,
+  DistanceRecords,
   Delta,
   MuscleSeriesRaw,
   MuscleSeriesRow,

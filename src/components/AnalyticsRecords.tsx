@@ -2,13 +2,19 @@ import { router } from "expo-router";
 import { Text, View } from "react-native";
 import { RecordCard } from "@/components/RecordCard";
 import { SectionHeader } from "@/components/SectionHeader";
-import { formatClock, formatPaceSec } from "@/data/modalities";
-import type { DateRange, Modality, RunningRecords, StrengthRecord } from "@/types";
+import {
+  distanceDisplay,
+  formatClock,
+  formatDistanceValue,
+  formatEffort,
+  targetKindOf,
+} from "@/data/modalities";
+import type { DateRange, DistanceRecords, Modality, StrengthRecord } from "@/types";
 
 interface Props {
   modality: Modality;
   strengthRecords: StrengthRecord[];
-  runningRecords: RunningRecords;
+  distanceRecords: DistanceRecords;
   /** The active period's date range — badges records achieved within it as "NOVO". */
   currentRange: DateRange;
 }
@@ -23,7 +29,7 @@ function formatBrazilianDateFormat (date: string | null): string{
   return new Intl.DateTimeFormat("pt-BR").format(dateFormat)
 }
 
-interface RunningRecordCard {
+interface DistanceRecordCard {
   key: string;
   icon: string;
   label: string;
@@ -32,21 +38,25 @@ interface RunningRecordCard {
   isNew: boolean;
 }
 
-function buildRunningCards(records: RunningRecords, range: DateRange): RunningRecordCard[] {
-  const cards: (RunningRecordCard | false)[] = [
+function buildDistanceCards(
+  records: DistanceRecords,
+  modality: Modality,
+  range: DateRange
+): DistanceRecordCard[] {
+  const cards: (DistanceRecordCard | false)[] = [
     records.longest_distance_km != null && {
       key: "distance",
       icon: "map-marker-distance",
       label: "Maior distância",
-      value: `${records.longest_distance_km.toFixed(1)} km`,
+      value: formatDistanceValue(records.longest_distance_km, modality) ?? "—",
       sub: formatBrazilianDateFormat(records.longest_distance_on) ?? undefined,
       isNew: achievedInRange(records.longest_distance_on, range),
     },
     records.fastest_pace_sec != null && {
       key: "pace",
       icon: "speedometer",
-      label: "Pace mais rápido",
-      value: formatPaceSec(records.fastest_pace_sec) ?? "—",
+      label: distanceDisplay(modality).effortRecordLabel,
+      value: formatEffort(records.fastest_pace_sec, modality) ?? "—",
       sub: formatBrazilianDateFormat(records.fastest_pace_on) ?? undefined,
       isNew: achievedInRange(records.fastest_pace_on, range),
     },
@@ -60,17 +70,17 @@ function buildRunningCards(records: RunningRecords, range: DateRange): RunningRe
     },
   ];
 
-  return cards.filter((c): c is RunningRecordCard => c !== false);
+  return cards.filter((c): c is DistanceRecordCard => c !== false);
 }
 
 /** SectionHeader "Records" + the per-modality RecordCard list, empty state included. */
 export function AnalyticsRecords({
   modality,
   strengthRecords,
-  runningRecords,
+  distanceRecords,
   currentRange,
 }: Props) {
-  const isStrength = modality === "musculacao";
+  const isStrength = targetKindOf(modality) === "strength";
 
   return (
     <View>
@@ -93,7 +103,7 @@ export function AnalyticsRecords({
         )
       ) : (
         (() => {
-          const cards = buildRunningCards(runningRecords, currentRange);
+          const cards = buildDistanceCards(distanceRecords, modality, currentRange);
           return cards.length > 0 ? (
             cards.map((c) => (
               <RecordCard

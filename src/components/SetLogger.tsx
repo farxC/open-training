@@ -15,7 +15,7 @@ import {
   updateSet,
 } from "@/db/queries";
 import { exerciseConfigSummary } from "@/data/exerciseConfig";
-import type { ExerciseConfig, ExerciseConfigOverride, RoutineUnitExercise, SessionExercise, WorkoutSet } from "@/types";
+import type { ExerciseConfig, RoutineUnitExercise, SessionExercise, WorkoutSet } from "@/types";
 
 interface Props {
   exerciseId: number;
@@ -41,9 +41,8 @@ function targetLabel(targets: RoutineUnitExercise): string | null {
 export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandleIcon, DragHandle, index, onSetsChanged }: Props) {
   const [sets, setSets] = useState<WorkoutSet[]>([]);
   const [sessionExercise, setSessionExercise] = useState<SessionExercise | null>(null);
-  const [exerciseDefaultConfig, setExerciseDefaultConfig] = useState<ExerciseConfig | null>(null);
   const [configModalVisible, setConfigModalVisible] = useState(false);
-  const [draftOverride, setDraftOverride] = useState<ExerciseConfigOverride | null>(null);
+  const [draftConfig, setDraftConfig] = useState<ExerciseConfig | null>(null);
   const HandleWrapper = DragHandle ?? View;
 
   const refreshSets = useCallback(() => {
@@ -54,7 +53,6 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
 
   const refreshConfig = useCallback(() => {
     setSessionExercise(getSessionExercise(sessionId, exerciseId));
-    setExerciseDefaultConfig(getExerciseConfig(exerciseId));
   }, [sessionId, exerciseId]);
 
   // Adding an exercise implies at least one set is coming, so seed it instead of
@@ -86,17 +84,21 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
 
   const openConfigEditor = () => {
     if (!sessionExercise) return;
-    setDraftOverride(sessionExercise.config_override);
+    setDraftConfig(sessionExercise.config);
     setConfigModalVisible(true);
   };
 
-  const saveConfigOverride = () => {
-    if (sessionExercise && draftOverride) {
-      updateSessionExerciseConfig(sessionExercise.id, draftOverride);
+  const saveConfig = () => {
+    if (sessionExercise && draftConfig) {
+      updateSessionExerciseConfig(sessionExercise.id, draftConfig);
     }
     setConfigModalVisible(false);
     refreshConfig();
   };
+
+  // The snapshot is a copy, so "restore" means re-reading the exercise's current
+  // default into the draft — it only reaches the database on save.
+  const restoreExerciseDefault = () => setDraftConfig(getExerciseConfig(exerciseId));
 
   const handleAdd = () => {
     const last = sets[sets.length - 1];
@@ -211,19 +213,15 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
             </TouchableOpacity>
           </View>
           <View className="px-4">
-            {draftOverride && exerciseDefaultConfig && (
-              <ExerciseConfigEditor
-                mode="override"
-                value={draftOverride}
-                defaultConfig={exerciseDefaultConfig}
-                onChange={setDraftOverride}
-              />
-            )}
+            {draftConfig && <ExerciseConfigEditor value={draftConfig} onChange={setDraftConfig} />}
             <TouchableOpacity
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
-              onPress={saveConfigOverride}
+              onPress={saveConfig}
             >
-              <Text className="text-white font-semibold text-sm">Salvar apenas para esta sessão</Text>
+              <Text className="text-white font-semibold text-sm">Salvar para esta sessão</Text>
+            </TouchableOpacity>
+            <TouchableOpacity className="mt-2 py-3 items-center" onPress={restoreExerciseDefault}>
+              <Text className="text-ink-soft text-sm">Restaurar padrão do exercício</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

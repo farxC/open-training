@@ -2,18 +2,13 @@
 // data-fetching — just number/Delta -> display string. Keeps app/(tabs)/analytics.tsx
 // and its section components free of inline string formatting.
 
-import { formatClock } from "@/data/modalities";
-import type { Delta } from "@/types";
+import { distanceDisplay, formatClock } from "@/data/modalities";
+import type { Delta, Modality } from "@/types";
 
 /** Formats a kg volume as "1.2t" once it crosses 1000kg, else "842 kg". */
 export function formatVolume(kg: number): string {
   if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
   return `${Math.round(kg)} kg`;
-}
-
-/** Formats a distance in km to one decimal, e.g. "12.3 km". */
-export function formatDistance(km: number): string {
-  return `${km.toFixed(1)} km`;
 }
 
 /** Formats a plain count (sessions, runs, etc). */
@@ -31,11 +26,14 @@ export type DeltaKind = "percent" | "count" | "pace";
  * - "pace":    "↓ 0:12/km" / "↑ 0:12/km" using formatClock on the absolute
  *   change — a NEGATIVE absChange (faster pace) is the down-arrow improvement,
  *   regardless of Delta.better (which already encodes higherIsBetter=false).
+ *   The change arrives as canonical seconds-per-km and is rescaled to the
+ *   modality's own basis (min/km, min/100m) when one is given. Speed-based
+ *   modalities never use this kind — they compare km/h as a percent instead.
  *
  * Returns null when there's no baseline to compare against (Delta.pct is
  * null, i.e. the previous period had no usable data).
  */
-export function formatDeltaText(d: Delta, kind: DeltaKind): string | null {
+export function formatDeltaText(d: Delta, kind: DeltaKind, modality?: Modality): string | null {
   if (d.pct == null) return null;
 
   if (kind === "percent") {
@@ -50,6 +48,9 @@ export function formatDeltaText(d: Delta, kind: DeltaKind): string | null {
   }
 
   // pace
+  const display = modality ? distanceDisplay(modality) : null;
+  const basis = display?.effortMode === "pace" ? display.paceBasisKm : 1;
+  const suffix = display?.effortMode === "pace" ? display.effortSuffix : "/km";
   const arrow = change <= 0 ? "↓ " : "↑ ";
-  return `${arrow}${formatClock(Math.abs(change))}/km`;
+  return `${arrow}${formatClock(Math.abs(change) * basis)}${suffix}`;
 }

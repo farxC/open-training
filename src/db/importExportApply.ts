@@ -1,7 +1,16 @@
-import type { ExerciseConfig, ExerciseConfigOverride, Modality, SplitMode } from "@/types";
+import type { ExerciseConfig, Modality, SplitMode } from "@/types";
 import { db } from "./client";
 import { SCHEMA_VERSION } from "./schema";
 import { DEFAULT_EXERCISE_CONFIG } from "../data/exerciseConfig";
+import {
+  CONFIG_COLUMN_LIST,
+  CONFIG_PLACEHOLDERS,
+  configColumnsOf,
+  configValues,
+  rowToConfig,
+} from "./configColumns";
+import type { ConfigRow } from "./configColumns";
+import { snapshotSessionExercise } from "./queries";
 import {
   CURRENT_EXPORT_FORMAT_VERSION,
   planExerciseMerge,
@@ -32,6 +41,7 @@ export function buildExportPayload(): ExportPayload {
     type: string;
     is_custom: number;
     modality: Modality;
+    is_archived: number;
   }>("SELECT * FROM exercises");
   const exerciseUuidById = new Map(exerciseRows.map((e) => [e.id, e.uuid]));
 
@@ -50,11 +60,11 @@ export function buildExportPayload(): ExportPayload {
   }
 
   // Batch-fetch every exercise's default config — not per-exercise N+1.
-  const configRows = db.getAllSync<{ exercise_id: number } & ExerciseConfig>(
-    "SELECT exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees FROM exercise_config"
+  const configRows = db.getAllSync<{ exercise_id: number } & ConfigRow>(
+    `SELECT exercise_id, ${CONFIG_COLUMN_LIST} FROM exercise_config`
   );
   const configByExerciseId = new Map<number, ExerciseConfig>(
-    configRows.map(({ exercise_id, ...config }) => [exercise_id, config])
+    configRows.map((row) => [row.exercise_id, rowToConfig(row)])
   );
 
   const exercises: ExportedExercise[] = exerciseRows.map((e) => ({
@@ -66,6 +76,7 @@ export function buildExportPayload(): ExportPayload {
     is_custom: e.is_custom as 0 | 1,
     modality: e.modality,
     config: configByExerciseId.get(e.id) ?? DEFAULT_EXERCISE_CONFIG,
+    is_archived: e.is_archived as 0 | 1,
   }));
 
   const sessionRows = db.getAllSync<{
@@ -82,24 +93,34 @@ export function buildExportPayload(): ExportPayload {
 
   const sessions: ExportedSession[] = sessionRows.map((s) => {
     const sessionExerciseRows = db.getAllSync<
-      { id: number; exercise_id: number; order: number } & {
-        [K in keyof ExerciseConfig as `override_${K}`]: ExerciseConfig[K] | null;
-      }
+      { id: number; exercise_id: number; order: number } & ConfigRow
     >(
-      `SELECT se.id, se.exercise_id, se."order",
-              sec.resistance_curve AS override_resistance_curve,
-              sec.load_type AS override_load_type,
-              sec.pulley_type AS override_pulley_type,
-              sec.laterality AS override_laterality,
-              sec.rom AS override_rom,
-              sec.uses_bench AS override_uses_bench,
-              sec.bench_angle_degrees AS override_bench_angle_degrees
+      `SELECT se.id, se.exercise_id, se."order", ${configColumnsOf("sec")}
        FROM session_exercises se
        LEFT JOIN session_exercise_config sec ON sec.session_exercise_id = se.id
        WHERE se.session_id = ?
        ORDER BY se."order"`,
       [s.id]
     );
+    // Snapshot muscle groups for this session's exercises, batched per session.
+    const sessionMuscleGroupRows = db.getAllSync<{
+      session_exercise_id: number;
+      muscle_group: string;
+      counting_factor: number;
+    }>(
+      `SELECT sm.session_exercise_id, sm.muscle_group, sm.counting_factor
+       FROM session_exercise_muscle_groups sm
+       JOIN session_exercises se ON se.id = sm.session_exercise_id
+       WHERE se.session_id = ?`,
+      [s.id]
+    );
+    const snapshotGroupsBySessionExerciseId = new Map<number, ExportedExerciseMuscleGroup[]>();
+    for (const { session_exercise_id, muscle_group, counting_factor } of sessionMuscleGroupRows) {
+      const groups = snapshotGroupsBySessionExerciseId.get(session_exercise_id);
+      const entry = { muscle_group, counting_factor };
+      if (groups) groups.push(entry);
+      else snapshotGroupsBySessionExerciseId.set(session_exercise_id, [entry]);
+    }
     const sets = db.getAllSync<{
       exercise_id: number;
       set_number: number;
@@ -139,23 +160,12 @@ export function buildExportPayload(): ExportPayload {
         pace_sec: st.pace_sec,
         failure: st.failure,
       })),
-      exercises: sessionExerciseRows.map((se) => {
-        const override: ExerciseConfigOverride = {
-          resistance_curve: se.override_resistance_curve,
-          load_type: se.override_load_type,
-          pulley_type: se.override_pulley_type,
-          laterality: se.override_laterality,
-          rom: se.override_rom,
-          uses_bench: se.override_uses_bench,
-          bench_angle_degrees: se.override_bench_angle_degrees,
-        };
-        const hasOverride = Object.values(override).some((v) => v !== null);
-        return {
-          exercise_uuid: exerciseUuidById.get(se.exercise_id) ?? "",
-          order: se.order,
-          ...(hasOverride ? { config_override: override } : {}),
-        };
-      }),
+      exercises: sessionExerciseRows.map((se) => ({
+        exercise_uuid: exerciseUuidById.get(se.exercise_id) ?? "",
+        order: se.order,
+        config: rowToConfig(se),
+        muscle_groups: snapshotGroupsBySessionExerciseId.get(se.id) ?? [],
+      })),
     };
   });
 
@@ -350,8 +360,8 @@ export function applyImport(payload: ExportPayload): ImportSummary {
     const exerciseIdByUuid = new Map(exercisePlan.matchedIds);
     for (const ex of exercisePlan.toInsert) {
       const result = db.runSync(
-        "INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid) VALUES (?, ?, ?, ?, ?, ?)",
-        [ex.name, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid]
+        "INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid, is_archived) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [ex.name, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid, ex.is_archived ?? 0]
       );
       const exerciseId = result.lastInsertRowId;
       for (const { muscle_group, counting_factor } of ex.muscle_groups) {
@@ -360,20 +370,9 @@ export function applyImport(payload: ExportPayload): ImportSummary {
           [exerciseId, muscle_group, counting_factor]
         );
       }
-      const cfg = ex.config ?? DEFAULT_EXERCISE_CONFIG;
       db.runSync(
-        `INSERT INTO exercise_config (exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          exerciseId,
-          cfg.resistance_curve,
-          cfg.load_type,
-          cfg.pulley_type,
-          cfg.laterality,
-          cfg.rom,
-          cfg.uses_bench,
-          cfg.bench_angle_degrees,
-        ]
+        `INSERT INTO exercise_config (exercise_id, ${CONFIG_COLUMN_LIST}) VALUES (?, ${CONFIG_PLACEHOLDERS})`,
+        [exerciseId, ...configValues(ex.config ?? DEFAULT_EXERCISE_CONFIG)]
       );
       exerciseIdByUuid.set(ex.uuid, exerciseId);
       summary.exercisesAdded++;
@@ -457,27 +456,29 @@ export function applyImport(payload: ExportPayload): ImportSummary {
             `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
             [sessionId, exerciseId, se.order]
           );
-          if (se.config_override) {
-            const o = se.config_override;
+          // The session is brand new here (matched ones are skipped whole above),
+          // so the insert always fires and lastInsertRowId is the row just made.
+          const sessionExerciseId = seResult.lastInsertRowId;
+          // Restore the snapshots verbatim rather than reseeding from the
+          // exercise's config: a backup carries how each session was actually
+          // logged, which is the whole point of freezing it.
+          db.runSync(
+            `INSERT INTO session_exercise_config (session_exercise_id, ${CONFIG_COLUMN_LIST})
+             VALUES (?, ${CONFIG_PLACEHOLDERS})`,
+            [sessionExerciseId, ...configValues(se.config ?? DEFAULT_EXERCISE_CONFIG)]
+          );
+          for (const { muscle_group, counting_factor } of se.muscle_groups ?? []) {
             db.runSync(
-              `INSERT INTO session_exercise_config (session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                seResult.lastInsertRowId,
-                o.resistance_curve,
-                o.load_type,
-                o.pulley_type,
-                o.laterality,
-                o.rom,
-                o.uses_bench,
-                o.bench_angle_degrees,
-              ]
+              "INSERT OR IGNORE INTO session_exercise_muscle_groups (session_exercise_id, muscle_group, counting_factor) VALUES (?, ?, ?)",
+              [sessionExerciseId, muscle_group, counting_factor]
             );
           }
         }
       } else {
         // Backups made before exercise ordering existed have no `exercises` field —
         // derive it from first-appearance in `sets`, matching the old implicit order.
+        // With no snapshot to restore, seed one from the imported exercise's
+        // config, exactly as recording the session fresh would have.
         const seen = new Set<number>();
         let order = 0;
         for (const set of session.sets) {
@@ -488,6 +489,7 @@ export function applyImport(payload: ExportPayload): ImportSummary {
             `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
             [sessionId, exerciseId, order]
           );
+          snapshotSessionExercise(sessionId, exerciseId);
           order++;
         }
       }

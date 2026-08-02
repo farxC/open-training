@@ -10,6 +10,7 @@ import { MuscleFrequencyChart } from "@/components/MuscleFrequencyChart";
 import { MuscleSeriesChart } from "@/components/MuscleSeriesChart";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StreakBadge } from "@/components/StreakBadge";
+import { isStrengthCategory, targetKindOf } from "@/data/modalities";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 export default function AnalyticsScreen() {
@@ -20,11 +21,11 @@ export default function AnalyticsScreen() {
     setGranularity,
     strengthCurrent,
     strengthPrevious,
-    runningCurrent,
-    runningPrevious,
+    distanceCurrent,
+    distancePrevious,
     trend,
     strengthRecords,
-    runningRecords,
+    distanceRecords,
     muscleFreq,
     muscleSeries,
     streak,
@@ -39,7 +40,10 @@ export default function AnalyticsScreen() {
     }, [refresh])
   );
 
-  const isStrength = modality === "musculacao";
+  // Two different questions: which summary/records shape to render (metric),
+  // and whether muscle-group breakdowns mean anything here (training type).
+  const isStrengthMetric = targetKindOf(modality) === "strength";
+  const tracksMuscles = isStrengthCategory(modality);
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
@@ -83,17 +87,19 @@ export default function AnalyticsScreen() {
             <StreakBadge days={streak} recentDates={streakDates} />
           </View>
 
-          {isStrength ? (
+          {isStrengthMetric ? (
             <AnalyticsSummary
-              modality="musculacao"
+              kind="strength"
+              modality={modality}
               current={strengthCurrent}
               previous={strengthPrevious}
             />
           ) : (
             <AnalyticsSummary
-              modality="corrida"
-              current={runningCurrent}
-              previous={runningPrevious}
+              kind="distance"
+              modality={modality}
+              current={distanceCurrent}
+              previous={distancePrevious}
             />
           )}
 
@@ -105,19 +111,19 @@ export default function AnalyticsScreen() {
             <AnalyticsRecords
               modality={modality}
               strengthRecords={strengthRecords}
-              runningRecords={runningRecords}
+              distanceRecords={distanceRecords}
               currentRange={currentRange}
             />
           </View>
 
-          {isStrength && (
+          {tracksMuscles && (
             <View style={{ marginTop: 28 }}>
               <SectionHeader title="Grupos musculares" />
               <MuscleFrequencyChart data={muscleFreq} />
             </View>
           )}
 
-          {isStrength && (
+          {tracksMuscles && (
             <View style={{ marginTop: 28 }}>
               <SectionHeader title="Séries por grupo muscular" />
               <MuscleSeriesChart data={muscleSeries} />

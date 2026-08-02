@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
-import { continuousDurationSec, formatClock, formatPaceSec, parseClock } from "@/data/modalities";
+import {
+  continuousDurationSec,
+  distanceDisplay,
+  formatClock,
+  formatDistanceValue,
+  formatEffort,
+  formatEffortInput,
+  fromDisplayDistance,
+  parseClock,
+  parseEffort,
+  toDisplayDistance,
+} from "@/data/modalities";
+import type { Modality } from "@/types";
 
 export function NumField({
   value,
@@ -67,7 +79,59 @@ export function TimeField({
   );
 }
 
-export interface RunTargetValue {
+/** Distance input in the modality's own unit, storing canonical km. */
+export function DistanceField({
+  value,
+  modality,
+  onChange,
+}: {
+  value: number | null;
+  modality: Modality;
+  onChange: (km: number | null) => void;
+}) {
+  return (
+    <NumField
+      value={toDisplayDistance(value, modality)}
+      onChange={(shown) => onChange(fromDisplayDistance(shown, modality))}
+      suffix={distanceDisplay(modality).distanceUnit}
+      integer={distanceDisplay(modality).distanceUnit === "m"}
+    />
+  );
+}
+
+/** Pace ("m:ss" per the modality's basis) or speed (km/h), storing canonical
+ *  seconds-per-km either way. */
+export function EffortField({
+  value,
+  modality,
+  onChange,
+}: {
+  value: number | null;
+  modality: Modality;
+  onChange: (paceSecPerKm: number | null) => void;
+}) {
+  const display = distanceDisplay(modality);
+  const [text, setText] = useState(() => formatEffortInput(value, modality));
+  return (
+    <View className="flex-row items-center bg-surface-elevated rounded-lg px-2 py-1" style={{ gap: 2 }}>
+      <TextInput
+        value={text}
+        onChangeText={(v) => {
+          setText(v);
+          onChange(parseEffort(v, modality));
+        }}
+        placeholder={display.effortPlaceholder}
+        placeholderTextColor="#bdb8aa"
+        keyboardType={display.effortMode === "speed" ? "decimal-pad" : "default"}
+        className="text-ink text-sm text-center"
+        style={{ width: 44, flexShrink: 1, minWidth: 0 }}
+      />
+      <Text className="text-ink-mute text-xs">{display.effortSuffix}</Text>
+    </View>
+  );
+}
+
+export interface DistanceTargetValue {
   run_type: "continuous" | "interval" | null;
   target_distance_km: number | null;
   target_pace_sec: number | null;
@@ -77,25 +141,27 @@ export interface RunTargetValue {
   interval_rest_sec: number | null;
 }
 
-function intervalSummary(v: RunTargetValue): string | null {
+function intervalSummary(v: DistanceTargetValue, modality: Modality): string | null {
   if (!v.interval_reps) return null;
   const effort = v.interval_work_km
-    ? `${v.interval_work_km}km`
+    ? formatDistanceValue(v.interval_work_km, modality)
     : v.interval_work_sec
       ? formatClock(v.interval_work_sec)
       : null;
   if (!effort) return null;
-  const pace = formatPaceSec(v.target_pace_sec);
+  const pace = formatEffort(v.target_pace_sec, modality);
   const rest = v.interval_rest_sec ? formatClock(v.interval_rest_sec) : null;
   return `${v.interval_reps}× ${effort}${pace ? ` @${pace}` : ""}${rest ? ` / ${rest}` : ""}`;
 }
 
-export function RunTargetFields({
+export function DistanceTargetFields({
   value,
+  modality,
   onChange,
 }: {
-  value: RunTargetValue;
-  onChange: (patch: Partial<RunTargetValue>) => void;
+  value: DistanceTargetValue;
+  modality: Modality;
+  onChange: (patch: Partial<DistanceTargetValue>) => void;
 }) {
   const isInterval = value.run_type === "interval";
   const totalSec = continuousDurationSec(value.target_distance_km, value.target_pace_sec);
@@ -136,10 +202,10 @@ export function RunTargetFields({
               suffix="×"
               integer
             />
-            <NumField
+            <DistanceField
               value={value.interval_work_km}
-              onChange={(n) => onChange({ interval_work_km: n })}
-              suffix="km"
+              modality={modality}
+              onChange={(km) => onChange({ interval_work_km: km })}
             />
             <Text className="text-ink-faint text-xs">ou</Text>
             <TimeField
@@ -149,10 +215,10 @@ export function RunTargetFields({
             />
           </View>
           <View className="flex-row items-center flex-wrap" style={{ gap: 8, rowGap: 6 }}>
-            <TimeField
+            <EffortField
               value={value.target_pace_sec}
+              modality={modality}
               onChange={(s) => onChange({ target_pace_sec: s })}
-              suffix="/km"
             />
             <TimeField
               value={value.interval_rest_sec}
@@ -160,24 +226,24 @@ export function RunTargetFields({
               suffix="rec."
             />
           </View>
-          {intervalSummary(value) && (
+          {intervalSummary(value, modality) && (
             <Text className="text-ink-mute text-xs" style={{ flexWrap: "wrap" }}>
-              {intervalSummary(value)}
+              {intervalSummary(value, modality)}
             </Text>
           )}
         </View>
       ) : (
         <View style={{ gap: 6, flexShrink: 1 }}>
           <View className="flex-row items-center flex-wrap" style={{ gap: 8, rowGap: 6 }}>
-            <NumField
+            <DistanceField
               value={value.target_distance_km}
-              onChange={(n) => onChange({ target_distance_km: n })}
-              suffix="km"
+              modality={modality}
+              onChange={(km) => onChange({ target_distance_km: km })}
             />
-            <TimeField
+            <EffortField
               value={value.target_pace_sec}
+              modality={modality}
               onChange={(s) => onChange({ target_pace_sec: s })}
-              suffix="/km"
             />
           </View>
           {totalSec != null && <Text className="text-ink-mute text-xs">≈ {formatClock(totalSec)} total</Text>}

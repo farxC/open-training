@@ -3,7 +3,7 @@ import type {
   Delta,
   MuscleSeriesRaw,
   MuscleSeriesRow,
-  RunningSummary,
+  DistanceSummary,
   StrengthSummary,
   TrendBucket,
 } from "@/types";
@@ -23,7 +23,10 @@ export function sumStrength(sets: AnalyticsSetRow[]): StrengthSummary {
   return { volume, sessionCount: sessionIds.size, maxWeight };
 }
 
-export function sumRunning(sets: AnalyticsSetRow[]): RunningSummary {
+/** Works for every distance modality — the inputs are canonical km/seconds, so
+ *  the weighted average pace comes out in seconds-per-km regardless of how the
+ *  modality displays it (min/km, min/100m, km/h). */
+export function sumDistance(sets: AnalyticsSetRow[]): DistanceSummary {
   let distance = 0;
   let totalDuration = 0;
   let paceDurationSum = 0;

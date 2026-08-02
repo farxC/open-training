@@ -1,19 +1,20 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  getDistanceRecords,
   getMuscleSeriesInRange,
-  getRunningRecords,
   getSessionDatesByModality,
   getSetsInRange,
   getStrengthRecords,
 } from "@/db/queries";
+import { isStrengthCategory, targetKindOf } from "@/data/modalities";
 import type {
   AnalyticsSetRow,
   DateRange,
+  DistanceRecords,
+  DistanceSummary,
   Granularity,
   Modality,
   MuscleSeriesRow,
-  RunningRecords,
-  RunningSummary,
   StrengthRecord,
   StrengthSummary,
 } from "@/types";
@@ -21,7 +22,7 @@ import {
   averageMuscleSeriesPerWeek,
   bucketSum,
   computeStreak,
-  sumRunning,
+  sumDistance,
   sumStrength,
   toMuscleSeriesRows,
 } from "@/utils/analyticsAgg";
@@ -29,8 +30,8 @@ import { todayISO } from "@/utils/cycle";
 import { periodRange, previousPeriodRange, trendBuckets, weeksInRange } from "@/utils/periods";
 
 const ZERO_STRENGTH: StrengthSummary = { volume: 0, sessionCount: 0, maxWeight: 0 };
-const ZERO_RUNNING: RunningSummary = { distance: 0, runCount: 0, totalDuration: 0, avgPaceSec: null };
-const EMPTY_RUNNING_RECORDS: RunningRecords = {
+const ZERO_DISTANCE: DistanceSummary = { distance: 0, runCount: 0, totalDuration: 0, avgPaceSec: null };
+const EMPTY_DISTANCE_RECORDS: DistanceRecords = {
   longest_distance_km: null,
   longest_distance_on: null,
   fastest_pace_sec: null,
@@ -44,21 +45,22 @@ export interface AnalyticsView {
   granularity: Granularity;
   setModality: (m: Modality) => void;
   setGranularity: (g: Granularity) => void;
-  /** Meaningful when modality === "musculacao"; zeroed otherwise. */
+  /** Meaningful when the modality's targetKind is "strength"; zeroed otherwise. */
   strengthCurrent: StrengthSummary;
   strengthPrevious: StrengthSummary;
-  /** Meaningful when modality === "corrida"; zeroed otherwise. */
-  runningCurrent: RunningSummary;
-  runningPrevious: RunningSummary;
+  /** Meaningful when the modality's targetKind is "distance"; zeroed otherwise.
+   *  Canonical units (km, sec/km) — formatted per modality at render time. */
+  distanceCurrent: DistanceSummary;
+  distancePrevious: DistanceSummary;
+  /** Bucketed totals for the trend chart: volume for strength, distance (km) for distance. */
   trend: { label: string; value: number }[];
   strengthRecords: StrengthRecord[];
-  runningRecords: RunningRecords;
+  distanceRecords: DistanceRecords;
   muscleFreq: { muscle_group: string; count: number }[];
-  /** Series (sum of counting_factor) per muscle group. Meaningful when
-   *  modality === "musculacao". For "week" granularity this is the period's
-   *  raw total; for month/semester/year it's the AVERAGE per calendar week in
-   *  the period (denominator = total weeks in the period, including weeks
-   *  with zero series). */
+  /** Series (sum of counting_factor) per muscle group. Populated only for the
+   *  strength category; empty for endurance. For "week" granularity this is the period's raw total; for
+   *  month/semester/year it's the AVERAGE per calendar week in the period
+   *  (denominator = total weeks in the period, including weeks with zero series). */
   muscleSeries: MuscleSeriesRow[];
   streak: number;
   streakDates: string[];
@@ -112,34 +114,39 @@ export function useAnalytics(): AnalyticsView {
 
     let strengthCurrent = ZERO_STRENGTH;
     let strengthPrevious = ZERO_STRENGTH;
-    let runningCurrent = ZERO_RUNNING;
-    let runningPrevious = ZERO_RUNNING;
+    let distanceCurrent = ZERO_DISTANCE;
+    let distancePrevious = ZERO_DISTANCE;
     let strengthRecords: StrengthRecord[] = [];
-    let runningRecords: RunningRecords = EMPTY_RUNNING_RECORDS;
+    let distanceRecords: DistanceRecords = EMPTY_DISTANCE_RECORDS;
     let muscleFreq: { muscle_group: string; count: number }[] = [];
     let muscleSeries: MuscleSeriesRow[] = [];
     let trend: { label: string; value: number }[];
 
-    if (modality === "musculacao") {
+    if (targetKindOf(modality) === "strength") {
       strengthCurrent = sumStrength(curSets);
       strengthPrevious = sumStrength(prevSets);
       const volumes = bucketSum(sets, buckets, (s) => s.reps * s.weight_kg);
       trend = buckets.map((b, i) => ({ label: b.label, value: volumes[i] }));
-      strengthRecords = getStrengthRecords();
-      muscleFreq = muscleFrequency(curSets);
-      if (granularity === "week") {
-        muscleSeries = toMuscleSeriesRows(getMuscleSeriesInRange("musculacao", cur.start, cur.end));
-      } else {
-        const periodWeeks = weeksInRange(cur.start, cur.end);
-        const weeklyRaw = periodWeeks.map((w) => getMuscleSeriesInRange("musculacao", w.start, w.end));
-        muscleSeries = averageMuscleSeriesPerWeek(weeklyRaw, periodWeeks.length);
-      }
+      strengthRecords = getStrengthRecords(modality);
     } else {
-      runningCurrent = sumRunning(curSets);
-      runningPrevious = sumRunning(prevSets);
+      distanceCurrent = sumDistance(curSets);
+      distancePrevious = sumDistance(prevSets);
       const distances = bucketSum(sets, buckets, (s) => s.distance_km ?? 0);
       trend = buckets.map((b, i) => ({ label: b.label, value: distances[i] }));
-      runningRecords = getRunningRecords();
+      distanceRecords = getDistanceRecords(modality);
+    }
+
+    // Muscle-group breakdowns hang off the training type, not off the metric
+    // shape — an endurance modality has neither, however its sets are measured.
+    if (isStrengthCategory(modality)) {
+      muscleFreq = muscleFrequency(curSets);
+      if (granularity === "week") {
+        muscleSeries = toMuscleSeriesRows(getMuscleSeriesInRange(modality, cur.start, cur.end));
+      } else {
+        const periodWeeks = weeksInRange(cur.start, cur.end);
+        const weeklyRaw = periodWeeks.map((w) => getMuscleSeriesInRange(modality, w.start, w.end));
+        muscleSeries = averageMuscleSeriesPerWeek(weeklyRaw, periodWeeks.length);
+      }
     }
 
     const streakDates = getSessionDatesByModality(modality);
@@ -148,11 +155,11 @@ export function useAnalytics(): AnalyticsView {
     return {
       strengthCurrent,
       strengthPrevious,
-      runningCurrent,
-      runningPrevious,
+      distanceCurrent,
+      distancePrevious,
       trend,
       strengthRecords,
-      runningRecords,
+      distanceRecords,
       muscleFreq,
       muscleSeries,
       streak,

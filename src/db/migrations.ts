@@ -1,6 +1,7 @@
 import { db } from "./client";
 import { CREATE_TABLES, SCHEMA_VERSION } from "./schema";
-import { SEED_EXERCISES, SEED_RUNNING_EXERCISES } from "../data/exercises";
+import { SEED_DISTANCE_EXERCISES, SEED_EXERCISES } from "../data/exercises";
+import { modalitiesOfCategory } from "../data/modalities";
 import { todayISO } from "../utils/cycle";
 import type { DbHandle } from "./dbHandle";
 import type { MuscleGroup } from "../types/exercise";
@@ -71,7 +72,8 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     }
   }
 
-  // Same recovery, for an interrupted v16 session_exercise_config rebuild.
+  // Same recovery, for an interrupted session_exercise_config rebuild (v16, and
+  // again in v18 when the table turned from sparse override into full snapshot).
   if (hasTable(dbHandle, "session_exercise_config_new")) {
     if (!hasTable(dbHandle, "session_exercise_config")) {
       dbHandle.execSync("ALTER TABLE session_exercise_config_new RENAME TO session_exercise_config;");
@@ -196,8 +198,12 @@ export function runMigrations(dbHandle: DbHandle = db): void {
       ex: { name: string; muscle_groups: MuscleGroup[]; equipment: string; type: string; is_custom: 0 | 1 },
       modality: string
     ) => {
+      // uuid is generated inline, not left to the backfill above: that already ran
+      // for this launch, so a seed inserted now would sit uuid-less until the next
+      // one — and export/import merges by uuid.
       dbHandle.runSync(
-        "INSERT OR IGNORE INTO exercises (name, equipment, type, is_custom, modality) VALUES (?, ?, ?, ?, ?)",
+        `INSERT OR IGNORE INTO exercises (name, equipment, type, is_custom, modality, uuid)
+         VALUES (?, ?, ?, ?, ?, lower(hex(randomblob(16))))`,
         [ex.name, ex.equipment, ex.type, ex.is_custom, modality]
       );
       const inserted = dbHandle.getFirstSync<{ id: number }>(
@@ -207,7 +213,7 @@ export function runMigrations(dbHandle: DbHandle = db): void {
       if (inserted) insertExerciseMuscleGroups(dbHandle, inserted.id, ex.muscle_groups);
     };
     for (const ex of SEED_EXERCISES) insertSeed(ex, "musculacao");
-    for (const ex of SEED_RUNNING_EXERCISES) insertSeed(ex, "corrida");
+    for (const { modality, exercise } of SEED_DISTANCE_EXERCISES) insertSeed(exercise, modality);
   }
 
   if (currentVersion < 3) {
@@ -228,10 +234,10 @@ export function runMigrations(dbHandle: DbHandle = db): void {
   // has no ALTER TABLE DROP COLUMN + NOT NULL removal that's safe on both the
   // native driver and the web sql.js/WASM driver, so dropping the old scalar
   // `muscle_group` column requires the documented full-table-rebuild procedure.
-  // Double-guarded (version AND column presence) so this is a correct no-op both
-  // on a fresh install (new shape already in place) and if runMigrations is ever
-  // re-entered mid-migration (e.g. a dev hot reload).
-  if (currentVersion < 13 && hasColumn(dbHandle, "exercises", "muscle_group")) {
+  // Gated on column absence ALONE, not `currentVersion` — same reasoning as v14/v16
+  // below: a stale `schema_version` (bumped to >= 13 without this rebuild actually
+  // having run) must never be able to permanently skip it.
+  if (hasColumn(dbHandle, "exercises", "muscle_group")) {
     // 1. Backfill every existing exercise's single legacy value BEFORE the column
     //    is gone — covers both seeded and user-created custom exercises.
     dbHandle.execSync(
@@ -247,7 +253,7 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     //    legacy value, editable manually via the picker's edit affordance.
     const curatedByName = new Map<string, MuscleGroup[]>([
       ...SEED_EXERCISES.map((ex) => [ex.name, ex.muscle_groups] as const),
-      ...SEED_RUNNING_EXERCISES.map((ex) => [ex.name, ex.muscle_groups] as const),
+      ...SEED_DISTANCE_EXERCISES.map(({ exercise }) => [exercise.name, exercise.muscle_groups] as const),
     ]);
     const builtins = dbHandle.getAllSync<{ id: number; name: string }>(
       "SELECT id, name FROM exercises WHERE is_custom = 0",
@@ -290,12 +296,19 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     //    `exercises` by name, so they transparently repoint once it exists again.
     dbHandle.execSync("DROP TABLE exercises;");
     dbHandle.execSync("ALTER TABLE exercises_new RENAME TO exercises;");
+    dbHandle.execSync("PRAGMA foreign_keys = ON;");
+  }
 
-    // 7. Verify before trusting it, then restore enforcement. Scoped to the tables
-    //    that actually hold an exercise_id FK — an unscoped `PRAGMA foreign_key_check`
-    //    audits every table in the database, so a dev DB that has accumulated
-    //    unrelated dangling references elsewhere (nothing to do with this rebuild)
-    //    would otherwise make this migration abort on pre-existing, unrelated debt.
+  // Self-healing cleanup for exercise_id references left dangling by an
+  // interrupted or partially-persisted transaction (observed on the web
+  // driver — see feedback_web_sqlite_transaction_persist_bug) — a session
+  // insert can survive uncommitted while its child rows persist, or vice
+  // versa. Runs every launch, unconditionally, so accumulated debt never
+  // permanently blocks the v13 rebuild's FK verification again. Confirmed
+  // via the actual data (Rafael's live sessions feed) that every previously
+  // surfaced violation pointed at a session that no longer exists — safe to
+  // delete rather than merely report.
+  {
     const exerciseReferencingTables = [
       "exercise_muscle_groups",
       "session_exercises",
@@ -303,15 +316,15 @@ export function runMigrations(dbHandle: DbHandle = db): void {
       "routine_unit_exercises",
       "program_entries",
     ];
-    const violations = exerciseReferencingTables.flatMap((table) =>
-      dbHandle.getAllSync<unknown>(`PRAGMA foreign_key_check(${table});`, [])
-    );
-    if (violations.length > 0) {
-      throw new Error(
-        `Migration v13 exercise rebuild left ${violations.length} dangling foreign key reference(s).`
+    for (const table of exerciseReferencingTables) {
+      const result = dbHandle.runSync(
+        `DELETE FROM ${table} WHERE exercise_id NOT IN (SELECT id FROM exercises)`,
+        []
       );
+      if (result.changes > 0) {
+        console.warn(`[migrations] removed ${result.changes} dangling row(s) from ${table}`);
+      }
     }
-    dbHandle.execSync("PRAGMA foreign_keys = ON;");
   }
 
   // v14: exercise-muscle relationships now carry a configurable counting factor
@@ -363,18 +376,48 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     dbHandle.execSync("PRAGMA foreign_keys = ON;");
   }
 
-  // Ensure the running seed exists for DBs created before the modality migration.
-  // Always targets the current (post-v13, no muscle_group column) shape.
-  dbHandle.runSync(
-    "INSERT OR IGNORE INTO exercises (name, equipment, type, is_custom, modality) VALUES ('Correr', 'bodyweight', 'compound', 0, 'corrida')",
-    []
-  );
-  {
-    const correr = dbHandle.getFirstSync<{ id: number }>(
-      "SELECT id FROM exercises WHERE name = 'Correr'",
-      []
+  // Ensure every distance modality's auto-provisioned exercise exists. Runs
+  // unconditionally and is idempotent (INSERT OR IGNORE on a UNIQUE name), which
+  // is what backfills DBs created before a given modality existed — this is how
+  // ciclismo/natação/caminhada reach installs that were seeded when only corrida
+  // was around, with no schema_version bump needed. Always targets the current
+  // (post-v13, no muscle_group column) shape.
+  for (const { modality, exercise } of SEED_DISTANCE_EXERCISES) {
+    dbHandle.runSync(
+      `INSERT OR IGNORE INTO exercises (name, equipment, type, is_custom, modality, uuid)
+       VALUES (?, ?, ?, ?, ?, lower(hex(randomblob(16))))`,
+      [exercise.name, exercise.equipment, exercise.type, exercise.is_custom, modality]
     );
-    if (correr) insertExerciseMuscleGroups(dbHandle, correr.id, ["cardio"]);
+    const inserted = dbHandle.getFirstSync<{ id: number }>(
+      "SELECT id FROM exercises WHERE name = ?",
+      [exercise.name]
+    );
+    if (inserted) insertExerciseMuscleGroups(dbHandle, inserted.id, exercise.muscle_groups);
+  }
+
+  // Muscle-group breakdown is a strength-training concept: "1 série de cardio"
+  // says nothing about a swim. Endurance exercises used to be seeded with a
+  // `cardio` group, which made the per-group series card show up on endurance
+  // sessions — strip those rows.
+  //
+  // Unconditional and idempotent rather than gated on `currentVersion`, same as
+  // the seed loop above: besides reaching installs seeded earlier, it also
+  // self-heals after importing an older export that still carries the rows.
+  // No schema_version bump — the DDL and the export format are unchanged, and a
+  // bump would imply a version gate this block deliberately doesn't have.
+  //
+  // Scoped by the exercise's own modality, so `cardio` survives where it still
+  // means something: the musculação seeds Treadmill Run, Rowing Machine,
+  // Stationary Bike, Jump Rope and Stair Master.
+  const enduranceKeys = modalitiesOfCategory("endurance").map((m) => m.key);
+  if (enduranceKeys.length > 0) {
+    dbHandle.runSync(
+      `DELETE FROM exercise_muscle_groups
+       WHERE exercise_id IN (
+         SELECT id FROM exercises WHERE modality IN (${enduranceKeys.map(() => "?").join(",")})
+       )`,
+      enduranceKeys
+    );
   }
 
   // v15: every exercise must carry a physical configuration (resistance curve,
@@ -477,6 +520,162 @@ export function runMigrations(dbHandle: DbHandle = db): void {
       );
     }
   }
+
+  // v18: four new config dimensions (grip type and width, bodyweight usage and
+  // how to read the logged load) plus a soft-delete flag on exercises. SQLite's
+  // ADD COLUMN does accept CHECK constraints — the real restrictions are
+  // UNIQUE/PRIMARY KEY and NOT NULL without a default — so unlike the v14/v16
+  // columns these need no table rebuild.
+  //
+  // Placed AFTER the v13/v16 rebuilds rather than up with the other
+  // ensureColumn calls: those rebuilds recreate `exercises` and
+  // `exercise_config` from a frozen DDL, which would silently drop any column
+  // added before them.
+  ensureColumn(dbHandle, "exercises", "is_archived", "INTEGER NOT NULL DEFAULT 0 CHECK (is_archived IN (0, 1))");
+  ensureColumn(
+    dbHandle,
+    "exercise_config",
+    "grip_type",
+    "TEXT CHECK (grip_type IS NULL OR grip_type IN ('pronated','supinated','neutral','mixed'))"
+  );
+  ensureColumn(
+    dbHandle,
+    "exercise_config",
+    "grip_width",
+    "TEXT CHECK (grip_width IS NULL OR grip_width IN ('close','medium','wide'))"
+  );
+  ensureColumn(
+    dbHandle,
+    "exercise_config",
+    "uses_bodyweight",
+    "INTEGER NOT NULL DEFAULT 0 CHECK (uses_bodyweight IN (0, 1))"
+  );
+  ensureColumn(
+    dbHandle,
+    "exercise_config",
+    "load_mode",
+    "TEXT CHECK (load_mode IS NULL OR load_mode IN ('total','added','assisted'))"
+  );
+
+  // v18: session_exercise_config stops being a sparse override of the exercise's
+  // current default and becomes a full snapshot taken when the exercise enters
+  // the session — every column concrete and NOT NULL, exactly one row per
+  // session_exercise. That flips the whole model from resolve-on-read to
+  // freeze-on-write: editing an exercise's default no longer rewrites how
+  // already-recorded sessions read.
+  //
+  // Nullable -> NOT NULL can't be expressed with ALTER TABLE, so this one does
+  // need a rebuild. Gated on column absence alone (never on schema_version), so
+  // it self-heals an install whose version was bumped without the rebuild
+  // actually landing. On a fresh database CREATE_TABLES already made the new
+  // shape, so grip_type is present and this block is skipped.
+  if (!hasColumn(dbHandle, "session_exercise_config", "grip_type")) {
+    dbHandle.execSync("PRAGMA foreign_keys = OFF;");
+
+    dbHandle.execSync(
+      `CREATE TABLE session_exercise_config_new (
+        session_exercise_id INTEGER PRIMARY KEY REFERENCES session_exercises(id) ON DELETE CASCADE,
+        resistance_curve TEXT NOT NULL DEFAULT 'descending'
+          CHECK (resistance_curve IN ('ascending','descending','constant','bell')),
+        load_type TEXT NOT NULL DEFAULT 'free'
+          CHECK (load_type IN ('free','plate','pulley')),
+        pulley_type TEXT CHECK (pulley_type IS NULL OR pulley_type IN ('mobile','fixed')),
+        laterality TEXT NOT NULL DEFAULT 'bilateral'
+          CHECK (laterality IN ('bilateral','unilateral')),
+        rom TEXT NOT NULL DEFAULT 'full' CHECK (rom IN ('full','partial')),
+        uses_bench INTEGER NOT NULL DEFAULT 0 CHECK (uses_bench IN (0, 1)),
+        bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90),
+        grip_type TEXT CHECK (grip_type IS NULL OR grip_type IN ('pronated','supinated','neutral','mixed')),
+        grip_width TEXT CHECK (grip_width IS NULL OR grip_width IN ('close','medium','wide')),
+        uses_bodyweight INTEGER NOT NULL DEFAULT 0 CHECK (uses_bodyweight IN (0, 1)),
+        load_mode TEXT CHECK (load_mode IS NULL OR load_mode IN ('total','added','assisted'))
+      )`
+    );
+    // Materialise exactly what the app renders TODAY — COALESCE(override,
+    // exercise default, app default), the same expression getSessionExercises
+    // used to evaluate on every read — so the upgrade is visually a no-op.
+    // The pulley/bench CASEs only null out values the UI already hides (it
+    // shows pulley_type solely when load_type is 'pulley', and the bench angle
+    // solely when uses_bench is 1), keeping the new table's invariants clean.
+    // Inner-joining session_exercises drops override rows whose session
+    // exercise is already gone, instead of carrying dangling ids across.
+    dbHandle.execSync(
+      `INSERT INTO session_exercise_config_new
+         (session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
+       SELECT sec.session_exercise_id,
+              COALESCE(sec.resistance_curve, ec.resistance_curve, 'descending'),
+              COALESCE(sec.load_type, ec.load_type, 'free'),
+              CASE WHEN COALESCE(sec.load_type, ec.load_type, 'free') = 'pulley'
+                   THEN COALESCE(sec.pulley_type, ec.pulley_type) END,
+              COALESCE(sec.laterality, ec.laterality, 'bilateral'),
+              COALESCE(sec.rom, ec.rom, 'full'),
+              COALESCE(sec.uses_bench, ec.uses_bench, 0),
+              CASE WHEN COALESCE(sec.uses_bench, ec.uses_bench, 0) = 1
+                   THEN COALESCE(sec.bench_angle_degrees, ec.bench_angle_degrees) END
+       FROM session_exercise_config sec
+       JOIN session_exercises se ON se.id = sec.session_exercise_id
+       LEFT JOIN exercise_config ec ON ec.exercise_id = se.exercise_id`
+    );
+    dbHandle.execSync("DROP TABLE session_exercise_config;");
+    dbHandle.execSync("ALTER TABLE session_exercise_config_new RENAME TO session_exercise_config;");
+
+    // Scoped to the rebuilt table — an unscoped `PRAGMA foreign_key_check`
+    // audits every table, so unrelated pre-existing dangling references
+    // elsewhere in a dev DB must not abort this rebuild.
+    const snapshotViolations = dbHandle.getAllSync<unknown>(
+      "PRAGMA foreign_key_check(session_exercise_config);",
+      []
+    );
+    if (snapshotViolations.length > 0) {
+      throw new Error(
+        `Migration v18 config-snapshot rebuild left ${snapshotViolations.length} dangling foreign key reference(s).`
+      );
+    }
+    dbHandle.execSync("PRAGMA foreign_keys = ON;");
+  }
+
+  // v18 backfill, part 2: every session_exercise needs a config snapshot, not
+  // just the ones that happened to carry an override before. Seeded from the
+  // exercise's current default — the best available reconstruction of what was
+  // in effect back then. Unconditional and idempotent (same self-healing shape
+  // as v15's exercise_config backfill), so a session_exercise created by a
+  // build that predates the snapshot writer still gets one on the next launch.
+  dbHandle.execSync(
+    `INSERT INTO session_exercise_config
+       (session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench,
+        bench_angle_degrees, grip_type, grip_width, uses_bodyweight, load_mode)
+     SELECT se.id,
+            COALESCE(ec.resistance_curve, 'descending'),
+            COALESCE(ec.load_type, 'free'),
+            ec.pulley_type,
+            COALESCE(ec.laterality, 'bilateral'),
+            COALESCE(ec.rom, 'full'),
+            COALESCE(ec.uses_bench, 0),
+            ec.bench_angle_degrees,
+            ec.grip_type,
+            ec.grip_width,
+            COALESCE(ec.uses_bodyweight, 0),
+            ec.load_mode
+     FROM session_exercises se
+     LEFT JOIN exercise_config ec ON ec.exercise_id = se.exercise_id
+     WHERE se.id NOT IN (SELECT session_exercise_id FROM session_exercise_config)`
+  );
+
+  // v18 backfill, part 3: the muscle-group half of the same snapshot, so
+  // re-weighting a counting_factor stops moving the series-volume of weeks
+  // already trained. Guarded on "this session_exercise has NO snapshot rows
+  // yet" rather than on each (session_exercise, muscle_group) pair: a plain
+  // INSERT OR IGNORE would keep re-adding a group the user has since removed
+  // from the exercise.
+  dbHandle.execSync(
+    `INSERT INTO session_exercise_muscle_groups (session_exercise_id, muscle_group, counting_factor)
+     SELECT se.id, emg.muscle_group, emg.counting_factor
+     FROM session_exercises se
+     JOIN exercise_muscle_groups emg ON emg.exercise_id = se.exercise_id
+     WHERE NOT EXISTS (
+       SELECT 1 FROM session_exercise_muscle_groups sm WHERE sm.session_exercise_id = se.id
+     )`
+  );
 
   if (currentVersion < SCHEMA_VERSION) {
     dbHandle.runSync(

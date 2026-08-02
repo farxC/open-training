@@ -113,7 +113,7 @@ export function DayDetailModal({
                   onToggleExpand={() => setExpandedUnitId(expandedUnitId === unitId ? null : unitId)}
                   onRename={(label) => onRenameUnit(unitId, label)}
                   onAddExercise={() => {
-                    setPickerModality("musculacao");
+                    setPickerModality(entry.split.modality);
                     setPickerUnitId(unitId);
                   }}
                   onRemoveExercise={onRemoveExercise}

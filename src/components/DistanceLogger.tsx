@@ -1,20 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Text, TouchableOpacity, View } from "react-native";
-import { RunRow } from "./RunRow";
+import { DistanceRow } from "./DistanceRow";
 import {
   addSet,
   deleteSet,
   getSetsBySession,
   updateSet,
 } from "@/db/queries";
-import { formatPaceSec } from "@/data/modalities";
-import type { RoutineUnitExercise, WorkoutSet } from "@/types";
+import { distanceDisplay, formatDistanceValue, formatEffort } from "@/data/modalities";
+import type { Modality, RoutineUnitExercise, WorkoutSet } from "@/types";
 
 interface Props {
   exerciseId: number;
   exerciseName: string;
   sessionId: number;
+  /** Drives the displayed units (km vs m, pace vs speed). */
+  modality: Modality;
   onRemoveExercise: () => void;
   targets?: RoutineUnitExercise;
   dragHandleIcon?: React.ReactNode;
@@ -23,13 +25,14 @@ interface Props {
   onSetsChanged?: () => void;
 }
 
-function targetLabel(targets: RoutineUnitExercise): string | null {
+function targetLabel(targets: RoutineUnitExercise, modality: Modality): string | null {
   if (!targets.target_distance_km) return null;
-  const pace = formatPaceSec(targets.target_pace_sec);
-  return `Meta: ${targets.target_distance_km}km${pace ? ` · pace ${pace}` : ""}`;
+  const distance = formatDistanceValue(targets.target_distance_km, modality);
+  const effort = formatEffort(targets.target_pace_sec, modality);
+  return `Meta: ${distance}${effort ? ` · ${effort}` : ""}`;
 }
 
-export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandleIcon, DragHandle, index, onSetsChanged }: Props) {
+export function DistanceLogger({ exerciseId, exerciseName, sessionId, modality, onRemoveExercise, targets, dragHandleIcon, DragHandle, index, onSetsChanged }: Props) {
   const [sets, setSets] = useState<WorkoutSet[]>([]);
   const HandleWrapper = DragHandle ?? View;
 
@@ -107,8 +110,8 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
           <View style={{ width: 2, height: 14, backgroundColor: '#26241f', borderRadius: 1 }} />
           <View>
             <Text className="text-ink font-semibold text-base">{exerciseName}</Text>
-            {targets && targetLabel(targets) && (
-              <Text className="text-ink-faint text-xs mt-0.5">{targetLabel(targets)}</Text>
+            {targets && targetLabel(targets, modality) && (
+              <Text className="text-ink-faint text-xs mt-0.5">{targetLabel(targets, modality)}</Text>
             )}
           </View>
         </HandleWrapper>
@@ -122,15 +125,18 @@ export function RunLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
           <Text className="text-ink-mute text-xs text-center" style={{ width: 20 }}>#</Text>
           <Text className="text-ink-mute text-xs flex-1 text-center">Distância</Text>
           <Text className="text-ink-mute text-xs" style={{ width: 20 }} />
-          <Text className="text-ink-mute text-xs flex-1 text-center">Pace</Text>
+          <Text className="text-ink-mute text-xs flex-1 text-center">
+            {distanceDisplay(modality).effortMode === "speed" ? "Velocidade" : "Pace"}
+          </Text>
           <Text style={{ width: 20 }} />
         </View>
       )}
 
       {sets.map((set) => (
-        <RunRow
+        <DistanceRow
           key={set.id}
           set={set}
+          modality={modality}
           onChange={(patch) => handleChange(set.id, patch)}
           onDelete={() => handleDelete(set.id)}
         />

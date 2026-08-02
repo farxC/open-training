@@ -7,7 +7,8 @@ import { useRoutine } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
 import { WeekdayPicker } from "@/components/WeekdayPicker";
 import { MonthCalendar } from "@/components/MonthCalendar";
-import { MODALITIES, modalityLabel } from "@/data/modalities";
+import { ModalityCardGrid } from "@/components/ModalityCardGrid";
+import { isDistanceModality, modalityLabel } from "@/data/modalities";
 import { getProgramWeeks } from "@/db/queries";
 import type { Modality, RoutineSplit, SplitMode } from "@/types";
 
@@ -39,7 +40,7 @@ export default function NewSplitScreen() {
 
   // Cyclic-split wizard: rest days → optional start date → the days that repeat.
   // Kept as local state (not persisted) until the wizard finishes, same as the
-  // corrida weekly wizard above — abandoning it midway leaves nothing behind.
+  // weekly distance wizard above — abandoning it midway leaves nothing behind.
   const [cyclicRestDays, setCyclicRestDays] = useState<number[]>([]);
   const [cyclicAnchorDate, setCyclicAnchorDate] = useState<string | null>(null);
   const [cyclicMonth, setCyclicMonth] = useState(() => new Date());
@@ -52,8 +53,8 @@ export default function NewSplitScreen() {
     const finalName = name.trim() || modalityLabel(modality);
     setName(finalName);
 
-    if (modality === "corrida" && mode === "weekly") {
-      // Weekly corrida needs its training days chosen before the plan can be built.
+    if (isDistanceModality(modality) && mode === "weekly") {
+      // A weekly distance split needs its training days chosen before the plan can be built.
       setStep("days");
       return;
     }
@@ -98,23 +99,23 @@ export default function NewSplitScreen() {
     };
     for (let i = 0; i < cyclicDayKeys.length; i++) r.addUnit(split);
 
-    if (modality === "corrida") {
-      // Corrida still requires a plan — force its creation before continuing.
+    if (isDistanceModality(modality)) {
+      // Distance splits still require a plan — force its creation before continuing.
       router.replace({ pathname: "/routine/program/new", params: { splitId: String(splitId) } });
     } else {
       router.replace(`/routine/${splitId}`);
     }
   };
 
-  const createWeeklyCorridaSplit = () => {
-    const splitId = r.addSplit(name, "weekly", "corrida");
+  const createWeeklyDistanceSplit = () => {
+    const splitId = r.addSplit(name, "weekly", modality);
     // r.splits hasn't re-rendered with the new split yet — addUnit only needs these fields
     // (uuid is never read here; the real one lives in the row just inserted).
     const split: RoutineSplit = {
       id: splitId,
       name,
       mode: "weekly",
-      modality: "corrida",
+      modality,
       anchor_date: null,
       rest_weekdays: [],
       order: 0,
@@ -123,7 +124,7 @@ export default function NewSplitScreen() {
     for (const wd of selectedDays) {
       r.addUnit(split, { ordinal: wd, label: WD_SHORT[wd] });
     }
-    const finalPlanName = planName.trim() || "Plano de Corrida";
+    const finalPlanName = planName.trim() || `Plano de ${modalityLabel(modality)}`;
     const weeks = totalWeeks && totalWeeks > 0 ? totalWeeks : 8;
     const programId = r.addProgram(splitId, finalPlanName, weeks);
     r.activateProgram(splitId, programId);
@@ -214,48 +215,9 @@ export default function NewSplitScreen() {
               <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                 MODALIDADE
               </Text>
-              <View className="flex-row mb-6" style={{ gap: 10 }}>
-                {MODALITIES.map((m) => {
-                  const on = modality === m.key;
-                  return (
-                    <TouchableOpacity
-                      key={m.key}
-                      className="flex-1 items-center justify-center rounded-2xl"
-                      style={{
-                        paddingVertical: 18,
-                        gap: 8,
-                        borderWidth: 1,
-                        borderColor: on ? "#26241f" : "#ddd8ce",
-                        backgroundColor: on ? "#26241f" : "#ffffff",
-                      }}
-                      onPress={() => setModality(m.key)}
-                      activeOpacity={0.85}
-                    >
-                      <View
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 22,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: on ? "rgba(255,255,255,0.14)" : "#f4f2ee",
-                        }}
-                      >
-                        <MaterialCommunityIcons
-                          name={m.icon as MciName}
-                          size={24}
-                          color={on ? "#ffffff" : "#5c594f"}
-                        />
-                      </View>
-                      <Text style={{ color: on ? "#ffffff" : "#5c594f", fontSize: 13, fontWeight: "600" }}>
-                        {m.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <ModalityCardGrid value={modality} onSelect={setModality} />
 
-              <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+              <Text className="text-ink-mute text-xs mb-2 mt-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                 FORMATO
               </Text>
               <View style={{ gap: 10 }}>
@@ -281,7 +243,7 @@ export default function NewSplitScreen() {
                 <MaterialCommunityIcons name="calendar-week" size={26} color="#26241f" />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
-                Quando você corre?
+                Quando você treina {modalityLabel(modality).toLowerCase()}?
               </Text>
               <Text
                 className="text-ink-mute text-sm mb-7"
@@ -318,12 +280,12 @@ export default function NewSplitScreen() {
                 className="text-ink-mute text-sm mb-7"
                 style={{ textAlign: "center", maxWidth: 280 }}
               >
-                Um split de corrida precisa de um plano com pelo menos uma semana definida.
+                Um split de {modalityLabel(modality).toLowerCase()} precisa de um plano com pelo menos uma semana definida.
               </Text>
               <TextInput
                 value={planName}
                 onChangeText={setPlanName}
-                placeholder="Nome (ex.: Plano de Corrida)"
+                placeholder={`Nome (ex.: Plano de ${modalityLabel(modality)})`}
                 placeholderTextColor="#bdb8aa"
                 className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
                 style={{ width: "100%" }}
@@ -335,7 +297,7 @@ export default function NewSplitScreen() {
               <TouchableOpacity
                 className="py-3 rounded-xl items-center bg-brand-500"
                 style={{ width: "100%" }}
-                onPress={createWeeklyCorridaSplit}
+                onPress={createWeeklyDistanceSplit}
               >
                 <Text className="text-white text-sm font-semibold">Criar plano</Text>
               </TouchableOpacity>

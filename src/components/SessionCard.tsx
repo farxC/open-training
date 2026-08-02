@@ -1,6 +1,6 @@
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import type { SessionSummary } from "@/types";
-import { modalityLabel } from "@/data/modalities";
+import { distanceDisplay, isDistanceModality, modalityConfig, modalityLabel, toDisplayDistance } from "@/data/modalities";
 
 interface Props {
   session: SessionSummary;
@@ -43,11 +43,6 @@ function exerciseLine(names: string[]): string | null {
   return `${names.slice(0, 4).join(" · ")} +${names.length - 4}`;
 }
 
-const MODALITY_DOT: Record<SessionSummary["modality"], string> = {
-  musculacao: "#26241f",
-  corrida: "#2f9e6e",
-};
-
 export function SessionCard({ session, onPress }: Props) {
   const { weekday, month, day } = parseDate(session.date);
   const duration = formatDuration(session.duration_seconds);
@@ -61,9 +56,11 @@ export function SessionCard({ session, onPress }: Props) {
   if (duration) metaParts.push(duration);
 
   const showDistance =
-    session.modality === "corrida" &&
+    isDistanceModality(session.modality) &&
     session.total_distance_km != null &&
     session.total_distance_km > 0;
+  const distanceUnit = distanceDisplay(session.modality).distanceUnit;
+  const shownDistance = toDisplayDistance(session.total_distance_km, session.modality) ?? 0;
   const showVolume = !showDistance && session.total_volume != null && session.total_volume > 0;
 
   return (
@@ -114,7 +111,7 @@ export function SessionCard({ session, onPress }: Props) {
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: MODALITY_DOT[session.modality],
+                  backgroundColor: modalityConfig(session.modality).dotColor,
                 }}
               />
               <Text
@@ -146,10 +143,10 @@ export function SessionCard({ session, onPress }: Props) {
                       fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
                     }}
                   >
-                    {session.total_distance_km!.toFixed(1)}
+                    {distanceUnit === "m" ? Math.round(shownDistance) : shownDistance.toFixed(1)}
                   </Text>
                   <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>
-                    KM
+                    {distanceUnit.toUpperCase()}
                   </Text>
                 </>
               ) : (

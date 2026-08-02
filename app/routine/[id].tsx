@@ -4,14 +4,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { UnitCard } from "@/components/UnitCard";
-import { RunPlanTable } from "@/components/RunPlanTable";
+import { DistancePlanTable } from "@/components/DistancePlanTable";
 import { StrengthPlanTable } from "@/components/StrengthPlanTable";
 import { WeekdayPicker } from "@/components/WeekdayPicker";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { DatePickerModal } from "@/components/DatePickerModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useRoutine } from "@/hooks/useRoutine";
-import { modalityConfig, modalityLabel } from "@/data/modalities";
+import { isDistanceModality, modalityConfig, modalityLabel } from "@/data/modalities";
 import { confirmAction } from "@/components/AppModal";
 import { getProgramWeeks } from "@/db/queries";
 import { todayISO, weekIndexSince } from "@/utils/cycle";
@@ -59,7 +59,7 @@ export default function EditSplitScreen() {
   // Progression plans are a secondary, opt-in concept for cyclic non-corrida splits
   // (corrida always requires one) — tucked behind a disclosure so they don't compete
   // with the day-to-day structure above for attention.
-  const plansAreOptionalHere = split.mode === "cyclic" && split.modality !== "corrida";
+  const plansAreOptionalHere = split.mode === "cyclic" && !isDistanceModality(split.modality);
 
   const toggleRest = (wd: number) => {
     const next = split.rest_weekdays.includes(wd)
@@ -181,9 +181,10 @@ export default function EditSplitScreen() {
         {split.mode === "cyclic" ? (
           <>
             <Text className="text-ink-soft text-xs font-semibold mb-2">Dias do ciclo</Text>
-            {split.modality === "corrida" ? (
-              <RunPlanTable
+            {isDistanceModality(split.modality) ? (
+              <DistancePlanTable
                 units={units}
+                modality={split.modality}
                 exercisesByUnit={r.exercisesByUnit}
                 expandedUnitId={expandedUnitId}
                 onToggleExpand={(uid) => setExpandedUnitId(expandedUnitId === uid ? null : uid)}
@@ -308,13 +309,13 @@ export default function EditSplitScreen() {
                 Blocos com duração definida que ajustam os alvos de cada dia ao longo das semanas.
               </Text>
             )}
-            {programs.length === 0 && split.modality === "corrida" && (
+            {programs.length === 0 && isDistanceModality(split.modality) && (
               <View
                 className="rounded-2xl p-4 mb-3"
                 style={{ borderWidth: 1, borderColor: "#c9502b", backgroundColor: "#fbe9e2" }}
               >
                 <Text className="text-sm font-medium mb-2" style={{ color: "#8a3319" }}>
-                  Este split de corrida precisa de um plano.
+                  Este split de {modalityLabel(split.modality).toLowerCase()} precisa de um plano.
                 </Text>
                 <TouchableOpacity
                   className="self-start px-3 py-2 rounded-xl"
@@ -366,7 +367,7 @@ export default function EditSplitScreen() {
                 )}
               </View>
             ))}
-            {programs.length === 0 && split.modality !== "corrida" && (
+            {programs.length === 0 && !isDistanceModality(split.modality) && (
               <Text className="text-ink-faint text-sm mb-2">Nenhum plano ainda.</Text>
             )}
             <TouchableOpacity
@@ -382,7 +383,7 @@ export default function EditSplitScreen() {
 
       <ExercisePickerModal
         visible={pickerUnitId != null}
-        modality="musculacao"
+        modality={split.modality}
         onConfirm={(exs) => {
           if (pickerUnitId != null) exs.forEach((ex) => r.addExercise(pickerUnitId, ex));
         }}

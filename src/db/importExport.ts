@@ -1,10 +1,12 @@
-import type { ExerciseConfig, ExerciseConfigOverride, Modality, SplitMode } from "@/types";
+import type { ExerciseConfig, Modality, SplitMode } from "@/types";
 
-// v5: exercise config gained a bench angle (uses_bench + bench_angle_degrees).
-// Bumping this means older backup files (format 4 and earlier) are rejected
-// outright rather than silently importing with an incomplete config — see
-// validateExportPayload below.
-export const CURRENT_EXPORT_FORMAT_VERSION = 5;
+// v6: exercise config gained grip and bodyweight fields, exercises gained
+// is_archived, and each session-exercise now carries a full config +
+// muscle-group SNAPSHOT instead of a sparse override of the exercise's current
+// default. Bumping this means older backup files (format 5 and earlier) are
+// rejected outright rather than silently importing with an incomplete config —
+// see validateExportPayload below.
+export const CURRENT_EXPORT_FORMAT_VERSION = 6;
 
 export interface ExportedExerciseMuscleGroup {
   muscle_group: string;
@@ -20,6 +22,7 @@ export interface ExportedExercise {
   is_custom: 0 | 1;
   modality: Modality;
   config: ExerciseConfig;
+  is_archived: 0 | 1;
 }
 
 export interface ExportedSet {
@@ -39,8 +42,11 @@ export interface ExportedSet {
 export interface ExportedSessionExercise {
   exercise_uuid: string;
   order: number;
-  /** Present only when at least one field is overridden for this session-exercise. */
-  config_override?: ExerciseConfigOverride;
+  /** Snapshot of the config this exercise was logged with — independent of the
+   *  exercise's current default, so a restored backup keeps its history frozen. */
+  config: ExerciseConfig;
+  /** Snapshot of the muscle groups and counting factors it was logged with. */
+  muscle_groups: ExportedExerciseMuscleGroup[];
 }
 
 export interface ExportedSession {

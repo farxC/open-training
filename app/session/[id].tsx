@@ -22,14 +22,30 @@ import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
-import { RunLogger } from "@/components/RunLogger";
+import { DistanceLogger } from "@/components/DistanceLogger";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { ExerciseSessionCard } from "@/components/ExerciseSessionCard";
 import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
-import { modalityLabel, formatClock, parseClock } from "@/data/modalities";
+import {
+  distanceDisplay,
+  formatClock,
+  isDistanceModality,
+  isStrengthCategory,
+  modalityConfig,
+  modalityLabel,
+  parseClock,
+  toDisplayDistance,
+} from "@/data/modalities";
 import { dateToISO } from "@/utils/cycle";
 import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
-import type { WorkoutSet } from "@/types";
+import type { Modality, WorkoutSet } from "@/types";
+
+/** The stat strip wants a bare number (its unit sits on the line below), so it
+ *  can't use formatDistanceValue — that one carries the unit with it. */
+function formatDistanceNumber(km: number, modality: Modality): string {
+  const shown = toDisplayDistance(km, modality) ?? 0;
+  return distanceDisplay(modality).distanceUnit === "m" ? String(Math.round(shown)) : shown.toFixed(1);
+}
 
 const WEEKDAY_ABBREVS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 const MONTH_ABBREVS = [
@@ -68,11 +84,6 @@ function groupByExercise(
   }
   return groups;
 }
-
-const MODALITY_DOT: Record<string, string> = {
-  musculacao: "#26241f",
-  corrida: "#2f9e6e",
-};
 
 interface ExerciseGroup {
   id: number;
@@ -142,7 +153,8 @@ export default function SessionDetailScreen() {
   const totalDistance = session.sets.reduce((sum, s) => sum + (s.distance_km ?? 0), 0);
   const exerciseCount = Object.keys(grouped).length;
   const muscleSeries = toMuscleSeriesRows(getMuscleSeriesForSession(session.id));
-  const isCorrida = session.modality === "corrida";
+  // Sessions are single-modality, so the logger choice is a session-level decision.
+  const isDistance = isDistanceModality(session.modality);
 
   const contextParts: string[] = [];
   if (session.split_name) contextParts.push(session.split_name);
@@ -173,7 +185,7 @@ export default function SessionDetailScreen() {
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: MODALITY_DOT[session.modality],
+                  backgroundColor: modalityConfig(session.modality).dotColor,
                 }}
               />
               <Text
@@ -264,11 +276,12 @@ export default function SessionDetailScreen() {
                   reorderSessionExercises(session.id, reordered.map((g) => g.id));
                 }}
                 renderItem={({ item: group, index, dragHandleIcon, DragHandle }) =>
-                  isCorrida ? (
-                    <RunLogger
+                  isDistance ? (
+                    <DistanceLogger
                       exerciseId={group.id}
                       exerciseName={group.name}
                       sessionId={session.id}
+                      modality={session.modality}
                       onRemoveExercise={() => {
                         removeSessionExercise(session.id, group.id);
                         setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
@@ -348,7 +361,7 @@ export default function SessionDetailScreen() {
                     width: 6,
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: MODALITY_DOT[session.modality],
+                    backgroundColor: modalityConfig(session.modality).dotColor,
                   }}
                 />
                 <Text
@@ -383,10 +396,14 @@ export default function SessionDetailScreen() {
                       fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
                     }}
                   >
-                    {isCorrida ? totalDistance.toFixed(1) : formatThousands(totalVolume)}
+                    {isDistance
+                      ? formatDistanceNumber(totalDistance, session.modality)
+                      : formatThousands(totalVolume)}
                   </Text>
                   <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
-                    {isCorrida ? "KM" : "KG · VOLUME"}
+                    {isDistance
+                      ? distanceDisplay(session.modality).distanceUnit.toUpperCase()
+                      : "KG · VOLUME"}
                   </Text>
                 </View>
                 <View style={{ width: 1, backgroundColor: "#ddd8ce" }} />
@@ -432,7 +449,7 @@ export default function SessionDetailScreen() {
                 </View>
               )}
 
-              {muscleSeries.length > 0 && (
+              {isStrengthCategory(session.modality) && muscleSeries.length > 0 && (
                 <View style={{ marginTop: 20 }}>
                   <SectionHeader title="Séries por grupo muscular" />
                   <MuscleSeriesSessionCard data={muscleSeries} />
@@ -447,6 +464,7 @@ export default function SessionDetailScreen() {
                     exerciseName={exerciseName}
                     ordinal={groupIndex + 1}
                     sets={sets}
+                    modality={session.modality}
                   />
                 ))}
 

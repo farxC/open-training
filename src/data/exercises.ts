@@ -1,17 +1,40 @@
-import type { Exercise, MuscleGroup } from "@/types";
+import { modalitiesOfKind } from "./modalities";
+import type { Exercise, Modality, MuscleGroup } from "../types";
 
 // Seed data doesn't specify a config — every seeded exercise gets the app-wide
 // default physical config via the migration backfill (see runMigrations), same
-// as any other freshly created exercise.
-type SeedExercise = Omit<Exercise, "id" | "modality" | "uuid" | "muscle_groups" | "config"> & {
+// as any other freshly created exercise. Nor does it specify is_archived: a
+// seeded exercise always starts visible, and archiving is the user's call.
+export type SeedExercise = Omit<
+  Exercise,
+  "id" | "modality" | "uuid" | "muscle_groups" | "config" | "is_archived"
+> & {
   muscle_groups: MuscleGroup[];
 };
 
-// Modality is assigned at insert time: everything in SEED_EXERCISES is "musculacao";
-// SEED_RUNNING_EXERCISES is "corrida".
-export const SEED_RUNNING_EXERCISES: SeedExercise[] = [
-  { name: "Correr", muscle_groups: ["cardio"], equipment: "bodyweight", type: "compound", is_custom: 0 },
-];
+// Modality is assigned at insert time: everything in SEED_EXERCISES is "musculacao".
+//
+// Every distance modality gets exactly one auto-provisioned exercise — the
+// session *is* the activity, there's no exercise picker — so this list is
+// derived straight from the registry's defaultExerciseName. Adding a modality
+// in src/data/modalities.ts is enough; nothing here needs editing.
+//
+// No muscle groups: these are endurance-category exercises, and muscle-group
+// breakdown is a strength-training concept. Installs seeded before this ruling
+// are cleaned up by runMigrations.
+export const SEED_DISTANCE_EXERCISES: { modality: Modality; exercise: SeedExercise }[] =
+  modalitiesOfKind("distance")
+    .filter((m) => m.defaultExerciseName != null)
+    .map((m) => ({
+      modality: m.key,
+      exercise: {
+        name: m.defaultExerciseName as string,
+        muscle_groups: [],
+        equipment: "bodyweight",
+        type: "compound",
+        is_custom: 0,
+      },
+    }));
 
 export const SEED_EXERCISES: SeedExercise[] = [
   // Chest

@@ -1,35 +1,36 @@
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import type { RoutineUnit, RoutineUnitExercise } from "@/types";
+import type { Modality, RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
-import { continuousDurationSec, formatClock, formatPaceSec } from "@/data/modalities";
-import { RunTargetFields } from "@/components/TargetFields";
+import { continuousDurationSec, formatClock, formatDistanceValue, formatEffort } from "@/data/modalities";
+import { DistanceTargetFields } from "@/components/TargetFields";
 
-export function runSummary(re: RoutineUnitExercise): string {
+export function distanceSummary(re: RoutineUnitExercise, modality: Modality): string {
   const type = re.run_type ?? "continuous";
   if (type === "interval") {
     if (!re.interval_reps) return "—";
     const effort = re.interval_work_km
-      ? `${re.interval_work_km}km`
+      ? formatDistanceValue(re.interval_work_km, modality)
       : re.interval_work_sec
         ? formatClock(re.interval_work_sec)
         : null;
     if (!effort) return "—";
-    const pace = re.target_pace_sec ? ` @${formatPaceSec(re.target_pace_sec)}` : "";
+    const pace = re.target_pace_sec ? ` @${formatEffort(re.target_pace_sec, modality)}` : "";
     const rest = re.interval_rest_sec ? ` / ${formatClock(re.interval_rest_sec)}` : "";
     return `${re.interval_reps}× ${effort}${pace}${rest}`;
   }
   // continuous
-  const dist = re.target_distance_km ? `${re.target_distance_km}km` : null;
-  const pace = re.target_pace_sec ? `@${formatPaceSec(re.target_pace_sec)}` : null;
+  const dist = formatDistanceValue(re.target_distance_km, modality);
+  const pace = re.target_pace_sec ? `@${formatEffort(re.target_pace_sec, modality)}` : null;
   const totalSec = continuousDurationSec(re.target_distance_km, re.target_pace_sec);
   const time = totalSec ? `≈ ${formatClock(totalSec)}` : null;
   const parts = [dist, pace, time].filter(Boolean);
   return parts.length > 0 ? parts.join(" ") : "—";
 }
 
-interface RunPlanTableProps {
+interface DistancePlanTableProps {
   units: RoutineUnit[];
+  modality: Modality;
   exercisesByUnit: Record<number, RoutineUnitExercise[]>;
   expandedUnitId: number | null;
   onToggleExpand: (id: number) => void;
@@ -40,8 +41,9 @@ interface RunPlanTableProps {
   onDelete?: (unitId: number) => void;
 }
 
-export function RunPlanTable({
+export function DistancePlanTable({
   units,
+  modality,
   exercisesByUnit,
   expandedUnitId,
   onToggleExpand,
@@ -50,7 +52,7 @@ export function RunPlanTable({
   onMoveUp,
   onMoveDown,
   onDelete,
-}: RunPlanTableProps) {
+}: DistancePlanTableProps) {
   if (units.length === 0) return null;
 
   return (
@@ -64,7 +66,7 @@ export function RunPlanTable({
         const expanded = expandedUnitId === unit.id;
         const typeLabel =
           re == null ? null : re.run_type === "interval" ? "Intervalado" : "Contínuo";
-        const summary = re ? runSummary(re) : "—";
+        const summary = re ? distanceSummary(re, modality) : "—";
 
         return (
           <View
@@ -158,8 +160,9 @@ export function RunPlanTable({
                 </View>
 
                 {exercises[0] && (
-                  <RunTargetFields
+                  <DistanceTargetFields
                     value={exercises[0]}
+                    modality={modality}
                     onChange={(patch) => onUpdateTargets(exercises[0].id, patch)}
                   />
                 )}

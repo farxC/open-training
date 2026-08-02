@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 17;
+export const SCHEMA_VERSION = 18;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -8,7 +8,11 @@ export const CREATE_TABLES: string[] = [
     type TEXT NOT NULL,
     is_custom INTEGER NOT NULL DEFAULT 0,
     modality TEXT NOT NULL DEFAULT 'musculacao',
-    uuid TEXT UNIQUE
+    uuid TEXT UNIQUE,
+    -- Soft-delete. sets/session_exercises reference exercises(id) without
+    -- cascade, so a real DELETE would strand history; archiving hides the
+    -- exercise from pickers while leaving every logged set readable.
+    is_archived INTEGER NOT NULL DEFAULT 0 CHECK (is_archived IN (0, 1))
   )`,
 
   `CREATE TABLE IF NOT EXISTS exercise_muscle_groups (
@@ -19,9 +23,11 @@ export const CREATE_TABLES: string[] = [
   )`,
 
   // Default physical configuration of an exercise (resistance curve, load type,
-  // pulley type, laterality, range of motion, bench angle). Every exercise must
-  // have exactly one row — enforced by the migration backfill, not by
-  // application code.
+  // pulley type, laterality, range of motion, bench angle, grip, bodyweight).
+  // Every exercise must have exactly one row — enforced by the migration
+  // backfill, not by application code. This is the CURRENT default: it seeds
+  // the snapshot taken every time the exercise is added to a session, and
+  // editing it does not reach back into sessions already recorded.
   `CREATE TABLE IF NOT EXISTS exercise_config (
     exercise_id INTEGER PRIMARY KEY REFERENCES exercises(id) ON DELETE CASCADE,
     resistance_curve TEXT NOT NULL DEFAULT 'descending'
@@ -34,21 +40,47 @@ export const CREATE_TABLES: string[] = [
     rom TEXT NOT NULL DEFAULT 'full' CHECK (rom IN ('full','partial')),
     uses_bench INTEGER NOT NULL DEFAULT 0 CHECK (uses_bench IN (0, 1)),
     -- Degrees: 0 = flat, positive = incline, negative = decline. NULL when uses_bench = 0.
-    bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90)
+    bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90),
+    -- NULL grip means "doesn't apply" (leg press, squat) rather than "unset".
+    grip_type TEXT CHECK (grip_type IS NULL OR grip_type IN ('pronated','supinated','neutral','mixed')),
+    grip_width TEXT CHECK (grip_width IS NULL OR grip_width IN ('close','medium','wide')),
+    uses_bodyweight INTEGER NOT NULL DEFAULT 0 CHECK (uses_bodyweight IN (0, 1)),
+    -- How to read the logged load. NULL when uses_bodyweight = 0.
+    load_mode TEXT CHECK (load_mode IS NULL OR load_mode IN ('total','added','assisted'))
   )`,
 
-  // Per-session-exercise override of exercise_config. Every column is nullable —
-  // NULL means "inherit the exercise's default for this column". A row here is
-  // optional (0..1 per session_exercise); no row at all means "no overrides".
+  // Per-session-exercise SNAPSHOT of exercise_config, taken when the exercise is
+  // added to the session. Exactly one row per session_exercise, never zero, and
+  // every column carries a concrete value — this table is the source of truth
+  // for how a recorded session reads, so later edits to the exercise's default
+  // leave it alone. Same columns and constraints as exercise_config.
   `CREATE TABLE IF NOT EXISTS session_exercise_config (
     session_exercise_id INTEGER PRIMARY KEY REFERENCES session_exercises(id) ON DELETE CASCADE,
-    resistance_curve TEXT CHECK (resistance_curve IS NULL OR resistance_curve IN ('ascending','descending','constant','bell')),
-    load_type TEXT CHECK (load_type IS NULL OR load_type IN ('free','plate','pulley')),
+    resistance_curve TEXT NOT NULL DEFAULT 'descending'
+      CHECK (resistance_curve IN ('ascending','descending','constant','bell')),
+    load_type TEXT NOT NULL DEFAULT 'free'
+      CHECK (load_type IN ('free','plate','pulley')),
     pulley_type TEXT CHECK (pulley_type IS NULL OR pulley_type IN ('mobile','fixed')),
-    laterality TEXT CHECK (laterality IS NULL OR laterality IN ('bilateral','unilateral')),
-    rom TEXT CHECK (rom IS NULL OR rom IN ('full','partial')),
-    uses_bench INTEGER CHECK (uses_bench IS NULL OR uses_bench IN (0, 1)),
-    bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90)
+    laterality TEXT NOT NULL DEFAULT 'bilateral'
+      CHECK (laterality IN ('bilateral','unilateral')),
+    rom TEXT NOT NULL DEFAULT 'full' CHECK (rom IN ('full','partial')),
+    uses_bench INTEGER NOT NULL DEFAULT 0 CHECK (uses_bench IN (0, 1)),
+    bench_angle_degrees REAL CHECK (bench_angle_degrees IS NULL OR bench_angle_degrees BETWEEN -90 AND 90),
+    grip_type TEXT CHECK (grip_type IS NULL OR grip_type IN ('pronated','supinated','neutral','mixed')),
+    grip_width TEXT CHECK (grip_width IS NULL OR grip_width IN ('close','medium','wide')),
+    uses_bodyweight INTEGER NOT NULL DEFAULT 0 CHECK (uses_bodyweight IN (0, 1)),
+    load_mode TEXT CHECK (load_mode IS NULL OR load_mode IN ('total','added','assisted'))
+  )`,
+
+  // Snapshot of exercise_muscle_groups, same idea and same lifetime as
+  // session_exercise_config: re-weighting a muscle group (counting_factor) or
+  // adding one to an exercise must not retroactively move the series-volume
+  // numbers of weeks already trained. Analytics reads series from here.
+  `CREATE TABLE IF NOT EXISTS session_exercise_muscle_groups (
+    session_exercise_id INTEGER NOT NULL REFERENCES session_exercises(id) ON DELETE CASCADE,
+    muscle_group TEXT NOT NULL,
+    counting_factor REAL NOT NULL DEFAULT 1 CHECK (counting_factor IN (0.5, 1)),
+    PRIMARY KEY (session_exercise_id, muscle_group)
   )`,
 
   `CREATE TABLE IF NOT EXISTS sessions (

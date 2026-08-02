@@ -1,19 +1,23 @@
 import { db } from "./client";
 import { todayISO } from "../utils/cycle";
 import { generateUuid } from "../utils/uuid";
-import { DEFAULT_EXERCISE_CONFIG } from "../data/exerciseConfig";
+import {
+  CONFIG_COLUMNS,
+  CONFIG_COLUMN_LIST,
+  CONFIG_PLACEHOLDERS,
+  CONFIG_UPSERT_ASSIGNMENTS,
+  configColumnsOf,
+  configValues,
+  rowToConfig,
+} from "./configColumns";
+import type { ConfigRow } from "./configColumns";
+import { isDistanceModality } from "../data/modalities";
 import type {
   Exercise,
   ExerciseConfig,
-  ExerciseConfigOverride,
   ExerciseMuscleGroup,
-  Laterality,
-  LoadType,
   MuscleGroup,
   Modality,
-  PulleyType,
-  RangeOfMotion,
-  ResistanceCurve,
   Session,
   SessionPhoto,
   SessionExercise,
@@ -31,7 +35,7 @@ import type {
   ProgramEntry,
   AnalyticsSetRow,
   StrengthRecord,
-  RunningRecords,
+  DistanceRecords,
   MuscleSeriesRaw,
 } from "../types";
 
@@ -203,141 +207,112 @@ export function moveSessionPhoto(sessionId: number, id: number, direction: "up" 
 // ─── Session exercises ─────────────────────────────────────────────────────────
 
 export function getSessionExercises(sessionId: number): SessionExercise[] {
-  const rows = db.getAllSync<
-    Omit<SessionExercise, "muscle_groups" | "config" | "config_override"> & {
-      muscle_groups_csv: string | null;
-      resistance_curve: ResistanceCurve | null;
-      load_type: LoadType | null;
-      pulley_type: PulleyType | null;
-      laterality: Laterality | null;
-      rom: RangeOfMotion | null;
-      uses_bench: 0 | 1 | null;
-      bench_angle_degrees: number | null;
-      override_resistance_curve: ResistanceCurve | null;
-      override_load_type: LoadType | null;
-      override_pulley_type: PulleyType | null;
-      override_laterality: Laterality | null;
-      override_rom: RangeOfMotion | null;
-      override_uses_bench: 0 | 1 | null;
-      override_bench_angle_degrees: number | null;
-    }
-  >(
-    `SELECT se.*, e.name AS exercise_name,
-            (SELECT GROUP_CONCAT(emg.muscle_group) FROM exercise_muscle_groups emg WHERE emg.exercise_id = e.id) AS muscle_groups_csv,
-            COALESCE(sec.resistance_curve, ec.resistance_curve) AS resistance_curve,
-            COALESCE(sec.load_type, ec.load_type) AS load_type,
-            COALESCE(sec.pulley_type, ec.pulley_type) AS pulley_type,
-            COALESCE(sec.laterality, ec.laterality) AS laterality,
-            COALESCE(sec.rom, ec.rom) AS rom,
-            COALESCE(sec.uses_bench, ec.uses_bench) AS uses_bench,
-            COALESCE(sec.bench_angle_degrees, ec.bench_angle_degrees) AS bench_angle_degrees,
-            sec.resistance_curve AS override_resistance_curve,
-            sec.load_type AS override_load_type,
-            sec.pulley_type AS override_pulley_type,
-            sec.laterality AS override_laterality,
-            sec.rom AS override_rom,
-            sec.uses_bench AS override_uses_bench,
-            sec.bench_angle_degrees AS override_bench_angle_degrees
+  const rows = db.getAllSync<Omit<SessionExercise, "muscle_groups" | "config"> & ConfigRow>(
+    `SELECT se.*, e.name AS exercise_name, ${configColumnsOf("sec")}
      FROM session_exercises se
      JOIN exercises e ON e.id = se.exercise_id
-     LEFT JOIN exercise_config ec ON ec.exercise_id = e.id
      LEFT JOIN session_exercise_config sec ON sec.session_exercise_id = se.id
      WHERE se.session_id = ?
      ORDER BY se."order"`,
     [sessionId]
   );
-  return rows.map(
-    ({
-      muscle_groups_csv,
-      resistance_curve,
-      load_type,
-      pulley_type,
-      laterality,
-      rom,
-      uses_bench,
-      bench_angle_degrees,
-      override_resistance_curve,
-      override_load_type,
-      override_pulley_type,
-      override_laterality,
-      override_rom,
-      override_uses_bench,
-      override_bench_angle_degrees,
-      ...rest
-    }) => ({
-      ...rest,
-      muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
-      config: {
-        resistance_curve: resistance_curve ?? DEFAULT_EXERCISE_CONFIG.resistance_curve,
-        load_type: load_type ?? DEFAULT_EXERCISE_CONFIG.load_type,
-        pulley_type: pulley_type ?? DEFAULT_EXERCISE_CONFIG.pulley_type,
-        laterality: laterality ?? DEFAULT_EXERCISE_CONFIG.laterality,
-        rom: rom ?? DEFAULT_EXERCISE_CONFIG.rom,
-        uses_bench: uses_bench ?? DEFAULT_EXERCISE_CONFIG.uses_bench,
-        bench_angle_degrees: bench_angle_degrees ?? DEFAULT_EXERCISE_CONFIG.bench_angle_degrees,
-      },
-      config_override: {
-        resistance_curve: override_resistance_curve ?? null,
-        load_type: override_load_type ?? null,
-        pulley_type: override_pulley_type ?? null,
-        laterality: override_laterality ?? null,
-        rom: override_rom ?? null,
-        uses_bench: override_uses_bench ?? null,
-        bench_angle_degrees: override_bench_angle_degrees ?? null,
-      },
-    })
-  );
-}
+  if (rows.length === 0) return [];
 
-/** Full replace of a session-exercise's config override — each null field
- *  means "inherit the exercise default". Deletes the override row entirely
- *  when every field is null, keeping "no override" clean rather than a row
- *  of all-NULLs. */
-export function updateSessionExerciseConfig(
-  sessionExerciseId: number,
-  override: ExerciseConfigOverride
-): void {
-  const allNull = Object.values(override).every((v) => v === null);
-  if (allNull) {
-    db.runSync("DELETE FROM session_exercise_config WHERE session_exercise_id = ?", [sessionExerciseId]);
-    return;
+  // Muscle groups come from the per-session snapshot too, not from whatever the
+  // exercise is configured with today. Batch-fetched for the whole session — no N+1.
+  const ids = rows.map((r) => r.id);
+  const mgRows = db.getAllSync<{
+    session_exercise_id: number;
+    muscle_group: string;
+    counting_factor: number;
+  }>(
+    `SELECT session_exercise_id, muscle_group, counting_factor
+     FROM session_exercise_muscle_groups
+     WHERE session_exercise_id IN (${ids.map(() => "?").join(",")})`,
+    ids
+  );
+  const groupsBySessionExerciseId = new Map<number, ExerciseMuscleGroup[]>();
+  for (const { session_exercise_id, muscle_group, counting_factor } of mgRows) {
+    const entry = { muscle_group: muscle_group as MuscleGroup, counting_factor };
+    const groups = groupsBySessionExerciseId.get(session_exercise_id);
+    if (groups) groups.push(entry);
+    else groupsBySessionExerciseId.set(session_exercise_id, [entry]);
   }
-  // Mirror updateExerciseConfig's rule: an explicit non-pulley load_type override
-  // must not carry a stale pulley_type override alongside it. When load_type
-  // itself isn't being overridden (null = inherit), leave pulley_type as given —
-  // that's how a pulley-type-only override (exercise already uses a pulley) works.
-  const pulleyType =
-    override.load_type != null && override.load_type !== "pulley" ? null : override.pulley_type;
-  // Same rule for bench angle: an explicit "no bench" override must not carry a
-  // stale angle. When uses_bench isn't being overridden (null = inherit), leave
-  // the angle as given — an angle-only override (exercise already uses a bench).
-  const benchAngle = override.uses_bench === 0 ? null : override.bench_angle_degrees;
+
+  return rows.map((row) => ({
+    id: row.id,
+    session_id: row.session_id,
+    exercise_id: row.exercise_id,
+    order: row.order,
+    exercise_name: row.exercise_name,
+    muscle_groups: groupsBySessionExerciseId.get(row.id) ?? [],
+    config: rowToConfig(row),
+  }));
+}
+
+/** Resolves the session_exercises row id for a (session, exercise) pair and
+ *  freezes the exercise's current config and muscle-group weighting into its
+ *  per-session snapshots. `INSERT OR IGNORE` throughout, deliberately:
+ *  re-adding an exercise already in the session must not clobber a snapshot the
+ *  user has since edited. Exported for the importer, which inserts
+ *  session_exercises rows of its own. */
+export function snapshotSessionExercise(sessionId: number, exerciseId: number): number {
+  const row = db.getFirstSync<{ id: number }>(
+    "SELECT id FROM session_exercises WHERE session_id = ? AND exercise_id = ?",
+    [sessionId, exerciseId]
+  );
+  if (!row) return 0;
   db.runSync(
-    `INSERT INTO session_exercise_config (session_exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(session_exercise_id) DO UPDATE SET
-       resistance_curve = excluded.resistance_curve,
-       load_type = excluded.load_type,
-       pulley_type = excluded.pulley_type,
-       laterality = excluded.laterality,
-       rom = excluded.rom,
-       uses_bench = excluded.uses_bench,
-       bench_angle_degrees = excluded.bench_angle_degrees`,
-    [
-      sessionExerciseId,
-      override.resistance_curve,
-      override.load_type,
-      pulleyType,
-      override.laterality,
-      override.rom,
-      override.uses_bench,
-      benchAngle,
-    ]
+    `INSERT OR IGNORE INTO session_exercise_config (session_exercise_id, ${CONFIG_COLUMN_LIST})
+     SELECT ?, ${configColumnsOf("ec")}
+     FROM exercise_config ec WHERE ec.exercise_id = ?`,
+    [row.id, exerciseId]
+  );
+  db.runSync(
+    `INSERT OR IGNORE INTO session_exercise_muscle_groups (session_exercise_id, muscle_group, counting_factor)
+     SELECT ?, emg.muscle_group, emg.counting_factor
+     FROM exercise_muscle_groups emg WHERE emg.exercise_id = ?`,
+    [row.id, exerciseId]
+  );
+  return row.id;
+}
+
+/** Full replace of a session-exercise's config snapshot. Concrete values only —
+ *  this row IS how the recorded session reads, so there is nothing to inherit
+ *  and no "no override" state to fall back to. */
+export function updateSessionExerciseConfig(sessionExerciseId: number, config: ExerciseConfig): void {
+  db.runSync(
+    `INSERT INTO session_exercise_config (session_exercise_id, ${CONFIG_COLUMN_LIST})
+     VALUES (?, ${CONFIG_PLACEHOLDERS})
+     ON CONFLICT(session_exercise_id) DO UPDATE SET ${CONFIG_UPSERT_ASSIGNMENTS}`,
+    [sessionExerciseId, ...configValues(config)]
   );
 }
 
-/** A single session-exercise's resolved config + raw override, by (session, exercise).
- *  Small convenience over getSessionExercises for callers (e.g. SetLogger) that only
+/** Re-copies the exercise's current default over this session's snapshot —
+ *  what replaced the old per-field "Herdar" toggle. */
+export function resetSessionExerciseConfig(sessionExerciseId: number, exerciseId: number): void {
+  updateSessionExerciseConfig(sessionExerciseId, getExerciseConfig(exerciseId));
+}
+
+/** Full replace of a session-exercise's muscle-group snapshot. */
+export function updateSessionExerciseMuscleGroups(
+  sessionExerciseId: number,
+  muscleGroups: ExerciseMuscleGroup[]
+): void {
+  db.withTransactionSync(() => {
+    db.runSync("DELETE FROM session_exercise_muscle_groups WHERE session_exercise_id = ?", [sessionExerciseId]);
+    for (const { muscle_group, counting_factor } of muscleGroups) {
+      db.runSync(
+        "INSERT OR IGNORE INTO session_exercise_muscle_groups (session_exercise_id, muscle_group, counting_factor) VALUES (?, ?, ?)",
+        [sessionExerciseId, muscle_group, counting_factor]
+      );
+    }
+  });
+}
+
+/** A single session-exercise's snapshot, by (session, exercise). Small
+ *  convenience over getSessionExercises for callers (e.g. SetLogger) that only
  *  care about one exercise within a session. */
 export function getSessionExercise(sessionId: number, exerciseId: number): SessionExercise | null {
   return getSessionExercises(sessionId).find((se) => se.exercise_id === exerciseId) ?? null;
@@ -345,11 +320,27 @@ export function getSessionExercise(sessionId: number, exerciseId: number): Sessi
 
 export function addSessionExercise(sessionId: number, exerciseId: number, order?: number): number {
   const position = order ?? getSessionExercises(sessionId).length;
-  const result = db.runSync(
-    `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
-    [sessionId, exerciseId, position]
-  );
-  return result.lastInsertRowId;
+  let sessionExerciseId = 0;
+  db.withTransactionSync(() => {
+    db.runSync(
+      `INSERT OR IGNORE INTO session_exercises (session_id, exercise_id, "order") VALUES (?, ?, ?)`,
+      [sessionId, exerciseId, position]
+    );
+    // An explicitly passed order wins even if the row already existed — the
+    // caller is stating where the exercise belongs. Omitted order only ever
+    // means "append", which would be wrong to re-apply to an existing row.
+    if (order !== undefined) {
+      db.runSync(`UPDATE session_exercises SET "order" = ? WHERE session_id = ? AND exercise_id = ?`, [
+        order,
+        sessionId,
+        exerciseId,
+      ]);
+    }
+    // Not lastInsertRowId: OR IGNORE leaves it pointing at some unrelated
+    // earlier insert when the exercise was already in the session.
+    sessionExerciseId = snapshotSessionExercise(sessionId, exerciseId);
+  });
+  return sessionExerciseId;
 }
 
 export function removeSessionExercise(sessionId: number, exerciseId: number): void {
@@ -387,6 +378,12 @@ export function getSetsBySession(sessionId: number): WorkoutSet[] {
 }
 
 export function addSet(set: Omit<WorkoutSet, "id">): number {
+  // A set only counts toward the muscle-series rollup through its
+  // session_exercise's snapshot, so a set whose exercise isn't in the session
+  // would silently vanish from analytics. Every UI path adds the exercise
+  // first; this makes it an invariant rather than a convention. Idempotent —
+  // addSessionExercise is INSERT OR IGNORE and won't touch an existing snapshot.
+  addSessionExercise(set.session_id, set.exercise_id);
   const result = db.runSync(
     `INSERT INTO sets (session_id, exercise_id, set_number, reps, weight_kg, rpe, rir, notes, distance_km, duration_sec, pace_sec, failure)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -433,6 +430,9 @@ export function getExercises(filter?: {
   muscle_group?: MuscleGroup; // matches exercises that include this group among their set
   is_custom?: boolean;
   modality?: Modality;
+  /** Archived exercises are hidden everywhere by default — only the exercise
+   *  management UI asks for them. */
+  include_archived?: boolean;
 }): Exercise[] {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -449,20 +449,13 @@ export function getExercises(filter?: {
     conditions.push("modality = ?");
     params.push(filter.modality);
   }
+  if (!filter?.include_archived) {
+    conditions.push("is_archived = 0");
+  }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const rows = db.getAllSync<
-    Omit<Exercise, "muscle_groups" | "config"> & {
-      resistance_curve: ResistanceCurve | null;
-      load_type: LoadType | null;
-      pulley_type: PulleyType | null;
-      laterality: Laterality | null;
-      rom: RangeOfMotion | null;
-      uses_bench: 0 | 1 | null;
-      bench_angle_degrees: number | null;
-    }
-  >(
-    `SELECT e.*, ec.resistance_curve, ec.load_type, ec.pulley_type, ec.laterality, ec.rom, ec.uses_bench, ec.bench_angle_degrees
+  const rows = db.getAllSync<Omit<Exercise, "muscle_groups" | "config"> & ConfigRow>(
+    `SELECT e.*, ${configColumnsOf("ec")}
      FROM exercises e
      LEFT JOIN exercise_config ec ON ec.exercise_id = e.id
      ${where}
@@ -484,26 +477,24 @@ export function getExercises(filter?: {
     if (groups) groups.push(entry);
     else groupsByExerciseId.set(exercise_id, [entry]);
   }
-  return rows.map(({ resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees, ...r }) => ({
-    ...r,
-    muscle_groups: groupsByExerciseId.get(r.id) ?? [],
-    // LEFT JOIN default guards a theoretical exercise missing its config row
-    // (shouldn't happen post-migration, but createExercise/getExercises must
-    // never crash on it) — falls back to the app-wide defaults.
-    config: {
-      resistance_curve: resistance_curve ?? DEFAULT_EXERCISE_CONFIG.resistance_curve,
-      load_type: load_type ?? DEFAULT_EXERCISE_CONFIG.load_type,
-      pulley_type: pulley_type ?? DEFAULT_EXERCISE_CONFIG.pulley_type,
-      laterality: laterality ?? DEFAULT_EXERCISE_CONFIG.laterality,
-      rom: rom ?? DEFAULT_EXERCISE_CONFIG.rom,
-      uses_bench: uses_bench ?? DEFAULT_EXERCISE_CONFIG.uses_bench,
-      bench_angle_degrees: bench_angle_degrees ?? DEFAULT_EXERCISE_CONFIG.bench_angle_degrees,
-    },
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    equipment: row.equipment,
+    type: row.type,
+    is_custom: row.is_custom,
+    modality: row.modality,
+    uuid: row.uuid,
+    is_archived: row.is_archived,
+    muscle_groups: groupsByExerciseId.get(row.id) ?? [],
+    config: rowToConfig(row),
   }));
 }
 
 export function createExercise(
-  ex: Omit<Exercise, "id" | "uuid" | "muscle_groups" | "config"> & { muscle_groups: MuscleGroup[] }
+  ex: Omit<Exercise, "id" | "uuid" | "muscle_groups" | "config" | "is_archived"> & {
+    muscle_groups: MuscleGroup[];
+  }
 ): { id: number; uuid: string } {
   const uuid = generateUuid();
   const result = db.runSync(
@@ -519,52 +510,121 @@ export function createExercise(
   return { id, uuid };
 }
 
-/** An exercise's own default config, without the muscle-group/other fields —
- *  used by the session-exercise override editor to know what "Herdar" resolves to. */
+/** Thrown by updateExercise when the new name is already taken — `exercises.name`
+ *  is UNIQUE, and the UI needs to tell that apart from any other write failure. */
+export class ExerciseNameTakenError extends Error {
+  constructor(readonly name: string) {
+    super(`An exercise named "${name}" already exists.`);
+    this.name = "ExerciseNameTakenError";
+  }
+}
+
+/** Updates an exercise's identity fields. All of these propagate to history on
+ *  purpose — the name, equipment and type are read through a JOIN at display
+ *  time, so renaming "Supino reto" fixes every session that ever used it. The
+ *  physical config and muscle-group weighting are the opposite case: those are
+ *  snapshotted per session and handled by their own functions below. */
+export function updateExercise(
+  exerciseId: number,
+  fields: Pick<Exercise, "name" | "equipment" | "type" | "modality">
+): void {
+  const clash = db.getFirstSync<{ id: number }>(
+    "SELECT id FROM exercises WHERE name = ? AND id != ?",
+    [fields.name, exerciseId]
+  );
+  if (clash) throw new ExerciseNameTakenError(fields.name);
+  db.runSync("UPDATE exercises SET name = ?, equipment = ?, type = ?, modality = ? WHERE id = ?", [
+    fields.name,
+    fields.equipment,
+    fields.type,
+    fields.modality,
+    exerciseId,
+  ]);
+}
+
+/** Soft-delete. A hard DELETE would strand `sets` and `session_exercises`,
+ *  which reference exercises(id) without cascade; archiving hides the exercise
+ *  from pickers and leaves the history intact and readable. */
+export function archiveExercise(exerciseId: number): void {
+  db.runSync("UPDATE exercises SET is_archived = 1 WHERE id = ?", [exerciseId]);
+}
+
+export function unarchiveExercise(exerciseId: number): void {
+  db.runSync("UPDATE exercises SET is_archived = 0 WHERE id = ?", [exerciseId]);
+}
+
+/** An exercise's own default config — what gets copied into the snapshot the
+ *  next time this exercise is added to a session. */
 export function getExerciseConfig(exerciseId: number): ExerciseConfig {
-  const row = db.getFirstSync<ExerciseConfig>(
-    "SELECT resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees FROM exercise_config WHERE exercise_id = ?",
+  const row = db.getFirstSync<ConfigRow>(
+    `SELECT ${CONFIG_COLUMN_LIST} FROM exercise_config WHERE exercise_id = ?`,
     [exerciseId]
   );
-  return row ?? DEFAULT_EXERCISE_CONFIG;
+  return rowToConfig(row);
+}
+
+/** Options shared by the two "edit the exercise's defaults" writers. */
+interface PropagationOptions {
+  /** Also rewrite the snapshots of sessions already recorded. Off by default:
+   *  a new default applies going forward, and history stays as it was logged.
+   *  Turned on when the user confirms they're fixing a setting that was wrong
+   *  from the start. */
+  applyToHistory?: boolean;
 }
 
 /** Full replace (UPSERT) of an exercise's default physical configuration. */
-export function updateExerciseConfig(exerciseId: number, config: ExerciseConfig): void {
-  const pulleyType = config.load_type === "pulley" ? config.pulley_type : null;
-  const benchAngle = config.uses_bench ? config.bench_angle_degrees : null;
-  db.runSync(
-    `INSERT INTO exercise_config (exercise_id, resistance_curve, load_type, pulley_type, laterality, rom, uses_bench, bench_angle_degrees)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(exercise_id) DO UPDATE SET
-       resistance_curve = excluded.resistance_curve,
-       load_type = excluded.load_type,
-       pulley_type = excluded.pulley_type,
-       laterality = excluded.laterality,
-       rom = excluded.rom,
-       uses_bench = excluded.uses_bench,
-       bench_angle_degrees = excluded.bench_angle_degrees`,
-    [
-      exerciseId,
-      config.resistance_curve,
-      config.load_type,
-      pulleyType,
-      config.laterality,
-      config.rom,
-      config.uses_bench,
-      benchAngle,
-    ]
-  );
+export function updateExerciseConfig(
+  exerciseId: number,
+  config: ExerciseConfig,
+  options?: PropagationOptions
+): void {
+  const values = configValues(config);
+  db.withTransactionSync(() => {
+    db.runSync(
+      `INSERT INTO exercise_config (exercise_id, ${CONFIG_COLUMN_LIST})
+       VALUES (?, ${CONFIG_PLACEHOLDERS})
+       ON CONFLICT(exercise_id) DO UPDATE SET ${CONFIG_UPSERT_ASSIGNMENTS}`,
+      [exerciseId, ...values]
+    );
+    if (options?.applyToHistory) {
+      db.runSync(
+        `UPDATE session_exercise_config
+         SET ${CONFIG_COLUMNS.map((c) => `${c} = ?`).join(", ")}
+         WHERE session_exercise_id IN (SELECT id FROM session_exercises WHERE exercise_id = ?)`,
+        [...values, exerciseId]
+      );
+    }
+  });
 }
 
-/** Full replace of an exercise's muscle groups — used by the picker's edit UI. */
-export function updateExerciseMuscleGroups(exerciseId: number, muscleGroups: ExerciseMuscleGroup[]): void {
+/** Full replace of an exercise's muscle groups — used by the picker's edit UI
+ *  and the exercise edit screen. */
+export function updateExerciseMuscleGroups(
+  exerciseId: number,
+  muscleGroups: ExerciseMuscleGroup[],
+  options?: PropagationOptions
+): void {
   db.withTransactionSync(() => {
     db.runSync("DELETE FROM exercise_muscle_groups WHERE exercise_id = ?", [exerciseId]);
     for (const { muscle_group, counting_factor } of muscleGroups) {
       db.runSync(
         "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group, counting_factor) VALUES (?, ?, ?)",
         [exerciseId, muscle_group, counting_factor]
+      );
+    }
+    if (options?.applyToHistory) {
+      db.runSync(
+        `DELETE FROM session_exercise_muscle_groups
+         WHERE session_exercise_id IN (SELECT id FROM session_exercises WHERE exercise_id = ?)`,
+        [exerciseId]
+      );
+      db.runSync(
+        `INSERT INTO session_exercise_muscle_groups (session_exercise_id, muscle_group, counting_factor)
+         SELECT se.id, emg.muscle_group, emg.counting_factor
+         FROM session_exercises se
+         JOIN exercise_muscle_groups emg ON emg.exercise_id = se.exercise_id
+         WHERE se.exercise_id = ?`,
+        [exerciseId]
       );
     }
   });
@@ -874,7 +934,9 @@ export function deleteProgram(id: number): void {
       "SELECT id FROM training_programs WHERE split_id = ?",
       [program.split_id]
     ).length;
-    if (split?.modality === "corrida" && siblingCount <= 1) {
+    // Distance splits carry their whole prescription in the program, so deleting
+    // the last one would leave the split with nothing to follow.
+    if (split != null && isDistanceModality(split.modality as Modality) && siblingCount <= 1) {
       throw new Error("CORRIDA_REQUIRES_PROGRAM");
     }
   }
@@ -976,12 +1038,17 @@ export function getSetsInRange(
   startISO: string,
   endISO: string
 ): AnalyticsSetRow[] {
-  // Scalar correlated subquery, not a JOIN against exercise_muscle_groups — a real
+  // Scalar correlated subquery, not a JOIN against the muscle groups — a real
   // JOIN would fan out one row per (set, muscle_group) pair, silently multiplying
   // the volume/weight sums this same row array feeds in useAnalytics.ts.
+  // Reads the per-session snapshot, so muscle frequency reflects how each
+  // exercise was configured when it was logged.
   const rows = db.getAllSync<Omit<AnalyticsSetRow, "muscle_groups"> & { muscle_groups_csv: string | null }>(
     `SELECT st.session_id, s.date, st.exercise_id, e.name AS exercise_name,
-            (SELECT GROUP_CONCAT(emg.muscle_group) FROM exercise_muscle_groups emg WHERE emg.exercise_id = e.id) AS muscle_groups_csv,
+            (SELECT GROUP_CONCAT(sm.muscle_group)
+             FROM session_exercises se
+             JOIN session_exercise_muscle_groups sm ON sm.session_exercise_id = se.id
+             WHERE se.session_id = st.session_id AND se.exercise_id = st.exercise_id) AS muscle_groups_csv,
             st.reps, st.weight_kg, st.distance_km, st.duration_sec, st.pace_sec
      FROM sessions s
      JOIN sets st ON st.session_id = s.id
@@ -1001,20 +1068,24 @@ export function getMuscleSeriesInRange(
   startISO: string,
   endISO: string
 ): MuscleSeriesRaw[] {
-  // Real JOIN against exercise_muscle_groups — the opposite choice from
+  // Real JOIN against the muscle groups — the opposite choice from
   // getSetsInRange above, and deliberately so: here the fan-out of one row per
   // (set, muscle_group) pair is exactly what's wanted, since each muscle
-  // independently earns the exercise's counting_factor for that set. Reflects
-  // the exercise's CURRENT muscle-group/factor configuration across the whole
-  // range, not a historical snapshot of what was configured when each set was
-  // logged (the schema has no per-set snapshot of counting_factor).
+  // independently earns the exercise's counting_factor for that set.
+  //
+  // The join goes through session_exercises to reach the per-session SNAPSHOT
+  // rather than the exercise's current groups: re-weighting an exercise's
+  // counting_factor must not move the series volume of weeks already trained.
+  // session_exercises.UNIQUE(session_id, exercise_id) makes the hop
+  // deterministic, and the v9 backfill guarantees a row for every logged set.
   return db.getAllSync<MuscleSeriesRaw>(
-    `SELECT emg.muscle_group AS muscle_group, SUM(emg.counting_factor) AS total_series
+    `SELECT sm.muscle_group AS muscle_group, SUM(sm.counting_factor) AS total_series
      FROM sessions s
      JOIN sets st ON st.session_id = s.id
-     JOIN exercise_muscle_groups emg ON emg.exercise_id = st.exercise_id
+     JOIN session_exercises se ON se.session_id = st.session_id AND se.exercise_id = st.exercise_id
+     JOIN session_exercise_muscle_groups sm ON sm.session_exercise_id = se.id
      WHERE s.modality = ? AND s.date >= ? AND s.date <= ?
-     GROUP BY emg.muscle_group
+     GROUP BY sm.muscle_group
      ORDER BY total_series DESC`,
     [modality, startISO, endISO]
   );
@@ -1025,17 +1096,18 @@ export function getMuscleSeriesInRange(
  *  the finished-session detail view, both of which already know the session. */
 export function getMuscleSeriesForSession(sessionId: number): MuscleSeriesRaw[] {
   return db.getAllSync<MuscleSeriesRaw>(
-    `SELECT emg.muscle_group AS muscle_group, SUM(emg.counting_factor) AS total_series
+    `SELECT sm.muscle_group AS muscle_group, SUM(sm.counting_factor) AS total_series
      FROM sets st
-     JOIN exercise_muscle_groups emg ON emg.exercise_id = st.exercise_id
+     JOIN session_exercises se ON se.session_id = st.session_id AND se.exercise_id = st.exercise_id
+     JOIN session_exercise_muscle_groups sm ON sm.session_exercise_id = se.id
      WHERE st.session_id = ?
-     GROUP BY emg.muscle_group
+     GROUP BY sm.muscle_group
      ORDER BY total_series DESC`,
     [sessionId]
   );
 }
 
-export function getStrengthRecords(): StrengthRecord[] {
+export function getStrengthRecords(modality: Modality = "musculacao"): StrengthRecord[] {
   return db.getAllSync<StrengthRecord>(
     `SELECT st.exercise_id,
             e.name AS exercise_name,
@@ -1045,44 +1117,50 @@ export function getStrengthRecords(): StrengthRecord[] {
      FROM sets st
      JOIN sessions s ON s.id = st.session_id
      JOIN exercises e ON e.id = st.exercise_id
-     WHERE s.modality = 'musculacao'
+     WHERE s.modality = ?
        AND st.weight_kg > 0
        AND st.weight_kg = (
          SELECT MAX(st2.weight_kg) FROM sets st2
          JOIN sessions s2 ON s2.id = st2.session_id
-         WHERE st2.exercise_id = st.exercise_id AND s2.modality = 'musculacao'
+         WHERE st2.exercise_id = st.exercise_id AND s2.modality = ?
        )
      GROUP BY st.exercise_id
-     ORDER BY max_weight_kg DESC`
+     ORDER BY max_weight_kg DESC`,
+    [modality, modality]
   );
 }
 
-export function getRunningRecords(): RunningRecords {
+/** Records for one distance modality. Values stay canonical (km, seconds-per-km);
+ *  the caller formats them for the modality's display units. */
+export function getDistanceRecords(modality: Modality): DistanceRecords {
   const longestDistance = db.getFirstSync<{ v: number; on: string }>(
     `SELECT st.distance_km AS v, s.date AS "on"
      FROM sets st
      JOIN sessions s ON s.id = st.session_id
-     WHERE s.modality = 'corrida' AND st.distance_km IS NOT NULL AND st.distance_km > 0
+     WHERE s.modality = ? AND st.distance_km IS NOT NULL AND st.distance_km > 0
      ORDER BY st.distance_km DESC
-     LIMIT 1`
+     LIMIT 1`,
+    [modality]
   );
 
   const fastestPace = db.getFirstSync<{ v: number; on: string }>(
     `SELECT st.pace_sec AS v, s.date AS "on"
      FROM sets st
      JOIN sessions s ON s.id = st.session_id
-     WHERE s.modality = 'corrida' AND st.pace_sec IS NOT NULL AND st.pace_sec > 0
+     WHERE s.modality = ? AND st.pace_sec IS NOT NULL AND st.pace_sec > 0
      ORDER BY st.pace_sec ASC
-     LIMIT 1`
+     LIMIT 1`,
+    [modality]
   );
 
   const longestDuration = db.getFirstSync<{ v: number; on: string }>(
     `SELECT st.duration_sec AS v, s.date AS "on"
      FROM sets st
      JOIN sessions s ON s.id = st.session_id
-     WHERE s.modality = 'corrida' AND st.duration_sec IS NOT NULL AND st.duration_sec > 0
+     WHERE s.modality = ? AND st.duration_sec IS NOT NULL AND st.duration_sec > 0
      ORDER BY st.duration_sec DESC
-     LIMIT 1`
+     LIMIT 1`,
+    [modality]
   );
 
   return {

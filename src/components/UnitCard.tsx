@@ -3,7 +3,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { Modality, RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { modalityConfig } from "@/data/modalities";
-import { NumField, RunTargetFields } from "@/components/TargetFields";
+import { DistanceTargetFields, NumField } from "@/components/TargetFields";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 
 interface Props {
@@ -92,8 +92,9 @@ export function UnitCard({
       {isDistance ? (
         exercises[0] && (
           <View className="px-4 pb-4">
-            <RunTargetFields
+            <DistanceTargetFields
               value={exercises[0]}
+              modality={modality}
               onChange={(patch) => onUpdateTargets(exercises[0].id, patch)}
             />
           </View>

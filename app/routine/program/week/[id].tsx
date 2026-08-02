@@ -4,7 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRoutine } from "@/hooks/useRoutine";
-import { NumField, RunTargetFields } from "@/components/TargetFields";
+import { DistanceTargetFields, NumField } from "@/components/TargetFields";
+import { isDistanceModality } from "@/data/modalities";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { mergedTarget } from "@/utils/programEntry";
 import { currentProgramWeekNumber } from "@/utils/cycle";
@@ -78,7 +79,7 @@ export default function EditProgramWeekScreen() {
     });
   };
 
-  const isDistance = split.modality === "corrida";
+  const isDistance = isDistanceModality(split.modality);
 
   const currentWeekNumber = !isWizard ? currentProgramWeekNumber(program.started_at, program.total_weeks) : null;
   const isCurrentWeek = currentWeekNumber === week.week_number;
@@ -181,7 +182,7 @@ export default function EditProgramWeekScreen() {
                       )}
                     </View>
                     {isDistance ? (
-                      <RunTargetFields value={value} onChange={(patch) => handleChange(unit.id, ex, patch)} />
+                      <DistanceTargetFields value={value} modality={split.modality} onChange={(patch) => handleChange(unit.id, ex, patch)} />
                     ) : (
                       <View className="flex-row items-center flex-wrap" style={{ gap: 8 }}>
                         <NumField
