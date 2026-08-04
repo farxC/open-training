@@ -44,16 +44,14 @@ export function formatMuscleSeriesValue(row: MuscleSeriesRow): string {
   return formatSeriesNumber(row.value, row.isAverage);
 }
 
-/** Series count with its unit: "12 séries" for a raw total, "10.2 séries/sem"
- *  for a weekly average. */
-export function formatSeriesLabel(value: number, isAverage: boolean): string {
-  const number = formatSeriesNumber(value, isAverage);
-  if (isAverage) return `${number} séries/sem`;
-  return `${number} ${number === "1" ? "série" : "séries"}`;
+/** The bare frequency number, for layouts that set the unit in its own type. */
+export function formatFrequencyNumber(value: number, isAverage: boolean): string {
+  return isAverage ? value.toFixed(1) : String(value);
 }
 
-/** Training frequency: "2×" for a raw session count in one week, "2.0×/sem" for
- *  an average across the window. */
-export function formatFrequencyLabel(value: number, isAverage: boolean): string {
-  return isAverage ? `${value.toFixed(1)}×/sem` : `${value}×`;
+/** The unit that follows a series number, split out so the number can carry the
+ *  display weight and the unit sit quietly beside it. */
+export function seriesUnit(value: number, isAverage: boolean): string {
+  if (isAverage) return "séries/sem";
+  return formatSeriesNumber(value, false) === "1" ? "série" : "séries";
 }
