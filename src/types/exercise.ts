@@ -9,6 +9,7 @@ export type MuscleGroup =
   | "femoral"
   | "glutes"
   | "calves"
+  | "adductor"
   | "core"
   | "cardio"
   | "full_body";

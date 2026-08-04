@@ -9,6 +9,7 @@ export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   triceps: "Triceps",
   legs: "Legs",
   femoral: "Femoral",
+  adductor: "Adductor",
   glutes: "Glutes",
   calves: "Calves",
   core: "Core",
@@ -21,7 +22,7 @@ export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
 // Rowing Machine, …) but isn't something you'd assign by hand, and endurance
 // modalities carry no muscle groups at all.
 export const MUSCLE_OPTIONS: MuscleGroup[] = [
-  "chest", "back", "traps", "shoulders", "biceps", "triceps", "legs", "femoral", "glutes", "calves",
+  "chest", "back", "traps", "shoulders", "biceps", "triceps", "legs", "femoral","adductor", "glutes", "calves",
   "core", "full_body",
 ];
 

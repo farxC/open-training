@@ -3,7 +3,7 @@
 // something to chase — the next plate milestone, how cold it's gone, what rank it
 // holds in its group.
 
-import type { DateRange, ExerciseDailyMax, StrengthRecord } from "@/types";
+import type { DateRange, ExerciseDailyMax, MuscleGroup, StrengthRecord } from "@/types";
 import type { MuscleRecordGroup } from "@/utils/analyticsRecords";
 import { daysBetween } from "@/utils/cycle";
 
@@ -212,8 +212,9 @@ export function medalFor(rank: number): Medal | null {
 }
 
 /** Two-letter monogram for a muscle group, stamped into the shelf tile. Explicit
- *  rather than sliced from the label so Back and Biceps don't collide. */
-const MONOGRAMS: Record<string, string> = {
+ *  rather than sliced from the label so Back and Biceps don't collide. Exhaustive
+ *  over MuscleGroup so a new group can't ship without one. */
+const MONOGRAMS: Record<MuscleGroup, string> = {
   chest: "CH",
   back: "BK",
   traps: "TP",
@@ -224,11 +225,15 @@ const MONOGRAMS: Record<string, string> = {
   femoral: "FM",
   glutes: "GL",
   calves: "CV",
+  adductor: "AD",
   core: "CR",
   cardio: "CD",
   full_body: "FB",
 };
 
+/** Takes a plain string, not a MuscleGroup: callers hand over keys straight from
+ *  query rows, and the records accordion also files under UNGROUPED_KEY. Those
+ *  fall through to the label slice — same shape as muscleGroupLabel. */
 export function monogramFor(muscleGroup: string, label: string): string {
-  return MONOGRAMS[muscleGroup] ?? label.slice(0, 2).toUpperCase();
+  return MONOGRAMS[muscleGroup as MuscleGroup] ?? label.slice(0, 2).toUpperCase();
 }
