@@ -25,6 +25,7 @@ export type {
   StrengthSummary,
   DistanceSummary,
   StrengthRecord,
+  ExerciseDailyMax,
   DistanceRecords,
   Delta,
   MuscleSeriesRaw,

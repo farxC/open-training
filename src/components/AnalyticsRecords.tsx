@@ -11,6 +11,7 @@ import {
 } from "@/data/modalities";
 import type { DateRange, DistanceRecords, Modality } from "@/types";
 import type { MuscleRecordGroup } from "@/utils/analyticsRecords";
+import { achievedInRange } from "@/utils/recordsGamification";
 
 interface Props {
   modality: Modality;
@@ -19,10 +20,8 @@ interface Props {
   distanceRecords: DistanceRecords;
   /** The active window — badges records achieved within it as "NOVO". */
   currentRange: DateRange;
-}
-
-function achievedInRange(dateISO: string | null, range: DateRange): boolean {
-  return dateISO != null && dateISO >= range.start && dateISO <= range.end;
+  /** Exercises whose load has climbed repeatedly of late — the "QUENTE" stamp. */
+  hotExercises: ReadonlySet<number>;
 }
 
 function formatBrazilianDateFormat (date: string | null): string{
@@ -82,6 +81,7 @@ export function AnalyticsRecords({
   recordsByGroup,
   distanceRecords,
   currentRange,
+  hotExercises,
 }: Props) {
   const isStrength = targetKindOf(modality) === "strength";
 
@@ -89,7 +89,11 @@ export function AnalyticsRecords({
     <View>
       <SectionHeader title="Records" />
       {isStrength ? (
-        <RecordsByMuscleGroup groups={recordsByGroup} currentRange={currentRange} />
+        <RecordsByMuscleGroup
+          groups={recordsByGroup}
+          currentRange={currentRange}
+          hotExercises={hotExercises}
+        />
       ) : (
         (() => {
           const cards = buildDistanceCards(distanceRecords, modality, currentRange);

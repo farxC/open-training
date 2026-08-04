@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   getDistanceRecords,
+  getExerciseDailyMaxes,
   getMuscleSeriesInRange,
   getSessionDatesByModality,
   getSetsInRange,
@@ -33,6 +34,7 @@ import {
   weeklyMuscleFrequency,
 } from "@/utils/analyticsAgg";
 import { groupRecordsByMuscle } from "@/utils/analyticsRecords";
+import { hotExerciseIds } from "@/utils/recordsGamification";
 import { todayISO } from "@/utils/cycle";
 import {
   analysisComparisonLabel,
@@ -42,6 +44,7 @@ import {
   trendBuckets,
 } from "@/utils/periods";
 
+const EMPTY_HOT: ReadonlySet<number> = new Set();
 const ZERO_STRENGTH: StrengthSummary = { volume: 0, sessionCount: 0 };
 const ZERO_DISTANCE: DistanceSummary = { distance: 0, runCount: 0, totalDuration: 0, avgPaceSec: null };
 const EMPTY_DISTANCE_RECORDS: DistanceRecords = {
@@ -87,6 +90,9 @@ export interface AnalyticsView {
   dayBreakdown: (dateISO: string) => DayExerciseBreakdown[];
   /** Records grouped by the exercise's current muscle groups; strength only. */
   recordsByGroup: MuscleRecordGroup[];
+  /** Exercise ids whose load has climbed repeatedly in the recent window —
+   *  drives the "QUENTE" stamp on a record. Empty for distance modalities. */
+  hotExercises: ReadonlySet<number>;
   distanceRecords: DistanceRecords;
   /** Series (sum of counting_factor) per muscle group over the window. Populated
    *  only for the strength category; empty for endurance. Raw weekly totals at
@@ -135,6 +141,7 @@ export function useAnalytics(): AnalyticsView {
     let distanceCurrent = ZERO_DISTANCE;
     let distancePrevious = ZERO_DISTANCE;
     let recordsByGroup: MuscleRecordGroup[] = [];
+    let hotExercises: ReadonlySet<number> = EMPTY_HOT;
     let distanceRecords: DistanceRecords = EMPTY_DISTANCE_RECORDS;
     let muscleFreq: MuscleFrequencyRow[] = [];
     let muscleSeries: MuscleSeriesRow[] = [];
@@ -146,6 +153,9 @@ export function useAnalytics(): AnalyticsView {
       const volumes = bucketSum(sets, buckets, (s) => s.reps * s.weight_kg);
       trend = buckets.map((b, i) => ({ label: b.label, value: volumes[i] }));
       recordsByGroup = groupRecordsByMuscle(getStrengthRecords(modality));
+      // Needs every load ever logged, not just the window: a lift only counts as
+      // climbing if today's weight beats all of its history, not the last month of it.
+      hotExercises = hotExerciseIds(getExerciseDailyMaxes(modality), today);
     } else {
       distanceCurrent = sumDistance(curSets);
       distancePrevious = sumDistance(prevSets);
@@ -184,6 +194,7 @@ export function useAnalytics(): AnalyticsView {
       dayBars: bars,
       dayBreakdown: (dateISO: string) => dayBreakdown(curSets, dateISO),
       recordsByGroup,
+      hotExercises,
       distanceRecords,
       muscleFreq,
       muscleSeries,

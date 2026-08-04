@@ -13,11 +13,13 @@ export interface MuscleRecordGroup {
 }
 
 /**
- * Files each record under every muscle group its exercise trains — a bench press
- * tagged chest+triceps shows up in both, since either is a legitimate place to
- * look for it. Groups come back ordered by how many records they hold, records
- * within a group by weight; a record with no group lands in UNGROUPED_KEY, which
- * always sorts last so it never leads the list.
+ * Files each record under every group it carries. Which groups those are is the
+ * query's call, not this function's: getStrengthRecords hands over only the ones
+ * an exercise emphasises most, so a bench press tagged chest 1× / triceps ½×
+ * arrives as chest alone. A movement genuinely split across two groups still
+ * arrives with both and is filed under both. Groups come back ordered by how
+ * many records they hold, records within a group by weight; a record with no
+ * group lands in UNGROUPED_KEY, which always sorts last so it never leads.
  */
 export function groupRecordsByMuscle(records: StrengthRecord[]): MuscleRecordGroup[] {
   const byGroup = new Map<string, StrengthRecord[]>();

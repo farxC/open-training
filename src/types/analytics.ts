@@ -84,10 +84,21 @@ export interface StrengthRecord {
   max_weight_kg: number;
   reps_at_max: number;
   achieved_on: string; // 'YYYY-MM-DD' — enables the "NOVO" badge
-  /** The exercise's muscle groups as configured NOW (not the per-session
-   *  snapshot): an all-time record belongs under the group the exercise
-   *  currently trains. Drives the records accordion. */
+  /** The groups this exercise emphasises most, as configured NOW (not the
+   *  per-session snapshot): an all-time record belongs under the group the
+   *  exercise currently trains. Secondary groups — a bench press's ½× triceps —
+   *  are left out, so a shelf only holds lifts you would look for there.
+   *  Drives the records accordion. */
   muscle_groups: string[];
+}
+
+/** The heaviest set an exercise saw on one day. A full timeline of these is what
+ *  separates a lift that is climbing from one that set a record and stalled —
+ *  StrengthRecord only carries the all-time best, which can't tell them apart. */
+export interface ExerciseDailyMax {
+  exercise_id: number;
+  date: string; // 'YYYY-MM-DD'
+  max_weight_kg: number;
 }
 
 /** Personal records for one distance modality. `fastest_pace_sec` is canonical

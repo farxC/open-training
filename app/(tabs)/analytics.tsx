@@ -26,6 +26,7 @@ export default function AnalyticsScreen() {
     dayBars,
     dayBreakdown,
     recordsByGroup,
+    hotExercises,
     distanceRecords,
     muscleFreq,
     muscleSeries,
@@ -136,6 +137,7 @@ export default function AnalyticsScreen() {
             <AnalyticsRecords
               modality={modality}
               recordsByGroup={recordsByGroup}
+              hotExercises={hotExercises}
               distanceRecords={distanceRecords}
               currentRange={analysisWindow.range}
             />
