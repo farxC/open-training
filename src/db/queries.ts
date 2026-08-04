@@ -1038,7 +1038,7 @@ export function getSetsInRange(
   startISO: string,
   endISO: string
 ): AnalyticsSetRow[] {
-  // Scalar correlated subquery, not a JOIN against the muscle groups — a real
+  // Scalar correlated subqueries, not JOINs against the muscle groups — a real
   // JOIN would fan out one row per (set, muscle_group) pair, silently multiplying
   // the volume/weight sums this same row array feeds in useAnalytics.ts.
   // Reads the per-session snapshot, so muscle frequency reflects how each
@@ -1049,6 +1049,9 @@ export function getSetsInRange(
              FROM session_exercises se
              JOIN session_exercise_muscle_groups sm ON sm.session_exercise_id = se.id
              WHERE se.session_id = st.session_id AND se.exercise_id = st.exercise_id) AS muscle_groups_csv,
+            (SELECT se2."order"
+             FROM session_exercises se2
+             WHERE se2.session_id = st.session_id AND se2.exercise_id = st.exercise_id) AS exercise_order,
             st.reps, st.weight_kg, st.distance_km, st.duration_sec, st.pace_sec
      FROM sessions s
      JOIN sets st ON st.session_id = s.id
@@ -1108,12 +1111,21 @@ export function getMuscleSeriesForSession(sessionId: number): MuscleSeriesRaw[] 
 }
 
 export function getStrengthRecords(modality: Modality = "musculacao"): StrengthRecord[] {
-  return db.getAllSync<StrengthRecord>(
+  // muscle_groups comes from a scalar subquery for the same reason getSetsInRange
+  // uses one: joining the groups would emit a row per (record, muscle_group) pair
+  // and break the one-row-per-exercise contract this function's callers rely on.
+  // It reads exercise_muscle_groups (the exercise's CURRENT config) rather than the
+  // per-session snapshot — an all-time record belongs under the group the exercise
+  // trains today, not under whatever it was tagged as on the day it was set.
+  const rows = db.getAllSync<Omit<StrengthRecord, "muscle_groups"> & { muscle_groups_csv: string | null }>(
     `SELECT st.exercise_id,
             e.name AS exercise_name,
             st.weight_kg AS max_weight_kg,
             st.reps AS reps_at_max,
-            s.date AS achieved_on
+            s.date AS achieved_on,
+            (SELECT GROUP_CONCAT(emg.muscle_group)
+             FROM exercise_muscle_groups emg
+             WHERE emg.exercise_id = st.exercise_id) AS muscle_groups_csv
      FROM sets st
      JOIN sessions s ON s.id = st.session_id
      JOIN exercises e ON e.id = st.exercise_id
@@ -1128,6 +1140,10 @@ export function getStrengthRecords(modality: Modality = "musculacao"): StrengthR
      ORDER BY max_weight_kg DESC`,
     [modality, modality]
   );
+  return rows.map(({ muscle_groups_csv, ...rest }) => ({
+    ...rest,
+    muscle_groups: muscle_groups_csv ? muscle_groups_csv.split(",") : [],
+  }));
 }
 
 /** Records for one distance modality. Values stay canonical (km, seconds-per-km);

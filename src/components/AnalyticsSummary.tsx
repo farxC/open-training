@@ -6,11 +6,14 @@ import type { DistanceSummary, Modality, StrengthSummary } from "@/types";
 import { delta } from "@/utils/analyticsAgg";
 import { formatCount, formatDeltaText, formatVolume } from "@/utils/analyticsFormat";
 
-type Props =
+type Props = { comparisonLabel: string } & (
   | { kind: "strength"; modality: Modality; current: StrengthSummary; previous: StrengthSummary }
-  | { kind: "distance"; modality: Modality; current: DistanceSummary; previous: DistanceSummary };
+  | { kind: "distance"; modality: Modality; current: DistanceSummary; previous: DistanceSummary }
+);
 
-/** The "vs período anterior" hero: 3 ComparisonTiles for the active modality. */
+/** The comparison hero: ComparisonTiles for the active modality, plus a caption
+ *  naming the two windows being compared — "últimas 4 semanas vs 4 anteriores"
+ *  says more than a generic "vs período anterior" once the window is rolling. */
 export function AnalyticsSummary(props: Props) {
   return (
     <View>
@@ -23,7 +26,7 @@ export function AnalyticsSummary(props: Props) {
         )}
       </View>
       <Text className="text-ink-mute" style={{ fontSize: 10, marginTop: 6 }}>
-        vs período anterior
+        {props.comparisonLabel}
       </Text>
     </View>
   );
@@ -40,7 +43,6 @@ function StrengthTiles({
 }) {
   const volumeDelta = delta(current.volume, previous.volume, true);
   const sessionDelta = delta(current.sessionCount, previous.sessionCount, true);
-  const maxWeightDelta = delta(current.maxWeight, previous.maxWeight, true);
 
   return (
     <>
@@ -55,12 +57,6 @@ function StrengthTiles({
         value={formatCount(current.sessionCount)}
         deltaText={formatDeltaText(sessionDelta, "count")}
         better={sessionDelta.better}
-      />
-      <ComparisonTile
-        label="Carga máx"
-        value={`${current.maxWeight} kg`}
-        deltaText={formatDeltaText(maxWeightDelta, "percent")}
-        better={maxWeightDelta.better}
       />
     </>
   );

@@ -23,6 +23,17 @@ const DEFAULT_COUNT: Record<Granularity, number> = {
   year: 4,
 };
 
+/** How many weeks each granularity's analysis window spans. Everything on the
+ *  analytics screen — summary, per-day bars, muscle series, muscle frequency —
+ *  is measured over this same window, so the numbers on screen always describe
+ *  one period. */
+const WINDOW_WEEKS: Record<Granularity, number> = {
+  week: 1,
+  month: 4,
+  semester: 26,
+  year: 52,
+};
+
 /** Parses a local 'YYYY-MM-DD' string into its integer year/month(1-based)/day parts. */
 function parseISO(iso: string): { year: number; month: number; day: number } {
   const [year, month, day] = iso.split("-").map(Number);
@@ -154,21 +165,72 @@ function addMonths_asISO(year: number, month: number, day: number, n: number): s
   return formatISO(y, m, Math.min(day, daysInMonth(y, m)));
 }
 
-/**
- * All Monday-start weeks whose Monday falls within [start, end] (inclusive),
- * in chronological order. Each week is returned as its own natural Mon–Sun
- * range — NOT clipped to [start, end] — so the last week of a period that
- * spills into the next one still contributes its full 7 days, matching the
- * weekly-bucket convention trendBuckets() already uses elsewhere.
- */
-export function weeksInRange(start: string, end: string): DateRange[] {
+/** `count` consecutive Mon–Sun weeks ending with the week whose Monday is
+ *  `lastMondayISO`, in chronological order. */
+function weeksEndingAt(lastMondayISO: string, count: number): DateRange[] {
   const weeks: DateRange[] = [];
-  let weekStart = mondayOnOrBeforeISO(start);
-  while (weekStart <= end) {
-    weeks.push({ start: weekStart, end: addDays(weekStart, 6) });
-    weekStart = addDays(weekStart, 7);
+  for (let back = count - 1; back >= 0; back--) {
+    const start = addDays(lastMondayISO, -7 * back);
+    weeks.push({ start, end: addDays(start, 6) });
   }
   return weeks;
+}
+
+/**
+ * The Mon–Sun weeks that make up the analysis window for `g`, chronological.
+ *
+ * "week" is the week containing refISO, returned whole (Mon–Sun) even when part
+ * of it is still in the future — that's the one view where an in-progress week
+ * is the point. Every other granularity returns its last N *complete* weeks,
+ * ending on the Sunday before refISO's own Monday: including a partial week
+ * would silently deflate every per-week average (on a Tuesday it contributes
+ * roughly one session out of four).
+ *
+ * Never returns an empty array.
+ */
+export function analysisWeeks(g: Granularity, refISO: string): DateRange[] {
+  const thisMonday = mondayOnOrBeforeISO(refISO);
+  if (g === "week") return weeksEndingAt(thisMonday, 1);
+  return weeksEndingAt(addDays(thisMonday, -7), WINDOW_WEEKS[g]);
+}
+
+/** The full span covered by analysisWeeks(): first Monday → last Sunday. */
+export function analysisRange(g: Granularity, refISO: string): DateRange {
+  const weeks = analysisWeeks(g, refISO);
+  return { start: weeks[0].start, end: weeks[weeks.length - 1].end };
+}
+
+/** The N weeks immediately before the analysis window — the "vs período
+ *  anterior" baseline, same width as the window it's compared against. */
+export function previousAnalysisRange(g: Granularity, refISO: string): DateRange {
+  const window = analysisRange(g, refISO);
+  const count = WINDOW_WEEKS[g];
+  const prevWeeks = weeksEndingAt(addDays(window.start, -7), count);
+  return { start: prevWeeks[0].start, end: prevWeeks[prevWeeks.length - 1].end };
+}
+
+function dayMonthLabel(iso: string, withYear: boolean): string {
+  const { year, month, day } = parseISO(iso);
+  const dayMonth = `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`;
+  return withYear ? `${dayMonth}/${String(year).slice(-2)}` : dayMonth;
+}
+
+/** Caption describing an analysis window, e.g. "últimas 4 semanas · 06/07 – 02/08"
+ *  or "semana atual · 03/08 – 09/08". A window spanning two calendar years shows
+ *  the year too — "04/08 – 02/08" alone reads like a range running backwards. */
+export function analysisWindowLabel(g: Granularity, weeks: DateRange[]): string {
+  const start = weeks[0].start;
+  const end = weeks[weeks.length - 1].end;
+  const withYear = parseISO(start).year !== parseISO(end).year;
+  const span = `${dayMonthLabel(start, withYear)} – ${dayMonthLabel(end, withYear)}`;
+  if (g === "week") return `semana atual · ${span}`;
+  return `últimas ${weeks.length} semanas · ${span}`;
+}
+
+/** Caption for the summary's comparison, e.g. "últimas 4 semanas vs 4 anteriores". */
+export function analysisComparisonLabel(g: Granularity, weekCount: number): string {
+  if (g === "week") return "semana atual vs semana anterior";
+  return `últimas ${weekCount} semanas vs ${weekCount} anteriores`;
 }
 
 export function trendBuckets(g: Granularity, refISO: string, count?: number): TrendBucket[] {

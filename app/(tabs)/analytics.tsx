@@ -3,15 +3,14 @@ import { useCallback } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AnalyticsFilters } from "@/components/AnalyticsFilters";
+import { AnalyticsMuscleBreakdown } from "@/components/AnalyticsMuscleBreakdown";
 import { AnalyticsRecords } from "@/components/AnalyticsRecords";
 import { AnalyticsSummary } from "@/components/AnalyticsSummary";
 import { AnalyticsTrend } from "@/components/AnalyticsTrend";
-import { MuscleFrequencyChart } from "@/components/MuscleFrequencyChart";
-import { MuscleSeriesChart } from "@/components/MuscleSeriesChart";
-import { SectionHeader } from "@/components/SectionHeader";
 import { StreakBadge } from "@/components/StreakBadge";
 import { isStrengthCategory, targetKindOf } from "@/data/modalities";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { todayISO } from "@/utils/cycle";
 
 export default function AnalyticsScreen() {
   const {
@@ -24,13 +23,15 @@ export default function AnalyticsScreen() {
     distanceCurrent,
     distancePrevious,
     trend,
-    strengthRecords,
+    dayBars,
+    dayBreakdown,
+    recordsByGroup,
     distanceRecords,
     muscleFreq,
     muscleSeries,
     streak,
     streakDates,
-    currentRange,
+    analysisWindow,
     refresh,
   } = useAnalytics();
 
@@ -44,6 +45,9 @@ export default function AnalyticsScreen() {
   // and whether muscle-group breakdowns mean anything here (training type).
   const isStrengthMetric = targetKindOf(modality) === "strength";
   const tracksMuscles = isStrengthCategory(modality);
+  // The bar chart only earns its space as per-day bars, or as the long-view
+  // fallback for modalities with no muscle breakdown to show instead.
+  const showChart = granularity === "week" || !tracksMuscles;
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
@@ -93,6 +97,7 @@ export default function AnalyticsScreen() {
               modality={modality}
               current={strengthCurrent}
               previous={strengthPrevious}
+              comparisonLabel={analysisWindow.comparisonLabel}
             />
           ) : (
             <AnalyticsSummary
@@ -100,35 +105,41 @@ export default function AnalyticsScreen() {
               modality={modality}
               current={distanceCurrent}
               previous={distancePrevious}
+              comparisonLabel={analysisWindow.comparisonLabel}
             />
           )}
 
-          <View style={{ marginTop: 28 }}>
-            <AnalyticsTrend modality={modality} granularity={granularity} trend={trend} />
-          </View>
+          {showChart && (
+            <View style={{ marginTop: 28 }}>
+              <AnalyticsTrend
+                modality={modality}
+                granularity={granularity}
+                trend={trend}
+                dayBars={dayBars}
+                dayBreakdown={dayBreakdown}
+                todayISO={todayISO()}
+              />
+            </View>
+          )}
+
+          {tracksMuscles && (
+            <View style={{ marginTop: 28 }}>
+              <AnalyticsMuscleBreakdown
+                series={muscleSeries}
+                frequency={muscleFreq}
+                caption={analysisWindow.label}
+              />
+            </View>
+          )}
 
           <View style={{ marginTop: 28 }}>
             <AnalyticsRecords
               modality={modality}
-              strengthRecords={strengthRecords}
+              recordsByGroup={recordsByGroup}
               distanceRecords={distanceRecords}
-              currentRange={currentRange}
+              currentRange={analysisWindow.range}
             />
           </View>
-
-          {tracksMuscles && (
-            <View style={{ marginTop: 28 }}>
-              <SectionHeader title="Grupos musculares" />
-              <MuscleFrequencyChart data={muscleFreq} />
-            </View>
-          )}
-
-          {tracksMuscles && (
-            <View style={{ marginTop: 28 }}>
-              <SectionHeader title="Séries por grupo muscular" />
-              <MuscleSeriesChart data={muscleSeries} />
-            </View>
-          )}
         </View>
       </ScrollView>
     </SafeAreaView>

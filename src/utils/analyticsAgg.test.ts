@@ -3,10 +3,13 @@ import {
   averageMuscleSeriesPerWeek,
   bucketSum,
   computeStreak,
+  dayBars,
+  dayBreakdown,
   delta,
   sumDistance,
   sumStrength,
   toMuscleSeriesRows,
+  weeklyMuscleFrequency,
 } from "./analyticsAgg";
 
 function strengthRow(overrides: Partial<AnalyticsSetRow> = {}): AnalyticsSetRow {
@@ -15,7 +18,8 @@ function strengthRow(overrides: Partial<AnalyticsSetRow> = {}): AnalyticsSetRow 
     date: "2026-07-01",
     exercise_id: 1,
     exercise_name: "Supino",
-    muscle_groups: ["peito"],
+    muscle_groups: ["chest"],
+    exercise_order: null,
     reps: 10,
     weight_kg: 20,
     distance_km: null,
@@ -26,7 +30,7 @@ function strengthRow(overrides: Partial<AnalyticsSetRow> = {}): AnalyticsSetRow 
 }
 
 describe("sumStrength", () => {
-  it("sums volume as reps * weight_kg, counts distinct sessions, and finds max weight", () => {
+  it("sums volume as reps * weight_kg and counts distinct sessions", () => {
     const sets = [
       strengthRow({ session_id: 1, reps: 10, weight_kg: 20 }), // 200
       strengthRow({ session_id: 1, reps: 8, weight_kg: 25 }), // 200
@@ -35,11 +39,10 @@ describe("sumStrength", () => {
     const summary = sumStrength(sets);
     expect(summary.volume).toBe(600);
     expect(summary.sessionCount).toBe(2);
-    expect(summary.maxWeight).toBe(40);
   });
 
   it("returns zeros for an empty array", () => {
-    expect(sumStrength([])).toEqual({ volume: 0, sessionCount: 0, maxWeight: 0 });
+    expect(sumStrength([])).toEqual({ volume: 0, sessionCount: 0 });
   });
 });
 
@@ -141,6 +144,164 @@ describe("bucketSum", () => {
 
   it("returns an array aligned to an empty buckets list", () => {
     expect(bucketSum([strengthRow()], [], (s) => s.reps)).toEqual([]);
+  });
+});
+
+describe("dayBars", () => {
+  // 2026-07-06 is a Monday.
+  const week = { start: "2026-07-06", end: "2026-07-12" };
+  const volume = (s: AnalyticsSetRow) => s.reps * s.weight_kg;
+
+  it("always returns seven Mon-Sun bars, labelled S T Q Q S S D", () => {
+    const bars = dayBars([], week, volume);
+    expect(bars).toHaveLength(7);
+    expect(bars.map((b) => b.label)).toEqual(["S", "T", "Q", "Q", "S", "S", "D"]);
+    expect(bars.map((b) => b.dateISO)).toEqual([
+      "2026-07-06",
+      "2026-07-07",
+      "2026-07-08",
+      "2026-07-09",
+      "2026-07-10",
+      "2026-07-11",
+      "2026-07-12",
+    ]);
+  });
+
+  it("sums the picked value per day and keeps rest days as empty slots", () => {
+    const sets = [
+      strengthRow({ date: "2026-07-06", reps: 10, weight_kg: 20 }), // 200
+      strengthRow({ date: "2026-07-06", reps: 5, weight_kg: 20 }), // 100
+      strengthRow({ date: "2026-07-08", reps: 10, weight_kg: 10 }), // 100
+    ];
+    const bars = dayBars(sets, week, volume);
+    expect(bars.map((b) => b.value)).toEqual([300, 0, 100, 0, 0, 0, 0]);
+    expect(bars.map((b) => b.hasData)).toEqual([true, false, true, false, false, false, false]);
+  });
+
+  it("marks a day with sets but zero value as having data", () => {
+    const sets = [strengthRow({ date: "2026-07-07", reps: 10, weight_kg: 0 })];
+    const bars = dayBars(sets, week, volume);
+    expect(bars[1]).toEqual({ dateISO: "2026-07-07", label: "T", value: 0, hasData: true });
+  });
+
+  it("ignores sets outside the week", () => {
+    const sets = [
+      strengthRow({ date: "2026-07-05", reps: 10, weight_kg: 100 }),
+      strengthRow({ date: "2026-07-13", reps: 10, weight_kg: 100 }),
+    ];
+    expect(dayBars(sets, week, volume).every((b) => !b.hasData)).toBe(true);
+  });
+
+  it("picks distance for endurance modalities", () => {
+    const sets = [
+      strengthRow({ date: "2026-07-09", distance_km: 5 }),
+      strengthRow({ date: "2026-07-09", distance_km: 3 }),
+    ];
+    const bars = dayBars(sets, week, (s) => s.distance_km ?? 0);
+    expect(bars[3].value).toBe(8);
+  });
+});
+
+describe("dayBreakdown", () => {
+  it("groups sets by exercise, counting sets and summing volume", () => {
+    const sets = [
+      strengthRow({ exercise_id: 1, exercise_name: "Supino", exercise_order: 0, reps: 10, weight_kg: 20 }),
+      strengthRow({ exercise_id: 1, exercise_name: "Supino", exercise_order: 0, reps: 8, weight_kg: 20 }),
+      strengthRow({ exercise_id: 2, exercise_name: "Remada", exercise_order: 1, reps: 10, weight_kg: 30 }),
+    ];
+    expect(dayBreakdown(sets, "2026-07-01")).toEqual([
+      {
+        exercise_id: 1,
+        exercise_name: "Supino",
+        setCount: 2,
+        volume: 360,
+        distanceKm: null,
+        durationSec: null,
+        order: 0,
+      },
+      {
+        exercise_id: 2,
+        exercise_name: "Remada",
+        setCount: 1,
+        volume: 300,
+        distanceKm: null,
+        durationSec: null,
+        order: 1,
+      },
+    ]);
+  });
+
+  it("orders by exercise_order, with unordered exercises last, ranked by volume", () => {
+    const sets = [
+      strengthRow({ exercise_id: 3, exercise_name: "Sem ordem leve", exercise_order: null, reps: 1, weight_kg: 1 }),
+      strengthRow({ exercise_id: 4, exercise_name: "Sem ordem pesado", exercise_order: null, reps: 10, weight_kg: 50 }),
+      strengthRow({ exercise_id: 2, exercise_name: "Segundo", exercise_order: 5 }),
+      strengthRow({ exercise_id: 1, exercise_name: "Primeiro", exercise_order: 2 }),
+    ];
+    expect(dayBreakdown(sets, "2026-07-01").map((r) => r.exercise_name)).toEqual([
+      "Primeiro",
+      "Segundo",
+      "Sem ordem pesado",
+      "Sem ordem leve",
+    ]);
+  });
+
+  it("ignores other days and sums distance/duration only where present", () => {
+    const sets = [
+      strengthRow({ date: "2026-07-01", exercise_id: 1, distance_km: 5, duration_sec: 1200 }),
+      strengthRow({ date: "2026-07-01", exercise_id: 1, distance_km: 3, duration_sec: null }),
+      strengthRow({ date: "2026-07-02", exercise_id: 1, distance_km: 99 }),
+    ];
+    const rows = dayBreakdown(sets, "2026-07-01");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].distanceKm).toBe(8);
+    expect(rows[0].durationSec).toBe(1200);
+  });
+
+  it("returns an empty array for a day with no sets", () => {
+    expect(dayBreakdown([strengthRow({ date: "2026-07-01" })], "2026-07-02")).toEqual([]);
+  });
+});
+
+describe("weeklyMuscleFrequency", () => {
+  it("counts distinct sessions per muscle group, raw, for a single week", () => {
+    const sets = [
+      strengthRow({ session_id: 1, muscle_groups: ["chest", "triceps"] }),
+      strengthRow({ session_id: 1, muscle_groups: ["chest"] }), // same session, no double count
+      strengthRow({ session_id: 2, muscle_groups: ["chest"] }),
+    ];
+    expect(weeklyMuscleFrequency(sets, 1)).toEqual([
+      { muscle_group: "chest", value: 2, weeks: 1, isAverage: false },
+      { muscle_group: "triceps", value: 1, weeks: 1, isAverage: false },
+    ]);
+  });
+
+  it("credits a multi-group exercise to each of its groups once per session", () => {
+    const sets = [
+      strengthRow({ session_id: 1, muscle_groups: ["chest", "triceps"] }),
+      strengthRow({ session_id: 1, muscle_groups: ["chest", "triceps"] }),
+    ];
+    const rows = weeklyMuscleFrequency(sets, 1);
+    expect(rows.map((r) => r.value)).toEqual([1, 1]);
+  });
+
+  it("divides by the week count and sorts descending when averaging", () => {
+    const sets = [
+      strengthRow({ session_id: 1, muscle_groups: ["chest"] }),
+      strengthRow({ session_id: 2, muscle_groups: ["chest"] }),
+      strengthRow({ session_id: 3, muscle_groups: ["chest"] }),
+      strengthRow({ session_id: 4, muscle_groups: ["chest"] }),
+      strengthRow({ session_id: 5, muscle_groups: ["back"] }),
+      strengthRow({ session_id: 6, muscle_groups: ["back"] }),
+    ];
+    expect(weeklyMuscleFrequency(sets, 4)).toEqual([
+      { muscle_group: "chest", value: 1, weeks: 4, isAverage: true },
+      { muscle_group: "back", value: 0.5, weeks: 4, isAverage: true },
+    ]);
+  });
+
+  it("ignores sets with no muscle groups and guards a zero week count", () => {
+    expect(weeklyMuscleFrequency([strengthRow({ muscle_groups: [] })], 0)).toEqual([]);
   });
 });
 

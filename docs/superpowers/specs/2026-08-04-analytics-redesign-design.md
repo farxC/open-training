@@ -19,8 +19,10 @@ treino é quantas séries por semana cada grupo muscular recebeu.
 ## Decisões
 
 1. **Janela rolling de semanas completas** para toda a tela — resumo incluído.
-2. **Uma seção adaptativa** no lugar de "Volume por semana" + "Séries por grupo muscular":
-   dias na visão Semana, séries/semana por grupo muscular nas visões longas.
+2. **Gráfico adaptativo**: "Volume por semana" vira volume por **dia** na visão Semana e sai de
+   cena nas visões longas da musculação, onde a lista de séries por grupo muscular responde
+   melhor. A seção de séries fica visível nas quatro granularidades (totais crus na Semana,
+   média semanal nas visões longas).
 3. **"Grupos musculares" vira frequência semanal** (`2.0×/sem`), métrica distinta das séries.
 4. **Records em acordeão por grupo muscular**, um grupo aberto por vez.
 5. **Resumo de musculação com dois tiles** — Volume e Treinos; "Carga máx" sai.
@@ -65,7 +67,7 @@ O componente passa a escolher o conteúdo por categoria de modalidade × granula
 
 | | Semana | Mês / Semestre / Ano |
 |---|---|---|
-| Musculação | `Volume por dia` — 7 barras | `Séries por semana` — lista por grupo muscular |
+| Musculação | `Volume por dia` — 7 barras | *(não renderiza — a seção de séries ocupa o lugar)* |
 | Endurance | `Distância por dia` — 7 barras | barras por bucket (comportamento atual) |
 
 ### Barras por dia
@@ -91,15 +93,20 @@ volume decrescente quando a ordem for nula. Fecha com backdrop ou botão, no pad
 
 O breakdown sai dos sets **já carregados** pelo hook; não há query nova por toque.
 
-### Séries por semana (visões longas)
+### Séries por grupo muscular (seção própria, sempre visível na musculação)
 
 Reaproveita `getMuscleSeriesInRange` por semana + `averageMuscleSeriesPerWeek(weeklyRaw,
 weeks.length)`, agora sobre `analysisWeeks` em vez de `weeksInRange(cur)`. Uma linha por
-grupo muscular, ordenada decrescente, valor com uma decimal e sufixo `séries/sem`.
-Legenda: `últimas 4 semanas · 06/07 – 02/08`.
+grupo muscular, ordenada decrescente.
 
-Na visão Semana esse conteúdo não aparece (as barras por dia ocupam o lugar), mas a seção
-de frequência abaixo continua visível.
+- Semana → totais crus da semana (`12 séries`), via `toMuscleSeriesRows`.
+- Mês/Semestre/Ano → média semanal com uma decimal e sufixo `séries/sem`.
+
+Legenda: `últimas 4 semanas · 06/07 – 02/08` / `semana atual · 03/08 – 09/08`.
+
+A seção existe nas quatro granularidades. Não há duplicação: nas visões longas o gráfico de
+barras da musculação não é renderizado, e na visão Semana as barras mostram volume por dia —
+pergunta diferente da de séries por grupo.
 
 ## 3. Frequência semanal (`MuscleBarList.tsx`)
 
@@ -230,10 +237,13 @@ inflaria os somatórios de volume.
   multi-grupo contando uma vez por grupo), `sumStrength` sem `maxWeight`.
 - Novo `src/utils/analyticsRecords.test.ts` — `groupRecordsByMuscle`: exercício
   multi-grupo em dois grupos, ordenação por nº de records, record sem grupo, lista vazia.
+- `queries.test.ts` — `getSetsInRange`: grupos musculares do snapshot, uma linha por set
+  (sem fan-out) e `exercise_order`.
 - `npx tsc --noEmit` e `npx eslint .` limpos.
 - Verificação manual no navegador (`npx expo start --web`): toggle nas quatro
   granularidades em musculação e numa modalidade de endurance, press e long-press numa
-  barra de dia, abrir/fechar dois grupos de records em sequência.
+  barra de dia, abrir/fechar dois grupos de records em sequência, e conferir à mão
+  `séries/sem` de um grupo contra as sessões da janela.
 
 ## Fora de escopo
 

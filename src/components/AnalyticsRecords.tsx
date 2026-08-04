@@ -1,6 +1,6 @@
-import { router } from "expo-router";
 import { Text, View } from "react-native";
 import { RecordCard } from "@/components/RecordCard";
+import { RecordsByMuscleGroup } from "@/components/RecordsByMuscleGroup";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   distanceDisplay,
@@ -9,13 +9,15 @@ import {
   formatEffort,
   targetKindOf,
 } from "@/data/modalities";
-import type { DateRange, DistanceRecords, Modality, StrengthRecord } from "@/types";
+import type { DateRange, DistanceRecords, Modality } from "@/types";
+import type { MuscleRecordGroup } from "@/utils/analyticsRecords";
 
 interface Props {
   modality: Modality;
-  strengthRecords: StrengthRecord[];
+  /** Strength records already grouped by the exercise's current muscle groups. */
+  recordsByGroup: MuscleRecordGroup[];
   distanceRecords: DistanceRecords;
-  /** The active period's date range — badges records achieved within it as "NOVO". */
+  /** The active window — badges records achieved within it as "NOVO". */
   currentRange: DateRange;
 }
 
@@ -73,10 +75,11 @@ function buildDistanceCards(
   return cards.filter((c): c is DistanceRecordCard => c !== false);
 }
 
-/** SectionHeader "Records" + the per-modality RecordCard list, empty state included. */
+/** SectionHeader "Records" + the per-modality body: a muscle-group accordion for
+ *  strength, a flat card list for distance. */
 export function AnalyticsRecords({
   modality,
-  strengthRecords,
+  recordsByGroup,
   distanceRecords,
   currentRange,
 }: Props) {
@@ -86,21 +89,7 @@ export function AnalyticsRecords({
     <View>
       <SectionHeader title="Records" />
       {isStrength ? (
-        strengthRecords.length > 0 ? (
-          strengthRecords.slice(0, 5).map((record) => (
-            <RecordCard
-              key={record.exercise_id}
-              icon="trophy"
-              label={record.exercise_name}
-              value={`${record.max_weight_kg} kg`}
-              sub={`${record.reps_at_max} reps`}
-              isNew={achievedInRange(record.achieved_on, currentRange)}
-              onPress={() => router.push(`/exercises/${record.exercise_id}`)}
-            />
-          ))
-        ) : (
-          <Text className="text-ink-mute text-xs">Nenhum record ainda</Text>
-        )
+        <RecordsByMuscleGroup groups={recordsByGroup} currentRange={currentRange} />
       ) : (
         (() => {
           const cards = buildDistanceCards(distanceRecords, modality, currentRange);

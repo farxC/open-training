@@ -29,4 +29,7 @@ export type {
   Delta,
   MuscleSeriesRaw,
   MuscleSeriesRow,
+  MuscleFrequencyRow,
+  DayBar,
+  DayExerciseBreakdown,
 } from "./analytics";

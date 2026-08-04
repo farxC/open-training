@@ -29,6 +29,9 @@ export interface AnalyticsSetRow {
   exercise_id: number;
   exercise_name: string;
   muscle_groups: string[];
+  /** The exercise's position within its session, for replaying a day in the
+   *  order it was trained. Null for sets with no session_exercises row. */
+  exercise_order: number | null;
   reps: number;
   weight_kg: number;
   distance_km: number | null;
@@ -39,7 +42,30 @@ export interface AnalyticsSetRow {
 export interface StrengthSummary {
   volume: number; // Σ reps × weight_kg
   sessionCount: number; // distinct sessions
-  maxWeight: number; // heaviest single set in range
+}
+
+/** One bar of the per-day chart shown at week granularity. Seven of these, always
+ *  Monday→Sunday, so rest days keep their slot. `value` is canonical: volume in kg
+ *  for strength modalities, distance in km for endurance ones. */
+export interface DayBar {
+  dateISO: string;
+  /** Single-letter weekday initial, PT — S T Q Q S S D. */
+  label: string;
+  value: number;
+  hasData: boolean;
+}
+
+/** One exercise's contribution to a single day, for the day-detail modal. Values
+ *  stay canonical (kg, km, seconds); the modal formats per modality. */
+export interface DayExerciseBreakdown {
+  exercise_id: number;
+  exercise_name: string;
+  setCount: number;
+  volume: number;
+  distanceKm: number | null;
+  durationSec: number | null;
+  /** session_exercises."order" — drives the list order; null sorts last. */
+  order: number | null;
 }
 
 /** Summary for any distance modality (corrida, ciclismo, natação, caminhada).
@@ -58,6 +84,10 @@ export interface StrengthRecord {
   max_weight_kg: number;
   reps_at_max: number;
   achieved_on: string; // 'YYYY-MM-DD' — enables the "NOVO" badge
+  /** The exercise's muscle groups as configured NOW (not the per-session
+   *  snapshot): an all-time record belongs under the group the exercise
+   *  currently trains. Drives the records accordion. */
+  muscle_groups: string[];
 }
 
 /** Personal records for one distance modality. `fastest_pace_sec` is canonical
@@ -96,6 +126,18 @@ export interface MuscleSeriesRaw {
  *  granularity). `weeks` is the divisor used to produce `value` when
  *  isAverage is true — always 1 otherwise. */
 export interface MuscleSeriesRow {
+  muscle_group: string;
+  value: number;
+  weeks: number;
+  isAverage: boolean;
+}
+
+/** How often a muscle group was trained, in sessions — the same shape as
+ *  MuscleSeriesRow but a different unit ("×/sem", not series), so it gets its
+ *  own type rather than sharing one and hoping callers remember which is which.
+ *  `value` is a raw session count when isAverage is false (week granularity) and
+ *  sessions-per-week when true. */
+export interface MuscleFrequencyRow {
   muscle_group: string;
   value: number;
   weeks: number;
