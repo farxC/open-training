@@ -1,12 +1,14 @@
 export type MuscleGroup =
   | "chest"
   | "back"
+  | "traps"
   | "shoulders"
   | "biceps"
   | "triceps"
   | "legs"
   | "femoral"
   | "glutes"
+  | "calves"
   | "core"
   | "cardio"
   | "full_body";

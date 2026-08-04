@@ -96,8 +96,8 @@ export const SEED_EXERCISES: SeedExercise[] = [
   { name: "Leg Extension", muscle_groups: ["legs"], equipment: "machine", type: "isolation", is_custom: 0 },
   { name: "Lying Leg Curl", muscle_groups: ["femoral"], equipment: "machine", type: "isolation", is_custom: 0 },
   { name: "Seated Leg Curl", muscle_groups: ["femoral"], equipment: "machine", type: "isolation", is_custom: 0 },
-  { name: "Standing Calf Raise", muscle_groups: ["legs"], equipment: "machine", type: "isolation", is_custom: 0 },
-  { name: "Seated Calf Raise", muscle_groups: ["legs"], equipment: "machine", type: "isolation", is_custom: 0 },
+  { name: "Standing Calf Raise", muscle_groups: ["calves"], equipment: "machine", type: "isolation", is_custom: 0 },
+  { name: "Seated Calf Raise", muscle_groups: ["calves"], equipment: "machine", type: "isolation", is_custom: 0 },
 
   // Glutes
   { name: "Hip Thrust", muscle_groups: ["glutes", "femoral"], equipment: "barbell", type: "compound", is_custom: 0 },

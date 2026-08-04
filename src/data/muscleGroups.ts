@@ -3,12 +3,14 @@ import type { MuscleGroup, MuscleSeriesRow } from "@/types";
 export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   chest: "Chest",
   back: "Back",
+  traps: "Traps",
   shoulders: "Shoulders",
   biceps: "Biceps",
   triceps: "Triceps",
   legs: "Legs",
   femoral: "Femoral",
   glutes: "Glutes",
+  calves: "Calves",
   core: "Core",
   cardio: "Cardio",
   full_body: "Full Body",
@@ -19,7 +21,8 @@ export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
 // Rowing Machine, …) but isn't something you'd assign by hand, and endurance
 // modalities carry no muscle groups at all.
 export const MUSCLE_OPTIONS: MuscleGroup[] = [
-  "chest", "back", "shoulders", "biceps", "triceps", "legs", "femoral", "glutes", "core", "full_body",
+  "chest", "back", "traps", "shoulders", "biceps", "triceps", "legs", "femoral", "glutes", "calves",
+  "core", "full_body",
 ];
 
 export function muscleGroupLabel(mg: string): string {
