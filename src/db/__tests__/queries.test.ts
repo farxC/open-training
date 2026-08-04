@@ -29,8 +29,10 @@ import {
   updateExerciseMuscleGroups,
   getMuscleSeriesForSession,
   getMuscleSeriesInRange,
+  getSetsInRange,
   getExercises,
   getDistanceRecords,
+  getExerciseDailyMaxes,
   getStrengthRecords,
   getExerciseConfig,
   updateExerciseConfig,
@@ -677,5 +679,156 @@ describe("records are scoped to a single modality", () => {
     expect(records).toHaveLength(1);
     expect(records[0].max_weight_kg).toBe(100);
     expect(getStrengthRecords("caminhada")).toEqual([]);
+  });
+});
+
+describe("getStrengthRecords muscle groups", () => {
+  function logRecord(exerciseId: number, weightKg: number) {
+    const sessionId = createSession("2026-03-01", { modality: "musculacao" });
+    addSet({
+      session_id: sessionId, exercise_id: exerciseId, set_number: 1, reps: 5,
+      weight_kg: weightKg, rpe: null, rir: null, notes: null,
+      distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+  }
+
+  it("files a record only under the groups the exercise emphasises most", () => {
+    const bench = createExercise({
+      name: "Supino reto", muscle_groups: ["chest", "triceps"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(bench.id, [
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 0.5 },
+    ]);
+    logRecord(bench.id, 100);
+
+    expect(getStrengthRecords("musculacao")[0].muscle_groups).toEqual(["chest"]);
+  });
+
+  it("keeps every group when the exercise emphasises them equally", () => {
+    const clean = createExercise({
+      name: "Clean and press", muscle_groups: ["shoulders", "legs"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(clean.id, [
+      { muscle_group: "shoulders", counting_factor: 1 },
+      { muscle_group: "legs", counting_factor: 1 },
+    ]);
+    logRecord(clean.id, 70);
+
+    expect(getStrengthRecords("musculacao")[0].muscle_groups.sort()).toEqual(["legs", "shoulders"]);
+  });
+
+  it("does not orphan an exercise configured entirely at half a set", () => {
+    const carry = createExercise({
+      name: "Farmer's walk", muscle_groups: ["core", "back"],
+      equipment: "dumbbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(carry.id, [
+      { muscle_group: "core", counting_factor: 0.5 },
+      { muscle_group: "back", counting_factor: 0.5 },
+    ]);
+    logRecord(carry.id, 40);
+
+    expect(getStrengthRecords("musculacao")[0].muscle_groups.sort()).toEqual(["back", "core"]);
+  });
+});
+
+describe("getExerciseDailyMaxes", () => {
+  function benchPress() {
+    return createExercise({
+      name: "Supino reto", muscle_groups: ["chest"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+  }
+
+  function logSet(exerciseId: number, date: string, weightKg: number, setNumber = 1) {
+    const sessionId = createSession(date, { modality: "musculacao" });
+    addSet({
+      session_id: sessionId, exercise_id: exerciseId, set_number: setNumber, reps: 5,
+      weight_kg: weightKg, rpe: null, rir: null, notes: null,
+      distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+    return sessionId;
+  }
+
+  it("returns the heaviest set of each day, oldest first", () => {
+    const bench = benchPress();
+    const heavyDay = createSession("2026-02-10", { modality: "musculacao" });
+    for (const [i, weight] of [80, 95, 90].entries()) {
+      addSet({
+        session_id: heavyDay, exercise_id: bench.id, set_number: i + 1, reps: 5,
+        weight_kg: weight, rpe: null, rir: null, notes: null,
+        distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+      });
+    }
+    logSet(bench.id, "2026-01-05", 85);
+
+    expect(getExerciseDailyMaxes("musculacao")).toEqual([
+      { exercise_id: bench.id, date: "2026-01-05", max_weight_kg: 85 },
+      { exercise_id: bench.id, date: "2026-02-10", max_weight_kg: 95 },
+    ]);
+  });
+
+  it("skips bodyweight sets and other modalities", () => {
+    const bench = benchPress();
+    logSet(bench.id, "2026-01-05", 85);
+    logSet(bench.id, "2026-01-06", 0); // bodyweight — no load to compare
+
+    const rows = getExerciseDailyMaxes("musculacao");
+    expect(rows.map((r) => r.date)).toEqual(["2026-01-05"]);
+    expect(getExerciseDailyMaxes("corrida")).toEqual([]);
+  });
+});
+
+describe("getSetsInRange", () => {
+  function benchWithFactors() {
+    const bench = createExercise({
+      name: "Supino reto", muscle_groups: ["chest", "triceps"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(bench.id, [
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 0.5 },
+    ]);
+    return bench;
+  }
+
+  it("returns the session's snapshot muscle groups for each set", () => {
+    const bench = benchWithFactors();
+    const sessionId = createSession("2026-01-01");
+    addSet({
+      session_id: sessionId, exercise_id: bench.id, set_number: 1, reps: 10, weight_kg: 60,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+
+    const rows = getSetsInRange("musculacao", "2026-01-01", "2026-01-01");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].muscle_groups.sort()).toEqual(["chest", "triceps"]);
+  });
+
+  it("does not fan out the set row itself — one row per set, whatever the muscle count", () => {
+    const bench = benchWithFactors();
+    const sessionId = createSession("2026-01-01");
+    for (const setNumber of [1, 2, 3]) {
+      addSet({
+        session_id: sessionId, exercise_id: bench.id, set_number: setNumber, reps: 10, weight_kg: 60,
+        rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+      });
+    }
+    expect(getSetsInRange("musculacao", "2026-01-01", "2026-01-01")).toHaveLength(3);
+  });
+
+  it("reports the exercise's order within the session, for replaying a day", () => {
+    const bench = benchWithFactors();
+    const sessionId = createSession("2026-01-01");
+    addSet({
+      session_id: sessionId, exercise_id: bench.id, set_number: 1, reps: 10, weight_kg: 60,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+
+    const row = getSetsInRange("musculacao", "2026-01-01", "2026-01-01")[0];
+    expect(row.exercise_order).toBe(0);
   });
 });

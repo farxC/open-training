@@ -75,7 +75,7 @@ export function AnalyticsFilters({
   return (
     <View className="bg-surface-card rounded-2xl p-4">
       <FilterLabel>MODALIDADE</FilterLabel>
-      <ModalityChips value={modality} onChange={onModalityChange} />
+      <ModalityChips value={modality} onChange={onModalityChange} layout="wrap" />
 
       <View style={{ height: 1, backgroundColor: "#f0ede6", marginVertical: 16 }} />
 

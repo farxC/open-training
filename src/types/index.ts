@@ -25,8 +25,12 @@ export type {
   StrengthSummary,
   DistanceSummary,
   StrengthRecord,
+  ExerciseDailyMax,
   DistanceRecords,
   Delta,
   MuscleSeriesRaw,
   MuscleSeriesRow,
+  MuscleFrequencyRow,
+  DayBar,
+  DayExerciseBreakdown,
 } from "./analytics";
