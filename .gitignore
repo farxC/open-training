@@ -49,3 +49,6 @@ scripts/import-history/unparsed-lines.txt
 scripts/import-history/exercise-aliases.json
 scripts/import-history/import-payload.json
 scripts/import-history/**
+
+# playwright-mcp session output
+.playwright-mcp/
