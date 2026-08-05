@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { ModalityConfig } from "@/data/modalities";
 import { MODALITY_CATEGORIES, modalitiesOfCategory } from "@/data/modalities";
+import { useInteractionState } from "@/hooks/useInteractionState";
 import type { Modality } from "@/types";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -51,12 +52,16 @@ interface ChipProps {
  * register.
  */
 function Chip({ modality, active, onPress, block = false, fill = false }: ChipProps) {
+  const { pressed, hovered, handlers } = useInteractionState();
+  const color = active ? "#ffffff" : hovered ? INK_SOFT : block ? INK_SOFT : INK_MUTE;
+
   return (
     <Pressable
       onPress={onPress}
+      {...handlers}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      style={({ hovered, pressed }: { hovered?: boolean; pressed?: boolean }) => ({
+      style={{
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -85,31 +90,20 @@ function Chip({ modality, active, onPress, block = false, fill = false }: ChipPr
               elevation: 3,
             }
           : null),
-      })}
-    >
-      {({ hovered }: { hovered?: boolean }) => {
-        const color = active ? "#ffffff" : hovered ? INK_SOFT : block ? INK_SOFT : INK_MUTE;
-        return (
-          <>
-            <MaterialCommunityIcons
-              name={modality.icon as MciName}
-              size={16}
-              color={active ? "#ffffff" : color}
-            />
-            <Text
-              numberOfLines={1}
-              style={{
-                fontSize: 13,
-                fontWeight: active ? "700" : "500",
-                color,
-                letterSpacing: -0.1,
-              }}
-            >
-              {modality.label}
-            </Text>
-          </>
-        );
       }}
+    >
+      <MaterialCommunityIcons name={modality.icon as MciName} size={16} color={color} />
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 13,
+          fontWeight: active ? "700" : "500",
+          color,
+          letterSpacing: -0.1,
+        }}
+      >
+        {modality.label}
+      </Text>
     </Pressable>
   );
 }

@@ -11,6 +11,7 @@ import {
   muscleGroupLabel,
   seriesUnit,
 } from "@/data/muscleGroups";
+import { useInteractionState } from "@/hooks/useInteractionState";
 import type { MuscleFrequencyRow, MuscleSeriesRow } from "@/types";
 import {
   mergeMuscleLoad,
@@ -356,38 +357,56 @@ function SortChips({
       <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
         ORDENAR
       </Text>
-      {SORT_OPTIONS.map((opt) => {
-        const active = opt.key === value;
-        return (
-          <Pressable
-            key={opt.key}
-            onPress={() => onChange(opt.key)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            style={({ hovered }: { hovered?: boolean }) => ({
-              paddingVertical: 4,
-              paddingHorizontal: 11,
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: active ? INK : "#ddd8ce",
-              backgroundColor: active ? INK : hovered ? "#f0ede6" : "transparent",
-            })}
-          >
-            {({ hovered }: { hovered?: boolean }) => (
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: active ? "700" : "500",
-                  color: active ? "#ffffff" : hovered ? "#5c594f" : "#928d80",
-                }}
-              >
-                {opt.label}
-              </Text>
-            )}
-          </Pressable>
-        );
-      })}
+      {SORT_OPTIONS.map((opt) => (
+        <SortChip
+          key={opt.key}
+          label={opt.label}
+          active={opt.key === value}
+          onPress={() => onChange(opt.key)}
+        />
+      ))}
     </View>
+  );
+}
+
+/** One ORDENAR chip. Interaction state comes from a hook rather than Pressable's
+ *  style callback — see useInteractionState for why. */
+function SortChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const { hovered, handlers } = useInteractionState();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      {...handlers}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      style={{
+        paddingVertical: 4,
+        paddingHorizontal: 11,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: active ? INK : "#ddd8ce",
+        backgroundColor: active ? INK : hovered ? "#f0ede6" : "transparent",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 11,
+          fontWeight: active ? "700" : "500",
+          color: active ? "#ffffff" : hovered ? "#5c594f" : "#928d80",
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
