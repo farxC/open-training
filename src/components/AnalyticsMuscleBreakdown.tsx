@@ -1,8 +1,15 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { FadeInRow } from "@/components/FadeInRow";
 import { FrequencyPips } from "@/components/FrequencyPips";
+import { MuscleExerciseList } from "@/components/MuscleExerciseList";
 import { SectionHeader } from "@/components/SectionHeader";
 import { TickBar } from "@/components/TickBar";
 import {
@@ -12,7 +19,7 @@ import {
   seriesUnit,
 } from "@/data/muscleGroups";
 import { useInteractionState } from "@/hooks/useInteractionState";
-import type { MuscleFrequencyRow, MuscleSeriesRow } from "@/types";
+import type { MuscleExerciseRow, MuscleFrequencyRow, MuscleSeriesRow } from "@/types";
 import {
   mergeMuscleLoad,
   pipSlots,
@@ -46,6 +53,9 @@ interface Props {
   frequency: MuscleFrequencyRow[];
   /** Window caption shared by both readings, e.g. "últimas 4 semanas · 06/07 – 02/08". */
   caption: string;
+  /** Which exercises produced a group's series over the same window — the
+   *  drill-down a row opens. A pure lookup, so it's safe to call on render. */
+  breakdown: (muscleGroup: string) => MuscleExerciseRow[];
 }
 
 /** One panel for both muscle-group readings. They used to be two stacked lists
@@ -53,8 +63,11 @@ interface Props {
  *  encoding a 2×/week count as a bar length nobody can read. Here each group is
  *  one row: volume as a racked plate bar, frequency as countable pips, and the
  *  ranking swappable between the two so neither reading loses its order. */
-export function AnalyticsMuscleBreakdown({ series, frequency, caption }: Props) {
+export function AnalyticsMuscleBreakdown({ series, frequency, caption, breakdown }: Props) {
   const [sort, setSort] = useState<LoadSortKey>("series");
+  // One group open at a time: the panel runs to ten rows, and the ranking is
+  // only readable while it stays short.
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const merged = useMemo(() => mergeMuscleLoad(series, frequency), [series, frequency]);
   const rows = useMemo(() => sortMuscleLoad(merged, sort), [merged, sort]);
@@ -85,7 +98,15 @@ export function AnalyticsMuscleBreakdown({ series, frequency, caption }: Props) 
       <LoadStrip summary={summary} isAverage={isAverage} />
 
       {rows.length > 1 ? (
-        <SortChips value={sort} onChange={setSort} />
+        <SortChips
+          value={sort}
+          onChange={(key) => {
+            // Re-sorting re-deals every row; leaving a drawer open would park it
+            // under whatever group happened to land in that slot.
+            setOpenGroup(null);
+            setSort(key);
+          }}
+        />
       ) : null}
 
       <View
@@ -115,6 +136,13 @@ export function AnalyticsMuscleBreakdown({ series, frequency, caption }: Props) 
             pips={pips}
             emphasis={sort}
             cycle={sort}
+            open={openGroup === row.muscle_group}
+            onToggle={() =>
+              setOpenGroup((current) =>
+                current === row.muscle_group ? null : row.muscle_group
+              )
+            }
+            exercises={breakdown(row.muscle_group)}
           />
         ))}
 
@@ -133,122 +161,177 @@ interface RowProps {
   pips: number | null;
   emphasis: LoadSortKey;
   cycle: string;
+  /** Whether this row's exercise drawer is out. */
+  open: boolean;
+  onToggle: () => void;
+  exercises: MuscleExerciseRow[];
 }
 
-function LoadRow({ row, rank, index, capacity, slots, pips, emphasis, cycle }: RowProps) {
+function LoadRow({
+  row,
+  rank,
+  index,
+  capacity,
+  slots,
+  pips,
+  emphasis,
+  cycle,
+  open,
+  onToggle,
+  exercises,
+}: RowProps) {
   const label = muscleGroupLabel(row.muscle_group);
   const leading = rank === 1;
   const seriesLed = emphasis === "series";
+  const { hovered, handlers } = useInteractionState();
 
   const seriesNumber = formatSeriesNumber(row.series, row.isAverage);
   const freqNumber = formatFrequencyNumber(row.frequency, row.isAverage);
+
+  const openness = useSharedValue(open ? 1 : 0);
+
+  useEffect(() => {
+    openness.value = withTiming(open ? 1 : 0, {
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [open, openness]);
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${openness.value * 180}deg` }],
+  }));
 
   return (
     <FadeInRow
       index={index}
       step={STEP}
       cycle={cycle}
-      accessibilityLabel={`${label}: ${seriesNumber} ${seriesUnit(row.series, row.isAverage)}, ${freqNumber} sessões${row.isAverage ? " por semana" : ""}`}
       style={{
-        paddingHorizontal: 14,
-        paddingVertical: 11,
         borderTopWidth: index === 0 ? 0 : 1,
         borderTopColor: HAIRLINE,
       }}
     >
-      <View className="flex-row items-center" style={{ gap: 9 }}>
-        <Text
-          style={{
-            width: 11,
-            color: leading ? INK : "#bdb8aa",
-            fontSize: 9,
-            fontWeight: "700",
-            fontFamily: MONO,
-          }}
-        >
-          {rank}
-        </Text>
-
-        {/* The leading group inverts to ink — the top of the rack is legible
-            from across the screen, before any number is read. */}
-        <View
-          className="items-center justify-center"
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 8,
-            backgroundColor: leading ? INK : CREAM,
-            borderWidth: 1,
-            borderColor: leading ? INK : "#e7e4dc",
-          }}
-        >
+      <Pressable
+        onPress={onToggle}
+        {...handlers}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${label}: ${seriesNumber} ${seriesUnit(row.series, row.isAverage)}, ${freqNumber} sessões${row.isAverage ? " por semana" : ""}. Toque para ver os exercícios.`}
+        style={{
+          paddingHorizontal: 14,
+          paddingVertical: 11,
+          backgroundColor: open ? "#fbfaf7" : hovered ? "#fbfaf7" : "transparent",
+        }}
+      >
+        <View className="flex-row items-center" style={{ gap: 9 }}>
           <Text
             style={{
-              color: leading ? CREAM : "#6f6b5f",
-              fontSize: 10,
+              width: 11,
+              color: leading ? INK : "#bdb8aa",
+              fontSize: 9,
               fontWeight: "700",
               fontFamily: MONO,
-              letterSpacing: 0.4,
             }}
           >
-            {monogramFor(row.muscle_group, label)}
+            {rank}
           </Text>
-        </View>
 
-        <Text
-          style={{ color: INK, fontSize: 12, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
-          numberOfLines={1}
-        >
-          {label.toUpperCase()}
-        </Text>
+          {/* The leading group inverts to ink — the top of the rack is legible
+              from across the screen, before any number is read. */}
+          <View
+            className="items-center justify-center"
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 8,
+              backgroundColor: leading ? INK : CREAM,
+              borderWidth: 1,
+              borderColor: leading ? INK : "#e7e4dc",
+            }}
+          >
+            <Text
+              style={{
+                color: leading ? CREAM : "#6f6b5f",
+                fontSize: 10,
+                fontWeight: "700",
+                fontFamily: MONO,
+                letterSpacing: 0.4,
+              }}
+            >
+              {monogramFor(row.muscle_group, label)}
+            </Text>
+          </View>
 
-        {/* Bare number: the unit is stated once in the column header, not nine
-            times down the panel. */}
-        <Text
-          style={{
-            color: seriesLed ? INK : "#5c594f",
-            fontSize: 17,
-            fontWeight: "700",
-            fontFamily: MONO,
-          }}
-        >
-          {seriesNumber}
-        </Text>
-      </View>
+          <Text
+            style={{ color: INK, fontSize: 12, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
+            numberOfLines={1}
+          >
+            {label.toUpperCase()}
+          </Text>
 
-      <View className="flex-row items-center" style={{ marginTop: 9, gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <TickBar
-            value={row.series}
-            capacity={capacity}
-            slots={slots}
-            delay={180 + index * STEP}
-            cycle={cycle}
-          />
-        </View>
-
-        <View
-          className="flex-row items-center justify-end"
-          style={{ width: FREQ_COL, gap: 6 }}
-        >
-          <FrequencyPips
-            value={row.frequency}
-            slots={pips}
-            delay={330 + index * STEP}
-            cycle={cycle}
-          />
+          {/* Bare number: the unit is stated once in the column header, not nine
+              times down the panel. */}
           <Text
             style={{
-              color: seriesLed ? "#5c594f" : INK,
-              fontSize: 11,
-              fontWeight: seriesLed ? "500" : "700",
+              color: seriesLed ? INK : "#5c594f",
+              fontSize: 17,
+              fontWeight: "700",
               fontFamily: MONO,
             }}
           >
-            {freqNumber}×
+            {seriesNumber}
           </Text>
+
+          <Animated.View style={chevronStyle}>
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={16}
+              color={open ? "#6f6b5f" : "#c9c4b6"}
+            />
+          </Animated.View>
         </View>
-      </View>
+
+        <View className="flex-row items-center" style={{ marginTop: 9, gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <TickBar
+              value={row.series}
+              capacity={capacity}
+              slots={slots}
+              // The drawer's paper shows through the grooves once it's open —
+              // the plates have to stay cut against whatever is behind them.
+              grooveColor={open ? "#fbfaf7" : "#ffffff"}
+              delay={180 + index * STEP}
+              cycle={cycle}
+            />
+          </View>
+
+          <View
+            className="flex-row items-center justify-end"
+            style={{ width: FREQ_COL, gap: 6 }}
+          >
+            <FrequencyPips
+              value={row.frequency}
+              slots={pips}
+              delay={330 + index * STEP}
+              cycle={cycle}
+            />
+            <Text
+              style={{
+                color: seriesLed ? "#5c594f" : INK,
+                fontSize: 11,
+                fontWeight: seriesLed ? "500" : "700",
+                fontFamily: MONO,
+              }}
+            >
+              {freqNumber}×
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+
+      {open ? (
+        <MuscleExerciseList rows={exercises} cycle={row.muscle_group} />
+      ) : null}
     </FadeInRow>
   );
 }

@@ -1,6 +1,12 @@
-import type { AnalyticsSetRow, MuscleSeriesRaw, TrendBucket } from "@/types";
+import type {
+  AnalyticsSetRow,
+  MuscleExerciseSeriesRaw,
+  MuscleSeriesRaw,
+  TrendBucket,
+} from "@/types";
 import {
   averageMuscleSeriesPerWeek,
+  muscleExerciseBreakdown,
   bucketSum,
   computeStreak,
   dayBars,
@@ -386,6 +392,127 @@ describe("averageMuscleSeriesPerWeek", () => {
     const weeklyRows: MuscleSeriesRaw[][] = [[{ muscle_group: "chest", total_series: 5 }]];
     const result = averageMuscleSeriesPerWeek(weeklyRows, 0);
     expect(result).toEqual([{ muscle_group: "chest", value: 5, weeks: 0, isAverage: true }]);
+  });
+});
+
+describe("muscleExerciseBreakdown", () => {
+  function raw(overrides: Partial<MuscleExerciseSeriesRaw> = {}): MuscleExerciseSeriesRaw {
+    return {
+      muscle_group: "chest",
+      exercise_id: 1,
+      exercise_name: "Supino reto",
+      total_series: 8,
+      raw_sets: 8,
+      session_count: 3,
+      ...overrides,
+    };
+  }
+
+  it("returns raw totals at week granularity", () => {
+    const result = muscleExerciseBreakdown([raw()], 1);
+    expect(result.get("chest")).toEqual([
+      {
+        exercise_id: 1,
+        exercise_name: "Supino reto",
+        series: 8,
+        sessionCount: 3,
+        share: 1,
+        halved: false,
+        weeks: 1,
+        isAverage: false,
+      },
+    ]);
+  });
+
+  it("divides series by the week count and flags the average", () => {
+    const result = muscleExerciseBreakdown([raw({ total_series: 32, session_count: 8 })], 4);
+    const [row] = result.get("chest")!;
+    expect(row.series).toBe(8);
+    expect(row.weeks).toBe(4);
+    expect(row.isAverage).toBe(true);
+  });
+
+  it("counts sessions over the whole window instead of averaging them per week", () => {
+    // 8 sessions across 26 weeks averages 0.3×/week, which reads as nothing —
+    // the drawer shows the count, so it stays raw whatever the window.
+    const [row] = muscleExerciseBreakdown(
+      [raw({ total_series: 26, session_count: 8 })],
+      26
+    ).get("chest")!;
+    expect(row.sessionCount).toBe(8);
+  });
+
+  it("ranks a group's exercises by series and shares add up to 1", () => {
+    const result = muscleExerciseBreakdown(
+      [
+        raw({ exercise_id: 2, exercise_name: "Crucifixo", total_series: 6, raw_sets: 6 }),
+        raw({ exercise_id: 1, exercise_name: "Supino reto", total_series: 12, raw_sets: 12 }),
+        raw({ exercise_id: 3, exercise_name: "Paralelas", total_series: 2, raw_sets: 2 }),
+      ],
+      1
+    );
+    const rows = result.get("chest")!;
+    expect(rows.map((r) => r.exercise_name)).toEqual(["Supino reto", "Crucifixo", "Paralelas"]);
+    expect(rows.map((r) => r.share)).toEqual([0.6, 0.3, 0.1]);
+    expect(rows.reduce((sum, r) => sum + r.share, 0)).toBeCloseTo(1);
+  });
+
+  it("children sum to the group total the panel shows, in an averaged window", () => {
+    // Same rollup the panel averages: 4 weeks, 72 series of chest work total.
+    const result = muscleExerciseBreakdown(
+      [
+        raw({ exercise_id: 1, total_series: 40, raw_sets: 40 }),
+        raw({ exercise_id: 2, total_series: 24, raw_sets: 24 }),
+        raw({ exercise_id: 3, total_series: 8, raw_sets: 8 }),
+      ],
+      4
+    );
+    const total = result.get("chest")!.reduce((sum, r) => sum + r.series, 0);
+    expect(total).toBe(72 / 4);
+  });
+
+  it("flags a half-counting pair when the weighted series fall short of the sets logged", () => {
+    const result = muscleExerciseBreakdown(
+      [
+        raw({ exercise_id: 1, total_series: 3, raw_sets: 6 }), // all six sets at ½×
+        raw({ exercise_id: 2, total_series: 5, raw_sets: 6 }), // factor changed mid-window
+        raw({ exercise_id: 3, total_series: 6, raw_sets: 6 }), // full credit
+      ],
+      1
+    );
+    const byId = new Map(result.get("chest")!.map((r) => [r.exercise_id, r.halved]));
+    expect(byId.get(1)).toBe(true);
+    expect(byId.get(2)).toBe(true);
+    expect(byId.get(3)).toBe(false);
+  });
+
+  it("credits one exercise to each group it carries, at that group's own weight", () => {
+    const result = muscleExerciseBreakdown(
+      [
+        raw({ muscle_group: "chest", total_series: 6, raw_sets: 6 }),
+        raw({ muscle_group: "triceps", total_series: 3, raw_sets: 6 }),
+      ],
+      1
+    );
+    expect(result.get("chest")![0].series).toBe(6);
+    expect(result.get("chest")![0].halved).toBe(false);
+    expect(result.get("triceps")![0].series).toBe(3);
+    expect(result.get("triceps")![0].halved).toBe(true);
+  });
+
+  it("returns an empty map for empty input", () => {
+    expect(muscleExerciseBreakdown([], 4).size).toBe(0);
+  });
+
+  it("guards a zero week count instead of dividing by zero", () => {
+    const [row] = muscleExerciseBreakdown([raw()], 0).get("chest")!;
+    expect(row.series).toBe(8);
+    expect(row.isAverage).toBe(false);
+  });
+
+  it("leaves share at zero when a group somehow has no series", () => {
+    const [row] = muscleExerciseBreakdown([raw({ total_series: 0, raw_sets: 0 })], 1).get("chest")!;
+    expect(row.share).toBe(0);
   });
 });
 

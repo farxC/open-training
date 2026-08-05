@@ -154,3 +154,42 @@ export interface MuscleFrequencyRow {
   weeks: number;
   isAverage: boolean;
 }
+
+/** One (muscle group, exercise) pair straight out of SQL — the same snapshot
+ *  rollup as MuscleSeriesRaw, broken down by which exercise produced the
+ *  series. `raw_sets` is the unweighted set count, kept alongside the weighted
+ *  `total_series` so a half-counting pair is recognisable without a second
+ *  query: total_series < raw_sets means some set entered this group at ½×. */
+export interface MuscleExerciseSeriesRaw {
+  muscle_group: string;
+  exercise_id: number;
+  exercise_name: string;
+  total_series: number;
+  raw_sets: number;
+  session_count: number;
+}
+
+/** One exercise's contribution to one muscle group over the analysis window —
+ *  the drill-down under a muscle-group row. `series` follows the same convention
+ *  as the group row it sits under: a raw total when isAverage is false (week
+ *  granularity), a per-week average when true, so the children always sum to
+ *  the parent. */
+export interface MuscleExerciseRow {
+  exercise_id: number;
+  exercise_name: string;
+  /** Weighted series (sum of counting_factor) — raw total or per-week average. */
+  series: number;
+  /** Sessions this exercise appeared in over the whole window, counted, NOT
+   *  averaged per week like the group row's frequency. A movement trained eight
+   *  times in a 26-week window averages 0.3×/week, which reads as nothing; the
+   *  count is legible in every window, and nothing here needs to sum to the
+   *  parent the way series does. */
+  sessionCount: number;
+  /** Fraction of the group's series this exercise accounts for, 0–1. */
+  share: number;
+  /** True when any set entered this group at ½× — the number below the name is
+   *  smaller than the sets actually logged, and the row says why. */
+  halved: boolean;
+  weeks: number;
+  isAverage: boolean;
+}

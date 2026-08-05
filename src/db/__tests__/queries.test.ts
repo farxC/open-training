@@ -29,6 +29,7 @@ import {
   updateExerciseMuscleGroups,
   getMuscleSeriesForSession,
   getMuscleSeriesInRange,
+  getMuscleExerciseSeriesInRange,
   getSetsInRange,
   getExercises,
   getDistanceRecords,
@@ -618,6 +619,121 @@ describe("getMuscleSeriesInRange", () => {
     const result = getMuscleSeriesInRange("musculacao", "2026-01-01", "2026-01-31");
 
     expect(result).toEqual([{ muscle_group: "chest", total_series: 1 }]);
+  });
+});
+
+describe("getMuscleExerciseSeriesInRange", () => {
+  it("breaks a group's series down by exercise, keeping each pair's own weighting", () => {
+    const bench = createExercise({
+      name: "Supino reto", muscle_groups: ["chest", "triceps"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(bench.id, [
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 0.5 },
+    ]);
+    const fly = createExercise({
+      name: "Crucifixo", muscle_groups: ["chest"],
+      equipment: "cable", type: "isolation", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(fly.id, [{ muscle_group: "chest", counting_factor: 1 }]);
+
+    // Two sessions, so the session count is more than a set count in disguise.
+    for (const [date, benchSets, flySets] of [
+      ["2026-01-05", 2, 1],
+      ["2026-01-08", 2, 0],
+    ] as const) {
+      const sessionId = createSession(date);
+      for (let i = 1; i <= benchSets; i++) {
+        addSet({
+          session_id: sessionId, exercise_id: bench.id, set_number: i, reps: 10, weight_kg: 60,
+          rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+        });
+      }
+      for (let i = 1; i <= flySets; i++) {
+        addSet({
+          session_id: sessionId, exercise_id: fly.id, set_number: i, reps: 12, weight_kg: 15,
+          rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+        });
+      }
+    }
+
+    const rows = getMuscleExerciseSeriesInRange("musculacao", "2026-01-01", "2026-01-31");
+    const find = (group: string, exerciseId: number) =>
+      rows.find((r) => r.muscle_group === group && r.exercise_id === exerciseId);
+
+    expect(find("chest", bench.id)).toEqual({
+      muscle_group: "chest", exercise_id: bench.id, exercise_name: "Supino reto",
+      total_series: 4, raw_sets: 4, session_count: 2,
+    });
+    expect(find("chest", fly.id)).toEqual({
+      muscle_group: "chest", exercise_id: fly.id, exercise_name: "Crucifixo",
+      total_series: 1, raw_sets: 1, session_count: 1,
+    });
+    // Same four sets, half credit — raw_sets is what makes the ½× readable.
+    expect(find("triceps", bench.id)).toEqual({
+      muscle_group: "triceps", exercise_id: bench.id, exercise_name: "Supino reto",
+      total_series: 2, raw_sets: 4, session_count: 2,
+    });
+
+    // The whole point of the drill-down: the children add up to the group row.
+    const chestTotal = rows
+      .filter((r) => r.muscle_group === "chest")
+      .reduce((sum, r) => sum + r.total_series, 0);
+    const groupRow = getMuscleSeriesInRange("musculacao", "2026-01-01", "2026-01-31").find(
+      (r) => r.muscle_group === "chest"
+    );
+    expect(chestTotal).toBe(groupRow!.total_series);
+  });
+
+  it("excludes sets outside the date range and outside the requested modality", () => {
+    const ex = createExercise({
+      name: "Supino reto", muscle_groups: ["chest"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    const inRange = createSession("2026-01-15");
+    const outOfRange = createSession("2026-02-01");
+    const otherModality = createSession("2026-01-16", { modality: "corrida" });
+    for (const sessionId of [inRange, outOfRange, otherModality]) {
+      addSet({
+        session_id: sessionId, exercise_id: ex.id, set_number: 1, reps: 10, weight_kg: 60,
+        rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+      });
+    }
+
+    const rows = getMuscleExerciseSeriesInRange("musculacao", "2026-01-01", "2026-01-31");
+    expect(rows).toEqual([
+      {
+        muscle_group: "chest", exercise_id: ex.id, exercise_name: "Supino reto",
+        total_series: 1, raw_sets: 1, session_count: 1,
+      },
+    ]);
+  });
+
+  it("reads the snapshot, so re-weighting an exercise leaves logged series alone", () => {
+    const bench = createExercise({
+      name: "Supino reto", muscle_groups: ["chest", "triceps"],
+      equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+    updateExerciseMuscleGroups(bench.id, [
+      { muscle_group: "chest", counting_factor: 1 },
+      { muscle_group: "triceps", counting_factor: 0.5 },
+    ]);
+    const sessionId = createSession("2026-01-05");
+    addSet({
+      session_id: sessionId, exercise_id: bench.id, set_number: 1, reps: 10, weight_kg: 60,
+      rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+    });
+
+    updateExerciseMuscleGroups(bench.id, [{ muscle_group: "chest", counting_factor: 0.5 }]);
+
+    const rows = getMuscleExerciseSeriesInRange("musculacao", "2026-01-01", "2026-01-31");
+    expect(rows.find((r) => r.muscle_group === "chest")!.total_series).toBe(1);
+    expect(rows.find((r) => r.muscle_group === "triceps")!.total_series).toBe(0.5);
+  });
+
+  it("returns nothing for a window with no sessions", () => {
+    expect(getMuscleExerciseSeriesInRange("musculacao", "2026-06-01", "2026-06-30")).toEqual([]);
   });
 });
 

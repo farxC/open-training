@@ -38,6 +38,7 @@ import type {
   ExerciseDailyMax,
   DistanceRecords,
   MuscleSeriesRaw,
+  MuscleExerciseSeriesRaw,
 } from "../types";
 
 // ─── Sessions ────────────────────────────────────────────────────────────────
@@ -1091,6 +1092,39 @@ export function getMuscleSeriesInRange(
      WHERE s.modality = ? AND s.date >= ? AND s.date <= ?
      GROUP BY sm.muscle_group
      ORDER BY total_series DESC`,
+    [modality, startISO, endISO]
+  );
+}
+
+/** Same rollup as getMuscleSeriesInRange, broken down by the exercise that
+ *  produced the series — the drill-down under a muscle-group row. Grouping by
+ *  (muscle_group, exercise_id) keeps the fan-out that weighting needs: an
+ *  exercise carrying two groups is counted once under each, at that group's own
+ *  counting_factor.
+ *
+ *  raw_sets is deliberately unweighted. It is the only thing that separates
+ *  "6 sets at ½×" from "3 sets at 1×", both of which sum to 3 series, and it
+ *  stays correct even if an exercise's factor changed mid-window. */
+export function getMuscleExerciseSeriesInRange(
+  modality: Modality,
+  startISO: string,
+  endISO: string
+): MuscleExerciseSeriesRaw[] {
+  return db.getAllSync<MuscleExerciseSeriesRaw>(
+    `SELECT sm.muscle_group AS muscle_group,
+            st.exercise_id AS exercise_id,
+            e.name AS exercise_name,
+            SUM(sm.counting_factor) AS total_series,
+            COUNT(st.id) AS raw_sets,
+            COUNT(DISTINCT s.id) AS session_count
+     FROM sessions s
+     JOIN sets st ON st.session_id = s.id
+     JOIN exercises e ON e.id = st.exercise_id
+     JOIN session_exercises se ON se.session_id = st.session_id AND se.exercise_id = st.exercise_id
+     JOIN session_exercise_muscle_groups sm ON sm.session_exercise_id = se.id
+     WHERE s.modality = ? AND s.date >= ? AND s.date <= ?
+     GROUP BY sm.muscle_group, st.exercise_id
+     ORDER BY sm.muscle_group ASC, total_series DESC`,
     [modality, startISO, endISO]
   );
 }
