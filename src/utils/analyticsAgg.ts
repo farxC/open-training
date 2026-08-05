@@ -4,6 +4,8 @@ import type {
   DayBar,
   DayExerciseBreakdown,
   Delta,
+  MuscleExerciseRow,
+  MuscleExerciseSeriesRaw,
   MuscleFrequencyRow,
   MuscleSeriesRaw,
   MuscleSeriesRow,
@@ -230,6 +232,58 @@ export function averageMuscleSeriesPerWeek(
   return Array.from(totals.entries())
     .map(([muscle_group, sum]) => ({ muscle_group, value: sum / denom, weeks: totalWeeks, isAverage: true }))
     .sort((a, b) => b.value - a.value);
+}
+
+/**
+ * Groups the per-(muscle group, exercise) rollup into one list of exercises per
+ * muscle group, ranked by series.
+ *
+ * `weekCount` is the same divisor the group rows use, so the children's series
+ * sum to the parent's in every window: a single range query summed equals the
+ * per-week queries summed, since analysisWeeks() tiles the range exactly. A
+ * `weekCount` of 1 (week granularity) returns raw totals with isAverage false.
+ *
+ * Sessions are deliberately NOT divided — see MuscleExerciseRow.sessionCount.
+ *
+ * `share` is computed within each group, over that group's own series total —
+ * it answers "how concentrated is this group", not "how big is this group".
+ */
+export function muscleExerciseBreakdown(
+  raw: MuscleExerciseSeriesRaw[],
+  weekCount: number
+): Map<string, MuscleExerciseRow[]> {
+  const weeks = Math.max(weekCount, 1);
+  const isAverage = weeks > 1;
+  const byGroup = new Map<string, MuscleExerciseRow[]>();
+
+  for (const row of raw) {
+    let rows = byGroup.get(row.muscle_group);
+    if (!rows) {
+      rows = [];
+      byGroup.set(row.muscle_group, rows);
+    }
+    rows.push({
+      exercise_id: row.exercise_id,
+      exercise_name: row.exercise_name,
+      series: row.total_series / weeks,
+      sessionCount: row.session_count,
+      // Filled in below, once the group's total is known.
+      share: 0,
+      halved: row.total_series < row.raw_sets,
+      weeks,
+      isAverage,
+    });
+  }
+
+  for (const rows of byGroup.values()) {
+    const total = rows.reduce((sum, r) => sum + r.series, 0);
+    for (const row of rows) {
+      row.share = total > 0 ? row.series / total : 0;
+    }
+    rows.sort((a, b) => b.series - a.series);
+  }
+
+  return byGroup;
 }
 
 export function delta(cur: number, prev: number, higherIsBetter: boolean): Delta {

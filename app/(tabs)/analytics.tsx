@@ -30,6 +30,7 @@ export default function AnalyticsScreen() {
     distanceRecords,
     muscleFreq,
     muscleSeries,
+    muscleBreakdown,
     streak,
     streakDates,
     analysisWindow,
@@ -129,6 +130,7 @@ export default function AnalyticsScreen() {
                 series={muscleSeries}
                 frequency={muscleFreq}
                 caption={analysisWindow.label}
+                breakdown={muscleBreakdown}
               />
             </View>
           )}

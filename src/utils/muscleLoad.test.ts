@@ -1,10 +1,12 @@
-import type { MuscleFrequencyRow, MuscleSeriesRow } from "@/types";
+import type { MuscleExerciseRow, MuscleFrequencyRow, MuscleSeriesRow } from "@/types";
 import {
   PIP_CEILING,
   TICK_CEILING,
   TICK_FLOOR,
+  EXERCISE_HEAD,
   mergeMuscleLoad,
   pipSlots,
+  splitExerciseRows,
   sortMuscleLoad,
   summarizeMuscleLoad,
   tickSlots,
@@ -143,5 +145,57 @@ describe("summarizeMuscleLoad", () => {
       groupCount: 0,
       topFrequency: null,
     });
+  });
+});
+
+describe("splitExerciseRows", () => {
+  function exerciseRows(count: number): MuscleExerciseRow[] {
+    // Descending series, so the head is always the meaningful end of the list.
+    return Array.from({ length: count }, (_, i) => ({
+      exercise_id: i + 1,
+      exercise_name: `Exercicio ${i + 1}`,
+      series: count - i,
+      sessionCount: 2,
+      share: (count - i) / ((count * (count + 1)) / 2),
+      halved: false,
+      weeks: 4,
+      isAverage: true,
+    }));
+  }
+
+  it("keeps every row when the list already fits", () => {
+    const rows = exerciseRows(EXERCISE_HEAD);
+    expect(splitExerciseRows(rows)).toEqual({ head: rows, tail: null });
+  });
+
+  it("keeps the last row rather than folding a single exercise into a tail", () => {
+    // Folding one row costs a row and loses its name — a bad trade.
+    const rows = exerciseRows(EXERCISE_HEAD + 1);
+    expect(splitExerciseRows(rows)).toEqual({ head: rows, tail: null });
+  });
+
+  it("folds the tail once at least two rows collapse, keeping their series", () => {
+    const rows = exerciseRows(10);
+    const { head, tail } = splitExerciseRows(rows, 6);
+
+    expect(head).toHaveLength(6);
+    expect(head.map((r) => r.exercise_id)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(tail).not.toBeNull();
+    expect(tail!.count).toBe(4);
+    // Rows 7..10 carry series 4, 3, 2, 1.
+    expect(tail!.series).toBe(10);
+  });
+
+  it("head plus tail still sums to the group total, which is the whole point", () => {
+    const rows = exerciseRows(21);
+    const { head, tail } = splitExerciseRows(rows);
+    const total = rows.reduce((sum, r) => sum + r.series, 0);
+
+    expect(head.reduce((sum, r) => sum + r.series, 0) + tail!.series).toBe(total);
+    expect(head.reduce((sum, r) => sum + r.share, 0) + tail!.share).toBeCloseTo(1);
+  });
+
+  it("handles an empty list", () => {
+    expect(splitExerciseRows([])).toEqual({ head: [], tail: null });
   });
 });

@@ -31,6 +31,8 @@ export type {
   MuscleSeriesRaw,
   MuscleSeriesRow,
   MuscleFrequencyRow,
+  MuscleExerciseSeriesRaw,
+  MuscleExerciseRow,
   DayBar,
   DayExerciseBreakdown,
 } from "./analytics";

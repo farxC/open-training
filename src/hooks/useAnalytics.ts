@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   getDistanceRecords,
   getExerciseDailyMaxes,
+  getMuscleExerciseSeriesInRange,
   getMuscleSeriesInRange,
   getSessionDatesByModality,
   getSetsInRange,
@@ -17,6 +18,7 @@ import type {
   DistanceSummary,
   Granularity,
   Modality,
+  MuscleExerciseRow,
   MuscleFrequencyRow,
   MuscleSeriesRow,
   StrengthSummary,
@@ -28,6 +30,7 @@ import {
   computeStreak,
   dayBars,
   dayBreakdown,
+  muscleExerciseBreakdown,
   sumDistance,
   sumStrength,
   toMuscleSeriesRows,
@@ -101,6 +104,11 @@ export interface AnalyticsView {
   /** Sessions per muscle group over the window — raw count at week granularity,
    *  sessions-per-week otherwise. Strength category only. */
   muscleFreq: MuscleFrequencyRow[];
+  /** Which exercises produced one muscle group's series, ranked. Derived from a
+   *  rollup fetched with the rest of the window, so expanding a group in the
+   *  panel costs no query. Empty for groups with nothing in the window, and for
+   *  every group outside the strength category. */
+  muscleBreakdown: (muscleGroup: string) => MuscleExerciseRow[];
   streak: number;
   streakDates: string[];
   analysisWindow: AnalysisWindow;
@@ -145,6 +153,7 @@ export function useAnalytics(): AnalyticsView {
     let distanceRecords: DistanceRecords = EMPTY_DISTANCE_RECORDS;
     let muscleFreq: MuscleFrequencyRow[] = [];
     let muscleSeries: MuscleSeriesRow[] = [];
+    let muscleExercises = new Map<string, MuscleExerciseRow[]>();
     let trend: { label: string; value: number }[];
 
     if (isStrengthMetric) {
@@ -180,6 +189,14 @@ export function useAnalytics(): AnalyticsView {
           ? toMuscleSeriesRows(weeklyRaw[0])
           : averageMuscleSeriesPerWeek(weeklyRaw, weeks.length);
       muscleFreq = weeklyMuscleFrequency(curSets, weeks.length);
+      // One query over the whole window, divided by the same week count the
+      // group rows use — analysisWeeks() tiles the range exactly, so this sums
+      // to what the per-week queries above produce, and the drill-down adds up
+      // to the row it sits under.
+      muscleExercises = muscleExerciseBreakdown(
+        getMuscleExerciseSeriesInRange(modality, cur.start, cur.end),
+        weeks.length
+      );
     }
 
     const streakDates = getSessionDatesByModality(modality);
@@ -198,6 +215,7 @@ export function useAnalytics(): AnalyticsView {
       distanceRecords,
       muscleFreq,
       muscleSeries,
+      muscleBreakdown: (muscleGroup: string) => muscleExercises.get(muscleGroup) ?? [],
       streak,
       streakDates,
       analysisWindow: {
