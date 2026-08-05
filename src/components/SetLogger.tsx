@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { SetRow } from "./SetRow";
@@ -212,7 +212,10 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
               <Text className="text-ink-soft text-base">Cancelar</Text>
             </TouchableOpacity>
           </View>
-          <View className="px-4">
+          {/* Scrollable: the config editor is taller than a phone screen, and in a
+              plain View its last sections (and the save button under them) were
+              simply cut off. */}
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
             {draftConfig && <ExerciseConfigEditor value={draftConfig} onChange={setDraftConfig} />}
             <TouchableOpacity
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
@@ -223,7 +226,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
             <TouchableOpacity className="mt-2 py-3 items-center" onPress={restoreExerciseDefault}>
               <Text className="text-ink-soft text-sm">Restaurar padrão do exercício</Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     </View>
