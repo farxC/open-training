@@ -124,6 +124,78 @@ export function exerciseConfigSummary(config: ExerciseConfig): string {
   return parts.join(" · ");
 }
 
+export interface ConfigSpecRow {
+  /** Which dimension this is — the left column of the spec sheet. */
+  label: string;
+  value: string;
+  /**
+   * The value is what every exercise gets until someone says otherwise. The spec
+   * sheet dims these, so what's left in full ink is what actually distinguishes
+   * this movement from any other.
+   */
+  isDefault: boolean;
+}
+
+/**
+ * The config as a spec sheet: one labelled row per dimension, in the order the
+ * dimensions matter for reading a logged load.
+ *
+ * Distinct from {@link exerciseConfigSummary}, which compresses the same data
+ * into one line for a card subtitle. A summary can drop the defaults it treats
+ * as unremarkable ("Bilateral", "Completa"); a spec sheet cannot — a blank row
+ * where the amplitude should be reads as missing data, not as "full".
+ * Dimensions that genuinely don't apply (no grip on a leg press, no load mode
+ * without bodyweight) are omitted rather than printed as "—".
+ */
+export function exerciseConfigRows(config: ExerciseConfig): ConfigSpecRow[] {
+  const D = DEFAULT_EXERCISE_CONFIG;
+
+  const rows: ConfigSpecRow[] = [
+    {
+      label: "Curva",
+      value: RESISTANCE_CURVE_LABELS[config.resistance_curve],
+      isDefault: config.resistance_curve === D.resistance_curve,
+    },
+    {
+      label: "Carga",
+      value:
+        config.load_type === "pulley" && config.pulley_type
+          ? `${LOAD_TYPE_LABELS.pulley} ${PULLEY_TYPE_LABELS[config.pulley_type].toLowerCase()}`
+          : LOAD_TYPE_LABELS[config.load_type],
+      isDefault: config.load_type === D.load_type,
+    },
+    {
+      label: "Lateralidade",
+      value: LATERALITY_LABELS[config.laterality],
+      isDefault: config.laterality === D.laterality,
+    },
+    { label: "Amplitude", value: ROM_LABELS[config.rom], isDefault: config.rom === D.rom },
+  ];
+
+  const grip = [
+    config.grip_type && GRIP_TYPE_LABELS[config.grip_type],
+    config.grip_width && GRIP_WIDTH_LABELS[config.grip_width].toLowerCase(),
+  ].filter(Boolean);
+  // A grip that was filled in is never "default" — the default is having none.
+  if (grip.length) rows.push({ label: "Pegada", value: grip.join(" "), isDefault: false });
+
+  rows.push({
+    label: "Banco",
+    value: config.uses_bench ? benchAngleLabel(config.bench_angle_degrees ?? 0) : "Sem banco",
+    isDefault: !config.uses_bench,
+  });
+
+  if (config.uses_bodyweight && config.load_mode) {
+    rows.push({
+      label: "Peso corporal",
+      value: LOAD_MODE_LABELS[config.load_mode],
+      isDefault: false,
+    });
+  }
+
+  return rows;
+}
+
 /** Enforces the config's cross-field invariants: a dependent field is null
  *  whenever the field that enables it is off. Applied on every write so a
  *  toggle flipped back off can never leave a stale value behind. */
