@@ -17,7 +17,6 @@ import {
 } from "@/db/queries";
 import { confirmAction } from "@/components/AppModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { SectionHeader } from "@/components/SectionHeader";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
@@ -451,7 +450,6 @@ export default function SessionDetailScreen() {
 
               {isStrengthCategory(session.modality) && muscleSeries.length > 0 && (
                 <View style={{ marginTop: 20 }}>
-                  <SectionHeader title="Séries por grupo muscular" />
                   <MuscleSeriesSessionCard data={muscleSeries} />
                 </View>
               )}

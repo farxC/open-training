@@ -22,7 +22,6 @@ import { DistanceLogger } from "@/components/DistanceLogger";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { SessionTimer } from "@/components/SessionTimer";
 import { SessionFinishModal } from "@/components/SessionFinishModal";
-import { SectionHeader } from "@/components/SectionHeader";
 import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
 import { ModalityCardGrid } from "@/components/ModalityCardGrid";
 import {
@@ -511,7 +510,6 @@ export default function NewSessionScreen() {
 
                 {isStrengthCategory(modality) && muscleSeries.length > 0 && (
                   <View style={{ marginBottom: 16 }}>
-                    <SectionHeader title="Séries por grupo muscular" />
                     <MuscleSeriesSessionCard data={muscleSeries} />
                   </View>
                 )}
