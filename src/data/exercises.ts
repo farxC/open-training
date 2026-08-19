@@ -4,10 +4,11 @@ import type { Exercise, Modality, MuscleGroup } from "../types";
 // Seed data doesn't specify a config — every seeded exercise gets the app-wide
 // default physical config via the migration backfill (see runMigrations), same
 // as any other freshly created exercise. Nor does it specify is_archived: a
-// seeded exercise always starts visible, and archiving is the user's call.
+// seeded exercise always starts visible, and archiving is the user's call. Nor
+// variation fields — every seed is a root exercise.
 export type SeedExercise = Omit<
   Exercise,
-  "id" | "modality" | "uuid" | "muscle_groups" | "config" | "is_archived"
+  "id" | "modality" | "uuid" | "muscle_groups" | "config" | "is_archived" | "parent_exercise_id" | "is_default_variation"
 > & {
   muscle_groups: MuscleGroup[];
 };

@@ -84,4 +84,11 @@ export interface Exercise {
   config: ExerciseConfig;
   /** Soft-delete: archived exercises stay in history but disappear from pickers. */
   is_archived: 0 | 1;
+  /** NULL for a root exercise; the id of the parent when this row is a
+   *  grip/angle/equipment variation. A variation has its own independent
+   *  config, muscle groups, sets, and history — never aggregated into the parent. */
+  parent_exercise_id: number | null;
+  /** 1 if this is the parent's currently-preferred variation. Always 0 on a
+   *  root exercise or on a non-default variation; at most one true per parent. */
+  is_default_variation: 0 | 1;
 }

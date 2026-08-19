@@ -2,7 +2,9 @@ import { useCallback, useState } from "react";
 import {
   archiveExercise,
   createExercise,
+  createVariation,
   getExercises,
+  setDefaultVariation,
   unarchiveExercise,
   updateExercise,
   updateExerciseConfig,
@@ -23,9 +25,24 @@ interface PropagationOptions {
   applyToHistory?: boolean;
 }
 
-type NewExercise = Omit<Exercise, "id" | "uuid" | "muscle_groups" | "config" | "is_archived"> & {
+type NewExercise = Omit<
+  Exercise,
+  "id" | "uuid" | "muscle_groups" | "config" | "is_archived" | "parent_exercise_id" | "is_default_variation"
+> & {
   muscle_groups: MuscleGroup[];
 };
+
+type NewVariation = Omit<
+  Exercise,
+  | "id"
+  | "uuid"
+  | "muscle_groups"
+  | "config"
+  | "is_archived"
+  | "parent_exercise_id"
+  | "is_default_variation"
+  | "modality"
+>;
 
 export function useExercises(filter?: Filter) {
   const [exercises, setExercises] = useState<Exercise[]>(() =>
@@ -48,6 +65,8 @@ export function useExercises(filter?: Filter) {
         is_archived: 0,
         muscle_groups: ex.muscle_groups.map((muscle_group) => ({ muscle_group, counting_factor: 1 })),
         config: DEFAULT_EXERCISE_CONFIG,
+        parent_exercise_id: null,
+        is_default_variation: 0,
       };
     },
     [refresh]
@@ -79,6 +98,27 @@ export function useExercises(filter?: Filter) {
     [refresh]
   );
 
+  /** Creates a grip/angle/equipment variation of parentExerciseId. Returns the
+   *  new exercise's id/uuid rather than a constructed Exercise — the cloned
+   *  config/muscle groups aren't known client-side, so callers re-read from
+   *  `exercises` after refresh() instead of trusting a hand-built object. */
+  const createVariationOf = useCallback(
+    (parentExerciseId: number, ex: NewVariation): { id: number; uuid: string } => {
+      const result = createVariation(parentExerciseId, ex);
+      refresh();
+      return result;
+    },
+    [refresh]
+  );
+
+  const setDefaultVariationOf = useCallback(
+    (exerciseId: number): void => {
+      setDefaultVariation(exerciseId);
+      refresh();
+    },
+    [refresh]
+  );
+
   const archive = useCallback(
     (exerciseId: number): void => {
       archiveExercise(exerciseId);
@@ -95,5 +135,16 @@ export function useExercises(filter?: Filter) {
     [refresh]
   );
 
-  return { exercises, refresh, createCustom, updateMuscleGroups, updateConfig, updateIdentity, archive, unarchive };
+  return {
+    exercises,
+    refresh,
+    createCustom,
+    updateMuscleGroups,
+    updateConfig,
+    updateIdentity,
+    archive,
+    unarchive,
+    createVariationOf,
+    setDefaultVariationOf,
+  };
 }

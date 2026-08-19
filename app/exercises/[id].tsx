@@ -40,6 +40,10 @@ export default function ExerciseDetailScreen() {
   const [editVisible, setEditVisible] = useState(false);
 
   const exercise = exercises.find((e) => e.id === exerciseId);
+  const parentExercise =
+    exercise?.parent_exercise_id != null
+      ? exercises.find((e) => e.id === exercise.parent_exercise_id)
+      : undefined;
   const sets = getExerciseSets(exerciseId);
   const today = todayISO();
 
@@ -138,6 +142,20 @@ export default function ExerciseDetailScreen() {
           ) : null}
         </View>
 
+        <View style={{ marginBottom: 16, alignItems: "flex-start" }}>
+          {exercise.parent_exercise_id === null ? (
+            <VariationLink
+              label="Variações"
+              onPress={() => router.push(`/exercises/${exercise.id}/variations`)}
+            />
+          ) : parentExercise ? (
+            <VariationLink
+              label={`Variação de: ${parentExercise.name}`}
+              onPress={() => router.push(`/exercises/${parentExercise.id}`)}
+            />
+          ) : null}
+        </View>
+
         <View style={{ marginBottom: 20 }}>
           <ExerciseStatBand stats={stats} />
         </View>
@@ -203,6 +221,34 @@ function GhostButton({ label, onPress }: { label: string; onPress: () => void })
       <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>
         {label}
       </Text>
+    </Pressable>
+  );
+}
+
+/** Links a root exercise to its "Gerenciar variações" screen, or a variation
+ *  back to its parent — same ghost-pill visual language as the section-level
+ *  "editar" affordance, but standalone rather than inside a SectionHeader. */
+function VariationLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { hovered, handlers } = useInteractionState();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      {...handlers}
+      hitSlop={6}
+      accessibilityRole="button"
+      className="flex-row items-center rounded-full"
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: hovered ? "#cfcabf" : "#e7e4dc",
+        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+      }}
+    >
+      <MaterialCommunityIcons name="source-branch" size={11} color="#5c594f" />
+      <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>{label}</Text>
     </Pressable>
   );
 }

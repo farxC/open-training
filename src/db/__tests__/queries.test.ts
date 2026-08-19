@@ -1,5 +1,5 @@
 import { createInMemoryDb } from "./testDb";
-import { CREATE_TABLES } from "../schema";
+import { CREATE_INDEXES, CREATE_TABLES } from "../schema";
 import type { DbHandle } from "../dbHandle";
 
 let mockDb: DbHandle;
@@ -43,6 +43,15 @@ import {
   archiveExercise,
   unarchiveExercise,
   ExerciseNameTakenError,
+  createVariation,
+  setDefaultVariation,
+  getVariations,
+  getExerciseById,
+  resolveDefaultExercise,
+  swapSessionExerciseVariation,
+  NestedVariationError,
+  InvalidVariationSwapError,
+  VariationAlreadyInSessionError,
 } from "../queries";
 import { DEFAULT_EXERCISE_CONFIG } from "../../data/exerciseConfig";
 import type { ExerciseConfig, Modality } from "../../types";
@@ -70,6 +79,7 @@ function baseUnitExercise(unitId: number, exerciseId: number, order: number) {
 beforeEach(async () => {
   mockDb = await createInMemoryDb();
   for (const sql of CREATE_TABLES) mockDb.execSync(sql);
+  for (const sql of CREATE_INDEXES) mockDb.execSync(sql);
 });
 
 describe("routine_unit_exercises reorder/remove", () => {
@@ -946,5 +956,226 @@ describe("getSetsInRange", () => {
 
     const row = getSetsInRange("musculacao", "2026-01-01", "2026-01-01")[0];
     expect(row.exercise_order).toBe(0);
+  });
+});
+
+describe("exercise variations", () => {
+  function createRoot(name = "Supino Reto") {
+    return createExercise({
+      name, muscle_groups: ["chest", "triceps"], equipment: "barbell", type: "compound", modality: "musculacao", is_custom: 0,
+    });
+  }
+
+  describe("createVariation", () => {
+    it("clones the parent's muscle groups and config by default", () => {
+      const root = createRoot();
+      updateExerciseMuscleGroups(root.id, [
+        { muscle_group: "chest", counting_factor: 1 },
+        { muscle_group: "triceps", counting_factor: 0.5 },
+      ]);
+      updateExerciseConfig(root.id, { ...DEFAULT_EXERCISE_CONFIG, grip_width: "close" });
+
+      const variation = createVariation(root.id, {
+        name: "Supino com Halteres", equipment: "dumbbell", type: "compound", is_custom: 0,
+      });
+
+      const exercises = getExercises({ include_archived: true });
+      const v = exercises.find((e) => e.id === variation.id)!;
+      expect(v.parent_exercise_id).toBe(root.id);
+      expect(v.muscle_groups.sort((a, b) => a.muscle_group.localeCompare(b.muscle_group))).toEqual([
+        { muscle_group: "chest", counting_factor: 1 },
+        { muscle_group: "triceps", counting_factor: 0.5 },
+      ]);
+      expect(v.config.grip_width).toBe("close");
+    });
+
+    it("accepts explicit muscle-group and config overrides instead of cloning", () => {
+      const root = createRoot();
+
+      const variation = createVariation(root.id, {
+        name: "Supino Pegada Fechada",
+        equipment: "barbell",
+        type: "compound",
+        is_custom: 0,
+        muscle_groups: [{ muscle_group: "triceps", counting_factor: 1 }],
+        config: { ...DEFAULT_EXERCISE_CONFIG, grip_width: "close" },
+      });
+
+      const v = getExerciseById(variation.id)!;
+      expect(v.muscle_groups).toEqual([{ muscle_group: "triceps", counting_factor: 1 }]);
+      expect(v.config.grip_width).toBe("close");
+    });
+
+    it("makes only the first variation the default", () => {
+      const root = createRoot();
+      const v1 = createVariation(root.id, { name: "V1", equipment: "barbell", type: "compound", is_custom: 0 });
+      const v2 = createVariation(root.id, { name: "V2", equipment: "barbell", type: "compound", is_custom: 0 });
+
+      expect(getExerciseById(v1.id)!.is_default_variation).toBe(1);
+      expect(getExerciseById(v2.id)!.is_default_variation).toBe(0);
+    });
+
+    it("rejects creating a variation of an exercise that is itself a variation", () => {
+      const root = createRoot();
+      const variation = createVariation(root.id, {
+        name: "V1", equipment: "barbell", type: "compound", is_custom: 0,
+      });
+
+      expect(() =>
+        createVariation(variation.id, { name: "V2", equipment: "barbell", type: "compound", is_custom: 0 })
+      ).toThrow(NestedVariationError);
+    });
+
+    it("throws ExerciseNameTakenError on a name clash", () => {
+      createRoot();
+      const root = createRoot("Agachamento");
+      expect(() =>
+        createVariation(root.id, { name: "Supino Reto", equipment: "barbell", type: "compound", is_custom: 0 })
+      ).toThrow(ExerciseNameTakenError);
+    });
+  });
+
+  describe("setDefaultVariation", () => {
+    it("flips the flag exclusively among siblings", () => {
+      const root = createRoot();
+      const v1 = createVariation(root.id, { name: "V1", equipment: "barbell", type: "compound", is_custom: 0 });
+      const v2 = createVariation(root.id, { name: "V2", equipment: "barbell", type: "compound", is_custom: 0 });
+
+      setDefaultVariation(v2.id);
+
+      expect(getExerciseById(v1.id)!.is_default_variation).toBe(0);
+      expect(getExerciseById(v2.id)!.is_default_variation).toBe(1);
+    });
+
+    it("throws when called on a root exercise", () => {
+      const root = createRoot();
+      expect(() => setDefaultVariation(root.id)).toThrow();
+    });
+
+    it("the raw partial unique index rejects two defaults regardless of query-layer discipline", () => {
+      const root = createRoot();
+      mockDb.runSync(
+        "INSERT INTO exercises (name, equipment, type, parent_exercise_id, is_default_variation) VALUES (?, 'barbell', 'compound', ?, 1)",
+        ["Raw V1", root.id]
+      );
+      expect(() =>
+        mockDb.runSync(
+          "INSERT INTO exercises (name, equipment, type, parent_exercise_id, is_default_variation) VALUES (?, 'barbell', 'compound', ?, 1)",
+          ["Raw V2", root.id]
+        )
+      ).toThrow();
+    });
+  });
+
+  describe("getVariations", () => {
+    it("returns only the given parent's variations, including archived ones", () => {
+      const root = createRoot();
+      const other = createRoot("Agachamento");
+      const v1 = createVariation(root.id, { name: "V1", equipment: "barbell", type: "compound", is_custom: 0 });
+      createVariation(other.id, { name: "V-other", equipment: "barbell", type: "compound", is_custom: 0 });
+      archiveExercise(v1.id);
+
+      const variations = getVariations(root.id);
+      expect(variations.map((v) => v.id)).toEqual([v1.id]);
+    });
+  });
+
+  describe("resolveDefaultExercise", () => {
+    it("returns the default variation's id for a root that has one", () => {
+      const root = createRoot();
+      const v1 = createVariation(root.id, { name: "V1", equipment: "barbell", type: "compound", is_custom: 0 });
+
+      expect(resolveDefaultExercise(root.id)).toBe(v1.id);
+    });
+
+    it("returns the id unchanged for a root without variations", () => {
+      const root = createRoot();
+      expect(resolveDefaultExercise(root.id)).toBe(root.id);
+    });
+
+    it("returns the id unchanged for a variation itself", () => {
+      const root = createRoot();
+      const v1 = createVariation(root.id, { name: "V1", equipment: "barbell", type: "compound", is_custom: 0 });
+
+      expect(resolveDefaultExercise(v1.id)).toBe(v1.id);
+    });
+
+    it("falls back to the root's id when the flagged default has been archived", () => {
+      const root = createRoot();
+      const v1 = createVariation(root.id, { name: "V1", equipment: "barbell", type: "compound", is_custom: 0 });
+      archiveExercise(v1.id);
+
+      expect(resolveDefaultExercise(root.id)).toBe(root.id);
+    });
+  });
+
+  describe("swapSessionExerciseVariation", () => {
+    function setUpSessionWithVariation() {
+      const root = createRoot();
+      const v1 = createVariation(root.id, { name: "V1", equipment: "barbell", type: "compound", is_custom: 0 });
+      const sessionId = createSession("2026-01-01");
+      const sessionExerciseId = addSessionExercise(sessionId, root.id, 0);
+      addSet({
+        session_id: sessionId, exercise_id: root.id, set_number: 1, reps: 10, weight_kg: 60,
+        rpe: null, rir: null, notes: null, distance_km: null, duration_sec: null, pace_sec: null, failure: 0,
+      });
+      return { root, v1, sessionId, sessionExerciseId };
+    }
+
+    it("migrates logged sets and updates session_exercises to the new exercise", () => {
+      const { root, v1, sessionId, sessionExerciseId } = setUpSessionWithVariation();
+
+      swapSessionExerciseVariation(sessionExerciseId, v1.id);
+
+      const se = getSessionExercises(sessionId)[0];
+      expect(se.exercise_id).toBe(v1.id);
+      const sets = getSetsBySession(sessionId);
+      expect(sets).toHaveLength(1);
+      expect(sets[0].exercise_id).toBe(v1.id);
+      expect(sets[0].set_number).toBe(1);
+
+      const rootSets = mockDb.getAllSync<{ count: number }>(
+        "SELECT COUNT(*) as count FROM sets WHERE exercise_id = ?",
+        [root.id]
+      );
+      expect(rootSets[0].count).toBe(0);
+    });
+
+    it("re-syncs the config/muscle-group snapshot from the new exercise's current defaults", () => {
+      const { v1, sessionExerciseId } = setUpSessionWithVariation();
+      updateExerciseConfig(v1.id, { ...DEFAULT_EXERCISE_CONFIG, grip_width: "wide" });
+      updateExerciseMuscleGroups(v1.id, [{ muscle_group: "triceps", counting_factor: 0.5 }]);
+
+      swapSessionExerciseVariation(sessionExerciseId, v1.id);
+
+      const se = mockDb.getFirstSync<{ grip_width: string | null }>(
+        "SELECT grip_width FROM session_exercise_config WHERE session_exercise_id = ?",
+        [sessionExerciseId]
+      );
+      expect(se!.grip_width).toBe("wide");
+      const groups = mockDb.getAllSync<{ muscle_group: string; counting_factor: number }>(
+        "SELECT muscle_group, counting_factor FROM session_exercise_muscle_groups WHERE session_exercise_id = ?",
+        [sessionExerciseId]
+      );
+      expect(groups).toEqual([{ muscle_group: "triceps", counting_factor: 0.5 }]);
+    });
+
+    it("throws InvalidVariationSwapError when the target isn't the parent or a sibling", () => {
+      const { sessionExerciseId } = setUpSessionWithVariation();
+      const unrelated = createRoot("Remada");
+
+      expect(() => swapSessionExerciseVariation(sessionExerciseId, unrelated.id)).toThrow(
+        InvalidVariationSwapError
+      );
+    });
+
+    it("throws VariationAlreadyInSessionError when the target is already a separate row in the session", () => {
+      const { v1, sessionId, sessionExerciseId } = setUpSessionWithVariation();
+      addSessionExercise(sessionId, v1.id, 1);
+
+      expect(() => swapSessionExerciseVariation(sessionExerciseId, v1.id)).toThrow(
+        VariationAlreadyInSessionError
+      );
+    });
   });
 });

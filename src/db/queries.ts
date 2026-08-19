@@ -435,6 +435,9 @@ export function getExercises(filter?: {
   /** Archived exercises are hidden everywhere by default — only the exercise
    *  management UI asks for them. */
   include_archived?: boolean;
+  /** Filters to variations of this exercise; `null` filters to root exercises
+   *  only (those with no parent). Omitted means no filtering on this axis. */
+  parent_exercise_id?: number | null;
 }): Exercise[] {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -453,6 +456,12 @@ export function getExercises(filter?: {
   }
   if (!filter?.include_archived) {
     conditions.push("is_archived = 0");
+  }
+  if (filter?.parent_exercise_id === null) {
+    conditions.push("parent_exercise_id IS NULL");
+  } else if (filter?.parent_exercise_id !== undefined) {
+    conditions.push("parent_exercise_id = ?");
+    params.push(filter.parent_exercise_id);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -488,13 +497,25 @@ export function getExercises(filter?: {
     modality: row.modality,
     uuid: row.uuid,
     is_archived: row.is_archived,
+    parent_exercise_id: row.parent_exercise_id,
+    is_default_variation: row.is_default_variation,
     muscle_groups: groupsByExerciseId.get(row.id) ?? [],
     config: rowToConfig(row),
   }));
 }
 
+/** A single exercise by id, or null if it doesn't exist (e.g. archived and
+ *  filtered elsewhere, or a stale id). Avoids re-fetching the whole catalog
+ *  just to resolve one id into a full Exercise. */
+export function getExerciseById(exerciseId: number): Exercise | null {
+  return getExercises({ include_archived: true }).find((e) => e.id === exerciseId) ?? null;
+}
+
 export function createExercise(
-  ex: Omit<Exercise, "id" | "uuid" | "muscle_groups" | "config" | "is_archived"> & {
+  ex: Omit<
+    Exercise,
+    "id" | "uuid" | "muscle_groups" | "config" | "is_archived" | "parent_exercise_id" | "is_default_variation"
+  > & {
     muscle_groups: MuscleGroup[];
   }
 ): { id: number; uuid: string } {
@@ -510,6 +531,212 @@ export function createExercise(
   // Every exercise gets a config row at creation time, seeded with the app defaults.
   db.runSync("INSERT INTO exercise_config (exercise_id) VALUES (?)", [id]);
   return { id, uuid };
+}
+
+/** Thrown when a variation operation is given a parent that is itself a
+ *  variation — variations cannot be nested. */
+export class NestedVariationError extends Error {
+  constructor() {
+    super("Cannot create a variation of an exercise that is itself a variation.");
+    this.name = "NestedVariationError";
+  }
+}
+
+/** Creates a grip/angle/equipment variation of `parentExerciseId`. Clones the
+ *  parent's current muscle groups and config as a starting point unless
+ *  overridden — the variation then has its own independent history, PRs, and
+ *  config from this point on. The first variation of a parent is automatically
+ *  made its default (see idx_one_default_variation_per_parent). */
+export function createVariation(
+  parentExerciseId: number,
+  ex: Omit<
+    Exercise,
+    | "id"
+    | "uuid"
+    | "muscle_groups"
+    | "config"
+    | "is_archived"
+    | "parent_exercise_id"
+    | "is_default_variation"
+    | "modality"
+  > & {
+    muscle_groups?: MuscleGroup[] | ExerciseMuscleGroup[];
+    config?: ExerciseConfig;
+  }
+): { id: number; uuid: string } {
+  const parent = db.getFirstSync<{ parent_exercise_id: number | null; modality: Modality }>(
+    "SELECT parent_exercise_id, modality FROM exercises WHERE id = ?",
+    [parentExerciseId]
+  );
+  if (!parent) throw new Error(`Exercise ${parentExerciseId} not found.`);
+  if (parent.parent_exercise_id !== null) throw new NestedVariationError();
+
+  const clash = db.getFirstSync<{ id: number }>("SELECT id FROM exercises WHERE name = ?", [ex.name]);
+  if (clash) throw new ExerciseNameTakenError(ex.name);
+
+  const uuid = generateUuid();
+  let id = 0;
+  db.withTransactionSync(() => {
+    const siblingCount = db.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM exercises WHERE parent_exercise_id = ?",
+      [parentExerciseId]
+    );
+    const isFirstVariation = (siblingCount?.count ?? 0) === 0;
+
+    const result = db.runSync(
+      `INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid, parent_exercise_id, is_default_variation)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [ex.name, ex.equipment, ex.type, 1, parent.modality, uuid, parentExerciseId, isFirstVariation ? 1 : 0]
+    );
+    id = result.lastInsertRowId;
+
+    if (ex.muscle_groups) {
+      for (const mg of ex.muscle_groups) {
+        const muscle_group = typeof mg === "string" ? mg : mg.muscle_group;
+        const counting_factor = typeof mg === "string" ? 1 : mg.counting_factor;
+        db.runSync(
+          "INSERT OR IGNORE INTO exercise_muscle_groups (exercise_id, muscle_group, counting_factor) VALUES (?, ?, ?)",
+          [id, muscle_group, counting_factor]
+        );
+      }
+    } else {
+      db.runSync(
+        `INSERT INTO exercise_muscle_groups (exercise_id, muscle_group, counting_factor)
+         SELECT ?, muscle_group, counting_factor FROM exercise_muscle_groups WHERE exercise_id = ?`,
+        [id, parentExerciseId]
+      );
+    }
+
+    if (ex.config) {
+      db.runSync(
+        `INSERT INTO exercise_config (exercise_id, ${CONFIG_COLUMN_LIST}) VALUES (?, ${CONFIG_PLACEHOLDERS})`,
+        [id, ...configValues(ex.config)]
+      );
+    } else {
+      db.runSync(
+        `INSERT INTO exercise_config (exercise_id, ${CONFIG_COLUMN_LIST})
+         SELECT ?, ${configColumnsOf("ec")} FROM exercise_config ec WHERE ec.exercise_id = ?`,
+        [id, parentExerciseId]
+      );
+    }
+  });
+  return { id, uuid };
+}
+
+/** Every variation of `parentExerciseId`, including archived ones — the
+ *  management screen needs to show the full picture. */
+export function getVariations(parentExerciseId: number): Exercise[] {
+  return getExercises({ parent_exercise_id: parentExerciseId, include_archived: true });
+}
+
+/** Marks `exerciseId` as its parent's default variation, clearing the flag on
+ *  every sibling first (SQLite checks the partial unique index per-statement,
+ *  not deferred, so clear-then-set is mandatory, not stylistic). The parent is
+ *  always derived from the target row itself, never from a caller-supplied
+ *  value, so this can never cross into a different exercise's family. Throws
+ *  if `exerciseId` is a root exercise (has no parent to be a variation of). */
+export function setDefaultVariation(exerciseId: number): void {
+  const row = db.getFirstSync<{ parent_exercise_id: number | null }>(
+    "SELECT parent_exercise_id FROM exercises WHERE id = ?",
+    [exerciseId]
+  );
+  if (!row) throw new Error(`Exercise ${exerciseId} not found.`);
+  if (row.parent_exercise_id === null) {
+    throw new Error(`Exercise ${exerciseId} is a root exercise, not a variation.`);
+  }
+  db.withTransactionSync(() => {
+    db.runSync("UPDATE exercises SET is_default_variation = 0 WHERE parent_exercise_id = ? AND id != ?", [
+      row.parent_exercise_id,
+      exerciseId,
+    ]);
+    db.runSync("UPDATE exercises SET is_default_variation = 1 WHERE id = ?", [exerciseId]);
+  });
+}
+
+/** If `exerciseId` is a root exercise with a (non-archived) default variation,
+ *  returns that variation's id; otherwise returns `exerciseId` unchanged — a
+ *  no-op for a variation itself, a root without variations, or a root whose
+ *  flagged default has since been archived (fails toward visibility rather
+ *  than resolving to a hidden exercise). Used to resolve a routine's exercise
+ *  reference into what a new session should actually log. */
+export function resolveDefaultExercise(exerciseId: number): number {
+  const row = db.getFirstSync<{ id: number }>(
+    "SELECT id FROM exercises WHERE parent_exercise_id = ? AND is_default_variation = 1 AND is_archived = 0",
+    [exerciseId]
+  );
+  return row?.id ?? exerciseId;
+}
+
+/** Thrown by swapSessionExerciseVariation when the target exercise isn't the
+ *  parent or a sibling variation of the one currently logged. */
+export class InvalidVariationSwapError extends Error {
+  constructor() {
+    super("Can only swap to the parent exercise or a sibling variation.");
+    this.name = "InvalidVariationSwapError";
+  }
+}
+
+/** Thrown by swapSessionExerciseVariation when the target exercise is already
+ *  a separate row in the same session (would violate
+ *  UNIQUE(session_id, exercise_id)). */
+export class VariationAlreadyInSessionError extends Error {
+  constructor() {
+    super("That variation is already part of this session.");
+    this.name = "VariationAlreadyInSessionError";
+  }
+}
+
+/** Corrects which variation was actually used for an already-saved session
+ *  exercise: migrates every logged set to the new exercise (so they count
+ *  toward its history/PRs, per design), then re-syncs the session's
+ *  config/muscle-group snapshot from the new exercise's current defaults. */
+export function swapSessionExerciseVariation(sessionExerciseId: number, newExerciseId: number): void {
+  const current = db.getFirstSync<{ session_id: number; exercise_id: number }>(
+    "SELECT session_id, exercise_id FROM session_exercises WHERE id = ?",
+    [sessionExerciseId]
+  );
+  if (!current) throw new Error(`Session exercise ${sessionExerciseId} not found.`);
+
+  const familyKeyOf = (exerciseId: number): number => {
+    const row = db.getFirstSync<{ parent_exercise_id: number | null }>(
+      "SELECT parent_exercise_id FROM exercises WHERE id = ?",
+      [exerciseId]
+    );
+    return row?.parent_exercise_id ?? exerciseId;
+  };
+  if (familyKeyOf(current.exercise_id) !== familyKeyOf(newExerciseId)) {
+    throw new InvalidVariationSwapError();
+  }
+
+  const collision = db.getFirstSync<{ id: number }>(
+    "SELECT id FROM session_exercises WHERE session_id = ? AND exercise_id = ?",
+    [current.session_id, newExerciseId]
+  );
+  if (collision) throw new VariationAlreadyInSessionError();
+
+  db.withTransactionSync(() => {
+    db.runSync("UPDATE session_exercises SET exercise_id = ? WHERE id = ?", [newExerciseId, sessionExerciseId]);
+    db.runSync("UPDATE sets SET exercise_id = ? WHERE session_id = ? AND exercise_id = ?", [
+      newExerciseId,
+      current.session_id,
+      current.exercise_id,
+    ]);
+    // Inlined rather than calling resetSessionExerciseConfig/
+    // updateSessionExerciseMuscleGroups directly — both open their own
+    // transaction, and this driver doesn't support nesting one.
+    db.runSync(
+      `INSERT INTO session_exercise_config (session_exercise_id, ${CONFIG_COLUMN_LIST})
+       SELECT ?, ${configColumnsOf("ec")} FROM exercise_config ec WHERE ec.exercise_id = ?
+       ON CONFLICT(session_exercise_id) DO UPDATE SET ${CONFIG_UPSERT_ASSIGNMENTS}`,
+      [sessionExerciseId, newExerciseId]
+    );
+    db.runSync("DELETE FROM session_exercise_muscle_groups WHERE session_exercise_id = ?", [sessionExerciseId]);
+    db.runSync(
+      `INSERT OR IGNORE INTO session_exercise_muscle_groups (session_exercise_id, muscle_group, counting_factor)
+       SELECT ?, muscle_group, counting_factor FROM exercise_muscle_groups WHERE exercise_id = ?`,
+      [sessionExerciseId, newExerciseId]
+    );
+  });
 }
 
 /** Thrown by updateExercise when the new name is already taken — `exercises.name`

@@ -780,6 +780,100 @@ describe("runMigrations renames the seed exercise Tricep Dip to Dips (v16 -> v17
   });
 });
 
+describe("runMigrations adds exercise variation columns (v18 -> v19)", () => {
+  it("adds parent_exercise_id/is_default_variation, defaulting existing rows to root", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    const columns = dbHandle.getAllSync<{ name: string }>("PRAGMA table_info(exercises)", []);
+    for (const name of ["parent_exercise_id", "is_default_variation"]) {
+      expect(columns.some((c) => c.name === name)).toBe(true);
+    }
+    const row = dbHandle.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM exercises WHERE parent_exercise_id IS NOT NULL OR is_default_variation != 0",
+      []
+    );
+    expect(row!.count).toBe(0);
+  });
+
+  it("enforces the CHECK constraint on is_default_variation", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    expect(() =>
+      dbHandle.runSync("UPDATE exercises SET is_default_variation = 7 WHERE id = 1", [])
+    ).toThrow();
+  });
+
+  it("enforces at most one default variation per parent via the partial unique index", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    dbHandle.runSync(
+      "INSERT INTO exercises (name, equipment, type, parent_exercise_id, is_default_variation) VALUES (?, 'barbell', 'compound', 1, 1)",
+      ["Variation A"]
+    );
+    expect(() =>
+      dbHandle.runSync(
+        "INSERT INTO exercises (name, equipment, type, parent_exercise_id, is_default_variation) VALUES (?, 'barbell', 'compound', 1, 1)",
+        ["Variation B"]
+      )
+    ).toThrow();
+  });
+
+  it("is idempotent — running migrations twice does not duplicate the index or error", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+    expect(() => runMigrations(dbHandle)).not.toThrow();
+
+    const indexes = dbHandle.getAllSync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_one_default_variation_per_parent'",
+      []
+    );
+    expect(indexes).toHaveLength(1);
+  });
+
+  it("still adds the columns and index even if schema_version was already recorded as current", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+    dbHandle.runSync(
+      "INSERT OR REPLACE INTO user_meta (key, value) VALUES ('schema_version', ?)",
+      [String(SCHEMA_VERSION)]
+    );
+
+    runMigrations(dbHandle);
+
+    const columns = dbHandle.getAllSync<{ name: string }>("PRAGMA table_info(exercises)", []);
+    expect(columns.some((c) => c.name === "parent_exercise_id")).toBe(true);
+    const indexes = dbHandle.getAllSync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_one_default_variation_per_parent'",
+      []
+    );
+    expect(indexes).toHaveLength(1);
+  });
+
+  it("succeeds even when an unrelated table already has a dangling foreign key", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+    dbHandle.execSync("PRAGMA foreign_keys = OFF;");
+    dbHandle.runSync(
+      "INSERT INTO session_exercises (session_id, exercise_id, \"order\") VALUES (999999, 1, 0)",
+      []
+    );
+    dbHandle.execSync("PRAGMA foreign_keys = ON;");
+
+    expect(() => runMigrations(dbHandle)).not.toThrow();
+  });
+});
+
 describe("runMigrations against an already-current device", () => {
   it("leaves existing rows untouched, adding only the missing modality seeds", async () => {
     const dbHandle: DbHandle = await createInMemoryDb();

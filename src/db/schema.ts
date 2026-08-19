@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 18;
+export const SCHEMA_VERSION = 19;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -12,7 +12,12 @@ export const CREATE_TABLES: string[] = [
     -- Soft-delete. sets/session_exercises reference exercises(id) without
     -- cascade, so a real DELETE would strand history; archiving hides the
     -- exercise from pickers while leaving every logged set readable.
-    is_archived INTEGER NOT NULL DEFAULT 0 CHECK (is_archived IN (0, 1))
+    is_archived INTEGER NOT NULL DEFAULT 0 CHECK (is_archived IN (0, 1)),
+    -- NULL for a root exercise. When set, this row is a grip/angle/equipment
+    -- variation of the parent — its own independent config, muscle groups,
+    -- sets, and history, per docs/superpowers/specs/2026-08-11-exercise-variations-design.md.
+    parent_exercise_id INTEGER REFERENCES exercises(id),
+    is_default_variation INTEGER NOT NULL DEFAULT 0 CHECK (is_default_variation IN (0, 1))
   )`,
 
   `CREATE TABLE IF NOT EXISTS exercise_muscle_groups (
@@ -217,4 +222,12 @@ export const CREATE_TABLES: string[] = [
     interval_rest_sec INTEGER,
     UNIQUE(week_id, unit_id, exercise_id)
   )`,
+];
+
+// Not part of CREATE_TABLES because indexes are created/guarded separately in
+// runMigrations (see idx_one_default_variation_per_parent) — kept here as the
+// canonical DDL a fresh install and the migration guard both point at.
+export const CREATE_INDEXES: string[] = [
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_one_default_variation_per_parent
+     ON exercises(parent_exercise_id) WHERE is_default_variation = 1`,
 ];

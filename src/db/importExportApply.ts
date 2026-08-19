@@ -42,6 +42,8 @@ export function buildExportPayload(): ExportPayload {
     is_custom: number;
     modality: Modality;
     is_archived: number;
+    parent_exercise_id: number | null;
+    is_default_variation: number;
   }>("SELECT * FROM exercises");
   const exerciseUuidById = new Map(exerciseRows.map((e) => [e.id, e.uuid]));
 
@@ -77,6 +79,8 @@ export function buildExportPayload(): ExportPayload {
     modality: e.modality,
     config: configByExerciseId.get(e.id) ?? DEFAULT_EXERCISE_CONFIG,
     is_archived: e.is_archived as 0 | 1,
+    parent_exercise_uuid: e.parent_exercise_id != null ? exerciseUuidById.get(e.parent_exercise_id) ?? null : null,
+    is_default_variation: e.is_default_variation as 0 | 1,
   }));
 
   const sessionRows = db.getAllSync<{
@@ -360,8 +364,8 @@ export function applyImport(payload: ExportPayload): ImportSummary {
     const exerciseIdByUuid = new Map(exercisePlan.matchedIds);
     for (const ex of exercisePlan.toInsert) {
       const result = db.runSync(
-        "INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid, is_archived) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [ex.name, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid, ex.is_archived ?? 0]
+        "INSERT INTO exercises (name, equipment, type, is_custom, modality, uuid, is_archived, is_default_variation) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [ex.name, ex.equipment, ex.type, ex.is_custom, ex.modality, ex.uuid, ex.is_archived ?? 0, ex.is_default_variation ?? 0]
       );
       const exerciseId = result.lastInsertRowId;
       for (const { muscle_group, counting_factor } of ex.muscle_groups) {
@@ -381,6 +385,22 @@ export function applyImport(payload: ExportPayload): ImportSummary {
       );
       exerciseIdByUuid.set(ex.uuid, exerciseId);
       summary.exercisesAdded++;
+    }
+    // Second pass, after every exercise (matched or freshly inserted) has an id
+    // in exerciseIdByUuid: link each newly-inserted variation to its parent.
+    // Only touches toInsert rows — a matched (pre-existing) exercise's variation
+    // metadata is never reconciled against the payload, same as this importer's
+    // existing "matched entities are assumed to already match" treatment of
+    // splits/programs elsewhere in this function. A payload that (incorrectly)
+    // flags two siblings as default hits the partial unique index here and
+    // aborts the whole import, same as any other constraint violation below.
+    for (const ex of exercisePlan.toInsert) {
+      if (!ex.parent_exercise_uuid) continue;
+      const parentId = exerciseIdByUuid.get(ex.parent_exercise_uuid);
+      const childId = exerciseIdByUuid.get(ex.uuid);
+      if (parentId != null && childId != null) {
+        db.runSync("UPDATE exercises SET parent_exercise_id = ? WHERE id = ?", [parentId, childId]);
+      }
     }
 
     // 2. Routine splits (+ units + unit exercises) — matched-by-uuid splits are skipped

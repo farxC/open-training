@@ -1,5 +1,5 @@
 import { db } from "./client";
-import { CREATE_TABLES, SCHEMA_VERSION } from "./schema";
+import { CREATE_INDEXES, CREATE_TABLES, SCHEMA_VERSION } from "./schema";
 import { SEED_DISTANCE_EXERCISES, SEED_EXERCISES } from "../data/exercises";
 import { modalitiesOfCategory } from "../data/modalities";
 import { todayISO } from "../utils/cycle";
@@ -676,6 +676,36 @@ export function runMigrations(dbHandle: DbHandle = db): void {
        SELECT 1 FROM session_exercise_muscle_groups sm WHERE sm.session_exercise_id = se.id
      )`
   );
+
+  // v19: exercises can now declare grip/angle/equipment variations of a parent
+  // exercise. Both columns are new and nullable/defaulted, so a plain ADD
+  // COLUMN is enough — no rebuild needed (unlike v14/v16/v18's NOT-NULL or
+  // CHECK-on-existing-column changes).
+  ensureColumn(dbHandle, "exercises", "parent_exercise_id", "INTEGER REFERENCES exercises(id)");
+  ensureColumn(
+    dbHandle,
+    "exercises",
+    "is_default_variation",
+    "INTEGER NOT NULL DEFAULT 0 CHECK (is_default_variation IN (0, 1))"
+  );
+
+  // Guarded by IF NOT EXISTS in the DDL itself (see CREATE_INDEXES), so this is
+  // safe to run every launch — a fresh install's CREATE_TABLES loop doesn't
+  // create indexes, and the columns above are guaranteed to exist by this
+  // point on every launch, upgrading or fresh.
+  for (const sql of CREATE_INDEXES) {
+    dbHandle.execSync(sql);
+  }
+
+  // Scoped to `exercises` alone — an unscoped `PRAGMA foreign_key_check` audits
+  // every table, so unrelated pre-existing dangling references elsewhere in a
+  // dev DB must not abort this migration.
+  const parentExerciseViolations = dbHandle.getAllSync<unknown>("PRAGMA foreign_key_check(exercises);", []);
+  if (parentExerciseViolations.length > 0) {
+    throw new Error(
+      `Migration v19 parent_exercise_id column left ${parentExerciseViolations.length} dangling foreign key reference(s).`
+    );
+  }
 
   if (currentVersion < SCHEMA_VERSION) {
     dbHandle.runSync(

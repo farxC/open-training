@@ -14,6 +14,8 @@ function makeExercise(id: number, name: string): Exercise {
     uuid: `uuid-${id}`,
     config: DEFAULT_EXERCISE_CONFIG,
     is_archived: 0,
+    parent_exercise_id: null,
+    is_default_variation: 0,
   };
 }
 

@@ -1,5 +1,5 @@
 import { createInMemoryDb } from "./testDb";
-import { CREATE_TABLES } from "../schema";
+import { CREATE_INDEXES, CREATE_TABLES } from "../schema";
 import type { DbHandle } from "../dbHandle";
 
 let mockDb: DbHandle;
@@ -20,6 +20,7 @@ import { rowToConfig } from "../configColumns";
 beforeEach(async () => {
   mockDb = await createInMemoryDb();
   for (const ddl of CREATE_TABLES) mockDb.execSync(ddl);
+  for (const ddl of CREATE_INDEXES) mockDb.execSync(ddl);
 });
 
 /** A payload whose exercise config predates the newest config dimensions —
@@ -123,5 +124,90 @@ describe("applyImport tolerates configs missing the newest dimensions", () => {
     );
     expect(row).not.toBeNull();
     expect(rowToConfig(row as never)).toEqual(DEFAULT_EXERCISE_CONFIG);
+  });
+});
+
+function variationPayload(): ExportPayload {
+  return {
+    exportFormatVersion: CURRENT_EXPORT_FORMAT_VERSION,
+    exportedAt: "2026-08-11T00:00:00.000Z",
+    appSchemaVersion: 19,
+    exercises: [
+      {
+        uuid: "root-uuid",
+        name: "Supino Reto",
+        muscle_groups: [{ muscle_group: "chest", counting_factor: 1 }],
+        equipment: "barbell",
+        type: "compound",
+        is_custom: 0,
+        modality: "musculacao",
+        config: DEFAULT_EXERCISE_CONFIG,
+        is_archived: 0,
+        parent_exercise_uuid: null,
+        is_default_variation: 0,
+      },
+      {
+        uuid: "variation-uuid",
+        name: "Supino com Halteres",
+        muscle_groups: [{ muscle_group: "chest", counting_factor: 1 }],
+        equipment: "dumbbell",
+        type: "compound",
+        is_custom: 1,
+        modality: "musculacao",
+        config: DEFAULT_EXERCISE_CONFIG,
+        is_archived: 0,
+        parent_exercise_uuid: "root-uuid",
+        is_default_variation: 1,
+      },
+    ],
+    routineSplits: [],
+    sessions: [],
+    trainingPrograms: [],
+  };
+}
+
+describe("applyImport round-trips exercise variations", () => {
+  it("resolves parent_exercise_uuid to the freshly-inserted parent's new local id", () => {
+    applyImport(variationPayload());
+
+    const rows = mockDb.getAllSync<{
+      name: string;
+      parent_exercise_id: number | null;
+      is_default_variation: number;
+    }>("SELECT name, parent_exercise_id, is_default_variation FROM exercises ORDER BY name", []);
+    const root = rows.find((r) => r.name === "Supino Reto")!;
+    const variation = rows.find((r) => r.name === "Supino com Halteres")!;
+    const rootId = mockDb.getFirstSync<{ id: number }>("SELECT id FROM exercises WHERE name = 'Supino Reto'", [])!
+      .id;
+
+    expect(root.parent_exercise_id).toBeNull();
+    expect(variation.parent_exercise_id).toBe(rootId);
+    expect(variation.is_default_variation).toBe(1);
+  });
+
+  it("resolves parent_exercise_uuid to an already-existing local exercise matched by uuid", () => {
+    mockDb.runSync(
+      "INSERT INTO exercises (name, equipment, type, uuid) VALUES ('Supino Reto', 'barbell', 'compound', 'root-uuid')",
+      []
+    );
+    mockDb.runSync("INSERT INTO exercise_config (exercise_id) SELECT id FROM exercises", []);
+    const existingRootId = mockDb.getFirstSync<{ id: number }>(
+      "SELECT id FROM exercises WHERE uuid = 'root-uuid'",
+      []
+    )!.id;
+
+    applyImport(variationPayload());
+
+    const variation = mockDb.getFirstSync<{ parent_exercise_id: number | null }>(
+      "SELECT parent_exercise_id FROM exercises WHERE name = 'Supino com Halteres'",
+      []
+    );
+    expect(variation!.parent_exercise_id).toBe(existingRootId);
+    // The matched parent itself was never re-inserted — still exactly one row.
+    const rootCount = mockDb.getFirstSync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM exercises WHERE name = 'Supino Reto'",
+      []
+    );
+    expect(rootCount!.count).toBe(1);
   });
 });

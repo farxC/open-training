@@ -11,6 +11,10 @@ interface Props {
   sets: (WorkoutSet & { exercise_name: string })[];
   /** The session's modality — drives the units distances and pace render in. */
   modality: Modality;
+  /** Present only when this exercise belongs to a variation family (it's a
+   *  variation itself, or a root that has variations) — the caller decides
+   *  eligibility, this card just renders the affordance when given one. */
+  onSwapVariation?: () => void;
 }
 
 /** Inserts "." every 3 digits from the right — pt-BR thousands separator. Avoids toLocaleString (Hermes support is spotty). */
@@ -28,7 +32,14 @@ function intensityColor(rpe: number | null, rir: number | null, failure: 0 | 1):
   return "#928d80";
 }
 
-export function ExerciseSessionCard({ exerciseId, exerciseName, ordinal, sets, modality }: Props) {
+export function ExerciseSessionCard({
+  exerciseId,
+  exerciseName,
+  ordinal,
+  sets,
+  modality,
+  onSwapVariation,
+}: Props) {
   const isRunGroup = sets.some((s) => s.distance_km != null);
   const vol = sets.reduce((s, x) => s + x.reps * x.weight_kg, 0);
   const dist = sets.reduce((s, x) => s + (x.distance_km ?? 0), 0);
@@ -96,6 +107,20 @@ export function ExerciseSessionCard({ exerciseId, exerciseName, ordinal, sets, m
               ? `${formatThousands(vol)} kg`
               : setLabel}
         </Text>
+        {onSwapVariation && (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onSwapVariation();
+            }}
+            hitSlop={8}
+            style={{ padding: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Trocar variação"
+          >
+            <MaterialCommunityIcons name="source-branch" size={16} color="#928d80" />
+          </TouchableOpacity>
+        )}
         <MaterialCommunityIcons name="chevron-right" size={16} color="#bdb8aa" />
       </TouchableOpacity>
 

@@ -42,7 +42,17 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [editMuscles, setEditMuscles] = useState<Map<MuscleGroup, number>>(new Map());
+  const [expandedRootIds, setExpandedRootIds] = useState<Set<number>>(new Set());
   const effModality: Modality = modality ?? formModality;
+
+  const toggleExpanded = (rootId: number) => {
+    setExpandedRootIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(rootId)) next.delete(rootId);
+      else next.add(rootId);
+      return next;
+    });
+  };
 
   const toggleFormMuscle = (mg: MuscleGroup) => {
     setFormMuscles((prev) => {
@@ -79,6 +89,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
       setSearch("");
       setCreating(false);
       setEditingExercise(null);
+      setExpandedRootIds(new Set());
       translateY.setValue(48);
       backdropOpacity.setValue(0);
       Animated.parallel([
@@ -121,9 +132,22 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
       e.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Variations are discovered by expanding their parent's group row, not as
+  // standalone entries under a muscle-group header — grouping below only
+  // considers roots. The search branch stays flat (unchanged): a variation
+  // matching the search term must still be findable even if its parent doesn't.
+  const roots = filtered.filter((e) => e.parent_exercise_id === null);
+  const variationsByParentId = new Map<number, Exercise[]>();
+  for (const e of filtered) {
+    if (e.parent_exercise_id === null) continue;
+    const list = variationsByParentId.get(e.parent_exercise_id) ?? [];
+    list.push(e);
+    variationsByParentId.set(e.parent_exercise_id, list);
+  }
+
   // Endurance exercises carry no muscle groups, so they'd fall out of a listing
   // keyed purely by group — they bucket under their modality name instead.
-  const grouped = filtered.reduce<Record<string, Exercise[]>>((acc, ex) => {
+  const grouped = roots.reduce<Record<string, Exercise[]>>((acc, ex) => {
     const headers = ex.muscle_groups.length
       ? ex.muscle_groups.map((g) => muscleGroupLabel(g.muscle_group))
       : [modalityLabel(ex.modality)];
@@ -136,13 +160,28 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
 
   type ListItem =
     | { kind: "header"; label: string }
-    | { kind: "exercise"; exercise: Exercise };
+    | { kind: "exercise"; exercise: Exercise; indent?: boolean }
+    | { kind: "group"; root: Exercise; variations: Exercise[]; expanded: boolean };
+
+  const rootListItems = (root: Exercise): ListItem[] => {
+    const variations = variationsByParentId.get(root.id);
+    if (!variations || variations.length === 0) {
+      return [{ kind: "exercise", exercise: root }];
+    }
+    const expanded = expandedRootIds.has(root.id);
+    if (!expanded) return [{ kind: "group", root, variations, expanded }];
+    return [
+      { kind: "group", root, variations, expanded },
+      { kind: "exercise", exercise: root, indent: true },
+      ...variations.map((v) => ({ kind: "exercise" as const, exercise: v, indent: true })),
+    ];
+  };
 
   const listData: ListItem[] = search
     ? filtered.map((ex) => ({ kind: "exercise" as const, exercise: ex }))
     : Object.entries(grouped).flatMap(([label, exs]) => [
         { kind: "header" as const, label },
-        ...exs.map((ex) => ({ kind: "exercise" as const, exercise: ex })),
+        ...exs.flatMap(rootListItems),
       ]);
 
   const resetForm = () => {
@@ -378,7 +417,11 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                 <FlatList
                   data={listData}
                   keyExtractor={(item, i) =>
-                    item.kind === "header" ? `h-${item.label}` : String(item.exercise.id) + i
+                    item.kind === "header"
+                      ? `h-${item.label}`
+                      : item.kind === "group"
+                        ? `g-${item.root.id}`
+                        : String(item.exercise.id) + i
                   }
                   renderItem={({ item }) => {
                     if (item.kind === "header") {
@@ -388,12 +431,64 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                         </Text>
                       );
                     }
+                    if (item.kind === "group") {
+                      const defaultVariation =
+                        item.variations.find((v) => v.is_default_variation) ?? item.variations[0];
+                      const selected = selectedIds.has(defaultVariation.id);
+                      return (
+                        <TouchableOpacity
+                          className="flex-row items-center px-4 py-3"
+                          style={{
+                            gap: 12,
+                            borderBottomWidth: item.expanded ? 0 : 1,
+                            borderBottomColor: "#ddd8ce",
+                            backgroundColor: selected ? "#ebe7df" : "transparent",
+                          }}
+                          onPress={() => toggleExercise(defaultVariation)}
+                          activeOpacity={0.6}
+                        >
+                          <View
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 11,
+                              borderWidth: selected ? 0 : 1.5,
+                              borderColor: "#c9c3b6",
+                              backgroundColor: selected ? "#26241f" : "transparent",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {selected && <MaterialCommunityIcons name="check" size={13} color="#ffffff" />}
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-ink text-sm">{item.root.name}</Text>
+                            <Text className="text-ink-mute text-xs">{defaultVariation.name}</Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              toggleExpanded(item.root.id);
+                            }}
+                            hitSlop={10}
+                            style={{ padding: 6 }}
+                          >
+                            <MaterialCommunityIcons
+                              name={item.expanded ? "chevron-up" : "chevron-down"}
+                              size={20}
+                              color="#928d80"
+                            />
+                          </TouchableOpacity>
+                        </TouchableOpacity>
+                      );
+                    }
                     const selected = selectedIds.has(item.exercise.id);
                     return (
                       <TouchableOpacity
                         className="flex-row items-center px-4 py-3"
                         style={{
                           gap: 12,
+                          paddingLeft: item.indent ? 32 : 16,
                           borderBottomWidth: 1,
                           borderBottomColor: "#ddd8ce",
                           backgroundColor: selected ? "#ebe7df" : "transparent",

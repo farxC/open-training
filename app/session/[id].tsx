@@ -8,14 +8,19 @@ import {
   addSessionExercise,
   addSessionPhoto,
   deleteSession,
+  getExercises,
   getMuscleSeriesForSession,
+  getSessionExercise,
   moveSessionPhoto,
   removeSessionExercise,
   removeSessionPhoto,
   reorderSessionExercises,
+  swapSessionExerciseVariation,
   updateSession,
+  VariationAlreadyInSessionError,
 } from "@/db/queries";
-import { confirmAction } from "@/components/AppModal";
+import { confirmAction, notify } from "@/components/AppModal";
+import { VariationSwapModal } from "@/components/VariationSwapModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
@@ -37,7 +42,7 @@ import {
 } from "@/data/modalities";
 import { dateToISO } from "@/utils/cycle";
 import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
-import type { Modality, WorkoutSet } from "@/types";
+import type { Exercise, Modality, WorkoutSet } from "@/types";
 
 /** The stat strip wants a bare number (its unit sits on the line below), so it
  *  can't use formatDistanceValue — that one carries the unit with it. */
@@ -101,6 +106,7 @@ export default function SessionDetailScreen() {
   const [nameText, setNameText] = useState("");
   const [notesText, setNotesText] = useState("");
   const [durationText, setDurationText] = useState("");
+  const [swapTarget, setSwapTarget] = useState<{ sessionExerciseId: number; exerciseId: number } | null>(null);
 
   if (!session) {
     return (
@@ -148,6 +154,44 @@ export default function SessionDetailScreen() {
   };
 
   const grouped = groupByExercise(session.sets);
+  // Batched once per render rather than per-card: whether a logged exercise
+  // belongs to a variation family, and if so its parent + siblings.
+  const allExercises = getExercises({ include_archived: true });
+  const exerciseById = new Map(allExercises.map((e) => [e.id, e]));
+  const familyOf = (exerciseId: number): Exercise[] | null => {
+    const exercise = exerciseById.get(exerciseId);
+    if (!exercise) return null;
+    const rootId = exercise.parent_exercise_id ?? exercise.id;
+    const root = exerciseById.get(rootId);
+    if (!root) return null;
+    const siblings = allExercises.filter((e) => e.parent_exercise_id === rootId);
+    if (siblings.length === 0) return null;
+    return [root, ...siblings];
+  };
+  const swapFamily = swapTarget ? familyOf(swapTarget.exerciseId) : null;
+
+  const handleSelectVariation = (newExercise: Exercise) => {
+    if (!swapTarget) return;
+    const { sessionExerciseId } = swapTarget;
+    setSwapTarget(null);
+    confirmAction(
+      "Trocar variação?",
+      "Os sets já registrados serão migrados para a nova variação.",
+      "Trocar",
+      () => {
+        try {
+          swapSessionExerciseVariation(sessionExerciseId, newExercise.id);
+          refresh();
+        } catch (err) {
+          if (err instanceof VariationAlreadyInSessionError) {
+            notify("Variação já presente", "Essa variação já está nesta sessão.");
+            return;
+          }
+          throw err;
+        }
+      }
+    );
+  };
   const totalVolume = session.sets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0);
   const totalDistance = session.sets.reduce((sum, s) => sum + (s.distance_km ?? 0), 0);
   const exerciseCount = Object.keys(grouped).length;
@@ -455,16 +499,28 @@ export default function SessionDetailScreen() {
               )}
 
               <View style={{ marginTop: 20 }}>
-                {Object.entries(grouped).map(([exerciseName, sets], groupIndex) => (
-                  <ExerciseSessionCard
-                    key={exerciseName}
-                    exerciseId={sets[0].exercise_id}
-                    exerciseName={exerciseName}
-                    ordinal={groupIndex + 1}
-                    sets={sets}
-                    modality={session.modality}
-                  />
-                ))}
+                {Object.entries(grouped).map(([exerciseName, sets], groupIndex) => {
+                  const exerciseId = sets[0].exercise_id;
+                  const eligible = familyOf(exerciseId) !== null;
+                  return (
+                    <ExerciseSessionCard
+                      key={exerciseName}
+                      exerciseId={exerciseId}
+                      exerciseName={exerciseName}
+                      ordinal={groupIndex + 1}
+                      sets={sets}
+                      modality={session.modality}
+                      onSwapVariation={
+                        eligible
+                          ? () => {
+                              const se = getSessionExercise(session.id, exerciseId);
+                              if (se) setSwapTarget({ sessionExerciseId: se.id, exerciseId });
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })}
 
                 {session.sets.length === 0 && (
                   <Text className="text-ink-mute text-center mt-8">
@@ -488,6 +544,16 @@ export default function SessionDetailScreen() {
         }}
         onClose={() => setPickerVisible(false)}
       />
+
+      {swapTarget && swapFamily && (
+        <VariationSwapModal
+          visible
+          currentExerciseId={swapTarget.exerciseId}
+          family={swapFamily}
+          onSelect={handleSelectVariation}
+          onClose={() => setSwapTarget(null)}
+        />
+      )}
 
       <Modal
         visible={dateModalVisible}

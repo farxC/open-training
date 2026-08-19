@@ -35,6 +35,10 @@ describe("validateExportPayload", () => {
     expect(() => validateExportPayload({ ...validPayload(), exportFormatVersion: undefined })).toThrow();
   });
 
+  it("rejects a v6 backup now that variations bumped the format to v7", () => {
+    expect(() => validateExportPayload({ ...validPayload(), exportFormatVersion: 6 })).toThrow();
+  });
+
   it("rejects a payload missing a data section", () => {
     const { exercises, ...rest } = validPayload();
     expect(() => validateExportPayload(rest)).toThrow();
@@ -52,6 +56,8 @@ function exercise(overrides: Partial<ExportedExercise> = {}): ExportedExercise {
     modality: "musculacao",
     config: DEFAULT_EXERCISE_CONFIG,
     is_archived: 0,
+    parent_exercise_uuid: null,
+    is_default_variation: 0,
     ...overrides,
   };
 }

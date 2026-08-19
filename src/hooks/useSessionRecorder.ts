@@ -12,6 +12,8 @@ import {
   addSessionExercise,
   removeSessionExercise,
   reorderSessionExercises,
+  resolveDefaultExercise,
+  getExerciseById,
 } from "@/db/queries";
 import type { Exercise, Modality, RoutineUnitExercise, WorkoutSet } from "@/types";
 
@@ -40,6 +42,16 @@ export function useSessionRecorder() {
       photoUris: string[];
       exercises: { exercise: Exercise; targets?: RoutineUnitExercise }[];
     }) => {
+      // A routine referencing a root exercise that has variations should start
+      // the session on its current default variation, not the root itself. A
+      // no-op for a variation or a root without variations.
+      const resolvedExercises = payload.exercises.map((item) => {
+        const resolvedId = resolveDefaultExercise(item.exercise.id);
+        if (resolvedId === item.exercise.id) return item;
+        const resolved = getExerciseById(resolvedId);
+        return resolved ? { ...item, exercise: resolved } : item;
+      });
+
       const sessionId = createSession(payload.date, {
         name: payload.name,
         notes: payload.notes,
@@ -50,10 +62,10 @@ export function useSessionRecorder() {
       });
       payload.photoUris.forEach((uri, i) => addSessionPhoto(sessionId, uri, i));
       start(sessionId, payload.modality, payload.splitId, payload.unitId, payload.programWeekId);
-      addExercises(payload.exercises);
+      addExercises(resolvedExercises);
       // Persists the starting order — already the split's order, since payload.exercises
       // arrives ordered via getUnitExercises's ORDER BY re."order".
-      payload.exercises.forEach((item, i) => addSessionExercise(sessionId, item.exercise.id, i));
+      resolvedExercises.forEach((item, i) => addSessionExercise(sessionId, item.exercise.id, i));
       return sessionId;
     },
     [start, addExercises]

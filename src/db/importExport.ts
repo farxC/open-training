@@ -1,12 +1,11 @@
 import type { ExerciseConfig, Modality, SplitMode } from "@/types";
 
-// v6: exercise config gained grip and bodyweight fields, exercises gained
-// is_archived, and each session-exercise now carries a full config +
-// muscle-group SNAPSHOT instead of a sparse override of the exercise's current
-// default. Bumping this means older backup files (format 5 and earlier) are
-// rejected outright rather than silently importing with an incomplete config —
-// see validateExportPayload below.
-export const CURRENT_EXPORT_FORMAT_VERSION = 6;
+// v7: exercises can now reference a parent exercise (variations) and mark
+// themselves as the parent's default. Bumping this means older backup files
+// (format 6 and earlier) are rejected outright rather than silently importing
+// with no way to tell "no parent" from "predates this field" — see
+// validateExportPayload below.
+export const CURRENT_EXPORT_FORMAT_VERSION = 7;
 
 export interface ExportedExerciseMuscleGroup {
   muscle_group: string;
@@ -23,6 +22,12 @@ export interface ExportedExercise {
   modality: Modality;
   config: ExerciseConfig;
   is_archived: 0 | 1;
+  /** References another exercise in this same payload's `exercises` array by
+   *  its uuid — null for a root exercise. Uuid-based, like every other
+   *  cross-entity export reference, since raw ids aren't meaningful across
+   *  databases. */
+  parent_exercise_uuid: string | null;
+  is_default_variation: 0 | 1;
 }
 
 export interface ExportedSet {

@@ -61,6 +61,7 @@ export default function RootLayout() {
             />
             <Stack.Screen name="session/[id]" />
             <Stack.Screen name="exercises/[id]" />
+            <Stack.Screen name="exercises/[id]/variations" />
             <Stack.Screen
               name="routine/new-split"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
