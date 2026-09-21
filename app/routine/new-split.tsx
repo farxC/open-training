@@ -11,25 +11,29 @@ import { ModalityCardGrid } from "@/components/ModalityCardGrid";
 import { isDistanceModality, modalityLabel } from "@/data/modalities";
 import { getProgramWeeks } from "@/db/queries";
 import type { Modality, RoutineSplit, SplitMode } from "@/types";
+import { useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 const WD_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]; // getDay 0..6
 
-const STEP_ICON_CIRCLE = {
+/** A function of the palette, not a frozen object — see session/new.tsx. */
+const stepIconCircle = (colors: ThemeColors) => ({
   width: 60,
   height: 60,
   borderRadius: 30,
-  backgroundColor: "#ebe7df",
+  backgroundColor: colors["surface-elevated"],
   alignItems: "center" as const,
   justifyContent: "center" as const,
   marginBottom: 16,
-};
+});
 
 type Step = "basics" | "days" | "plan" | "cyclicRest" | "cyclicStart" | "cyclicDays";
 const CYCLIC_STEPS: Step[] = ["cyclicRest", "cyclicStart", "cyclicDays"];
 
 export default function NewSplitScreen() {
+  const { colors } = useTheme();
   const r = useRoutine();
   const [step, setStep] = useState<Step>("basics");
   const [name, setName] = useState("");
@@ -170,13 +174,13 @@ export default function NewSplitScreen() {
 
         {(step === "days" || step === "plan") && (
           <View className="flex-row px-4 mb-1" style={{ gap: 6 }}>
-            <View style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "#26241f" }} />
+            <View style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: colors["brand-500"] }} />
             <View
               style={{
                 flex: 1,
                 height: 3,
                 borderRadius: 2,
-                backgroundColor: step === "plan" ? "#26241f" : "#ddd8ce",
+                backgroundColor: step === "plan" ? colors["brand-500"] : colors["surface-border"],
               }}
             />
           </View>
@@ -191,7 +195,7 @@ export default function NewSplitScreen() {
                   flex: 1,
                   height: 3,
                   borderRadius: 2,
-                  backgroundColor: i <= CYCLIC_STEPS.indexOf(step) ? "#26241f" : "#ddd8ce",
+                  backgroundColor: i <= CYCLIC_STEPS.indexOf(step) ? colors["brand-500"] : colors["surface-border"],
                 }}
               />
             ))}
@@ -208,7 +212,7 @@ export default function NewSplitScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="ex.: Musculação, Corrida"
-                placeholderTextColor="#bdb8aa"
+                placeholderTextColor={colors["ink-faint"]}
                 className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-6"
               />
 
@@ -239,8 +243,8 @@ export default function NewSplitScreen() {
 
           {step === "days" && (
             <View style={{ alignItems: "center" }}>
-              <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="calendar-week" size={26} color="#26241f" />
+              <View style={stepIconCircle(colors)}>
+                <MaterialCommunityIcons name="calendar-week" size={26} color={colors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Quando você treina {modalityLabel(modality).toLowerCase()}?
@@ -263,15 +267,15 @@ export default function NewSplitScreen() {
                 disabled={selectedDays.length === 0}
                 onPress={() => setStep("plan")}
               >
-                <Text className="text-white text-sm font-semibold">Continuar</Text>
+                <Text className="text-brand-ink text-sm font-semibold">Continuar</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {step === "plan" && (
             <View style={{ alignItems: "center" }}>
-              <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="notebook-outline" size={26} color="#26241f" />
+              <View style={stepIconCircle(colors)}>
+                <MaterialCommunityIcons name="notebook-outline" size={26} color={colors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Monte o plano
@@ -286,7 +290,7 @@ export default function NewSplitScreen() {
                 value={planName}
                 onChangeText={setPlanName}
                 placeholder={`Nome (ex.: Plano de ${modalityLabel(modality)})`}
-                placeholderTextColor="#bdb8aa"
+                placeholderTextColor={colors["ink-faint"]}
                 className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
                 style={{ width: "100%" }}
               />
@@ -299,15 +303,15 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={createWeeklyDistanceSplit}
               >
-                <Text className="text-white text-sm font-semibold">Criar plano</Text>
+                <Text className="text-brand-ink text-sm font-semibold">Criar plano</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {step === "cyclicRest" && (
             <View style={{ alignItems: "center" }}>
-              <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="weather-night" size={26} color="#26241f" />
+              <View style={stepIconCircle(colors)}>
+                <MaterialCommunityIcons name="weather-night" size={26} color={colors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Dias de descanso
@@ -321,15 +325,15 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={() => setStep("cyclicStart")}
               >
-                <Text className="text-white text-sm font-semibold">Continuar</Text>
+                <Text className="text-brand-ink text-sm font-semibold">Continuar</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {step === "cyclicStart" && (
             <View style={{ alignItems: "center" }}>
-              <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="calendar-blank-outline" size={26} color="#26241f" />
+              <View style={stepIconCircle(colors)}>
+                <MaterialCommunityIcons name="calendar-blank-outline" size={26} color={colors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Início do ciclo
@@ -350,7 +354,7 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={() => setStep("cyclicDays")}
               >
-                <Text className="text-white text-sm font-semibold">
+                <Text className="text-brand-ink text-sm font-semibold">
                   {cyclicAnchorDate ? "Continuar" : "Continuar sem definir"}
                 </Text>
               </TouchableOpacity>
@@ -359,8 +363,8 @@ export default function NewSplitScreen() {
 
           {step === "cyclicDays" && (
             <View style={{ alignItems: "center" }}>
-              <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="repeat" size={26} color="#26241f" />
+              <View style={stepIconCircle(colors)}>
+                <MaterialCommunityIcons name="repeat" size={26} color={colors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Dias do ciclo
@@ -375,11 +379,11 @@ export default function NewSplitScreen() {
                     <View
                       key={key}
                       className="flex-row items-center justify-between px-4 py-3 rounded-2xl"
-                      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                      style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
                     >
                       <Text className="text-ink text-sm font-medium">Dia {i + 1}</Text>
                       <TouchableOpacity onPress={() => setCyclicDayKeys((prev) => prev.filter((k) => k !== key))}>
-                        <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
+                        <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors["accent-red"]} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -388,7 +392,7 @@ export default function NewSplitScreen() {
 
               <TouchableOpacity
                 className="py-3 rounded-xl items-center mb-6"
-                style={{ width: "100%", borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                style={{ width: "100%", borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                 onPress={() => setCyclicDayKeys((prev) => [...prev, nextCyclicDayKey.current++])}
               >
                 <Text className="text-ink text-sm font-medium">+ Adicionar dia</Text>
@@ -399,7 +403,7 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={createCyclicSplit}
               >
-                <Text className="text-white text-sm font-semibold">
+                <Text className="text-brand-ink text-sm font-semibold">
                   {cyclicDayKeys.length > 0 ? "Concluir" : "Concluir sem dias"}
                 </Text>
               </TouchableOpacity>
@@ -422,10 +426,11 @@ function FormatOption({
   description: string;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       className="flex-row items-center rounded-2xl px-4 py-3.5 bg-surface-card"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce", gap: 14 }}
+      style={{ borderWidth: 1, borderColor: colors["surface-border"], gap: 14 }}
       onPress={onPress}
       activeOpacity={0.85}
     >
@@ -434,18 +439,18 @@ function FormatOption({
           width: 42,
           height: 42,
           borderRadius: 21,
-          backgroundColor: "#f4f2ee",
+          backgroundColor: colors["surface"],
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <MaterialCommunityIcons name={icon} size={20} color="#5c594f" />
+        <MaterialCommunityIcons name={icon} size={20} color={colors["ink-soft"]} />
       </View>
       <View style={{ flex: 1 }}>
         <Text className="text-ink text-sm font-semibold">{label}</Text>
         <Text className="text-ink-mute text-xs mt-0.5">{description}</Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color="#bdb8aa" />
+      <MaterialCommunityIcons name="chevron-right" size={20} color={colors["ink-faint"]} />
     </TouchableOpacity>
   );
 }

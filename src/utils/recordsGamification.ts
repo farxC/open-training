@@ -6,6 +6,7 @@
 import type { DateRange, ExerciseDailyMax, MuscleGroup, StrengthRecord } from "@/types";
 import type { MuscleRecordGroup } from "@/utils/analyticsRecords";
 import { daysBetween } from "@/utils/cycle";
+import type { ColorToken } from "@/theme";
 
 /** A record that hasn't moved in this long reads as cold — a nudge, not an alarm. */
 export const STALE_AFTER_DAYS = 90;
@@ -188,21 +189,26 @@ export function freshCount(group: MuscleRecordGroup, range: DateRange): number {
   return group.records.filter((r) => achievedInRange(r.achieved_on, range)).length;
 }
 
+/**
+ * Token names, not colours. This module is pure logic with no hook to call, and
+ * the metals need different values per scheme — a frozen hex here would survive
+ * a theme switch. Consumers resolve them through useTheme().
+ */
 export interface Medal {
   /** Circle fill. */
-  bg: string;
+  bg: ColorToken;
   /** Circle ring. */
-  ring: string;
+  ring: ColorToken;
   /** Numeral colour, and the row's left accent bar. */
-  ink: string;
+  ink: ColorToken;
 }
 
 /** Podium metals pitched into the app's warm paper palette — brass, pewter, copper
  *  rather than the saturated primaries a game would use. */
 export const MEDALS: Medal[] = [
-  { bg: "#f6e8c8", ring: "#d9a441", ink: "#8a5a12" }, // brass
-  { bg: "#eae8e2", ring: "#b6b1a4", ink: "#6f6b5f" }, // pewter
-  { bg: "#f3e2d5", ring: "#c08a5e", ink: "#8a5333" }, // copper
+  { bg: "gold-soft", ring: "gold", ink: "gold-ink" },
+  { bg: "pewter-soft", ring: "pewter", ink: "pewter-ink" },
+  { bg: "copper-soft", ring: "copper", ink: "copper-ink" },
 ];
 
 /** Metal for a podium rank, or null past third place — beyond the podium the rank

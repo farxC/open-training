@@ -84,7 +84,7 @@ export function StrengthRecordRow({
         <View
           style={{
             width: 3,
-            backgroundColor: medal?.ring ?? colors["surface-elevated"],
+            backgroundColor: medal ? colors[medal.ring] : colors["surface-elevated"],
             borderTopLeftRadius: 12,
             borderBottomLeftRadius: 12,
           }}
@@ -97,14 +97,14 @@ export function StrengthRecordRow({
               width: 26,
               height: 26,
               borderRadius: 13,
-              backgroundColor: medal?.bg ?? colors["surface"],
+              backgroundColor: medal ? colors[medal.bg] : colors["surface"],
               borderWidth: medal ? 1.5 : 1,
-              borderColor: medal?.ring ?? colors["brand-100"],
+              borderColor: medal ? colors[medal.ring] : colors["brand-100"],
             }}
           >
             <Text
               style={{
-                color: medal?.ink ?? colors["brand-300"],
+                color: medal ? colors[medal.ink] : colors["brand-300"],
                 fontSize: 11,
                 fontWeight: "700",
                 fontFamily: MONO,

@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { MODALITY_CATEGORIES, modalitiesOfCategory } from "@/data/modalities";
 import type { Modality } from "@/types";
-import { useTheme } from "@/theme";
+import { useTheme, withAlpha } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -59,7 +59,7 @@ export function ModalityCardGrid({ value, onSelect }: Props) {
                       borderRadius: 22,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: on ? "rgba(255,255,255,0.14)" : colors["surface"],
+                      backgroundColor: on ? withAlpha(colors["brand-ink"], 0.14) : colors["surface"],
                     }}
                   >
                     <MaterialCommunityIcons

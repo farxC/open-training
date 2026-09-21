@@ -108,7 +108,7 @@ function StampTooltip({ tone }: { tone: StampTone }) {
         // sentence into a three-word column. Wide enough to hold each meaning in
         // a line or two, and still inside the card on a 340px phone.
         width: 236,
-        backgroundColor: "#26241f",
+        backgroundColor: colors["brand-500"],
         borderRadius: 9,
         paddingVertical: 8,
         paddingHorizontal: 11,
@@ -128,7 +128,7 @@ function StampTooltip({ tone }: { tone: StampTone }) {
           right: 12,
           width: 7,
           height: 7,
-          backgroundColor: "#26241f",
+          backgroundColor: colors["brand-500"],
           transform: [{ rotate: "45deg" }],
         }}
       />

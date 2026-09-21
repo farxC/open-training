@@ -2,6 +2,7 @@ import { Text, View } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import { resistanceCurvePoints } from "@/data/resistanceCurves";
 import type { ResistanceCurve } from "@/types";
+import { useTheme } from "@/theme";
 
 type DataPoint = Record<string, unknown> & { x: number; y: number };
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function ResistanceCurveChartImpl({ variant }: Props) {
+  const { colors } = useTheme();
   const chartData: DataPoint[] = resistanceCurvePoints(variant).map((p) => ({ x: p.x, y: p.y }));
 
   return (
@@ -22,7 +24,7 @@ export function ResistanceCurveChartImpl({ variant }: Props) {
         {({ points }) => (
           <Line
             points={points.y}
-            color="#26241f"
+            color={colors.ink}
             strokeWidth={2}
             curveType="natural"
             animate={{ type: "timing", duration: 300 }}

@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { CartesianChart, Line } from "victory-native";
+import { useTheme } from "@/theme";
 
 type DataPoint = Record<string, unknown> & {
   week: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function VolumeChartImpl({ data }: Props) {
+  const { colors } = useTheme();
   if (data.length === 0) {
     return (
       <View className="h-48 items-center justify-center bg-surface-card rounded-2xl">
@@ -35,7 +37,7 @@ export function VolumeChartImpl({ data }: Props) {
         {({ points }) => (
           <Line
             points={points.volume_kg}
-            color="#26241f"
+            color={colors.ink}
             strokeWidth={2}
             animate={{ type: "timing", duration: 400 }}
           />

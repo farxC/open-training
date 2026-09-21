@@ -443,7 +443,7 @@ export default function NewSessionScreen() {
                         })
                       }
                     >
-                      <Text className="text-white text-sm font-semibold">Continuar com este treino</Text>
+                      <Text className="text-brand-ink text-sm font-semibold">Continuar com este treino</Text>
                     </TouchableOpacity>
                     <TouchableOpacity className="mt-4 py-2 items-center" onPress={() => setStep("changeUnit")}>
                       <Text className="text-ink-soft text-sm">Trocar dia</Text>
@@ -655,7 +655,7 @@ export default function NewSessionScreen() {
                   onPress={handleFinish}
                   activeOpacity={0.55}
                 >
-                  <Text className="text-white text-sm font-semibold">Concluir</Text>
+                  <Text className="text-brand-ink text-sm font-semibold">Concluir</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -698,7 +698,7 @@ export default function NewSessionScreen() {
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={() => confirmDate(dateToISO(new Date()))}
             >
-              <Text className="text-white text-sm font-semibold">Usar hoje</Text>
+              <Text className="text-brand-ink text-sm font-semibold">Usar hoje</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

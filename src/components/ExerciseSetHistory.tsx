@@ -16,6 +16,7 @@ import { compactAgo, dayStamp, monthStamp } from "@/utils/dateLabels";
 import { daysBetween } from "@/utils/cycle";
 import { formatVolume } from "@/utils/analyticsFormat";
 import { formatKg } from "@/utils/recordsGamification";
+import { useTheme, withAlpha } from "@/theme";
 import {
   monthsCovered,
   sessionsWithinMonths,
@@ -25,9 +26,6 @@ import {
 } from "@/utils/exerciseHistory";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const HAIRLINE = "rgba(38, 36, 31, 0.07)";
-const INK = "#26241f";
-const MUTED = "#928d80";
 
 /** Opens on the current block of training — the rest is one tap away. */
 const INITIAL_MONTHS = 2;
@@ -59,6 +57,7 @@ interface Props {
  * rather than scan across ten.
  */
 export function ExerciseSetHistory({ history, modality, todayISO, onOpenSession }: Props) {
+  const { colors } = useTheme();
   const [months, setMonths] = useState(INITIAL_MONTHS);
   const [showAll, setShowAll] = useState(false);
   // One at a time: a screen with six drawers open is the pile this replaced.
@@ -74,11 +73,11 @@ export function ExerciseSetHistory({ history, modality, todayISO, onOpenSession 
         style={{
           paddingVertical: 26,
           borderWidth: 1,
-          borderColor: "#ddd8ce",
+          borderColor: colors["surface-border"],
           borderStyle: "dashed",
         }}
       >
-        <MaterialCommunityIcons name="notebook-outline" size={22} color="#cfcabf" />
+        <MaterialCommunityIcons name="notebook-outline" size={22} color={colors["brand-200"]} />
         <Text className="text-ink-mute text-xs" style={{ marginTop: 8 }}>
           Nenhum set registrado ainda.
         </Text>
@@ -113,7 +112,7 @@ export function ExerciseSetHistory({ history, modality, todayISO, onOpenSession 
     // recessed drawer that opens under a line has something to be recessed from.
     <View
       className="bg-surface-card rounded-xl overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc" }}
+      style={{ borderWidth: 1, borderColor: colors["brand-100"] }}
     >
       {shown.map((session, index) => {
         const month = session.date.slice(0, 7);
@@ -158,19 +157,20 @@ export function ExerciseSetHistory({ history, modality, todayISO, onOpenSession 
  *  rather than a rule: inside the plate it has to divide the list, not decorate
  *  a line of it. */
 function MonthRule({ month, first }: { month: string; first: boolean }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
         paddingHorizontal: 11,
         paddingVertical: 5,
-        backgroundColor: "#f4f2ee",
+        backgroundColor: colors["surface"],
         borderTopWidth: first ? 0 : 1,
-        borderTopColor: "#e7e4dc",
+        borderTopColor: colors["brand-100"],
         borderBottomWidth: 1,
-        borderBottomColor: "#e7e4dc",
+        borderBottomColor: colors["brand-100"],
       }}
     >
-      <Text style={{ color: "#928d80", fontSize: 8.5, fontWeight: "700", letterSpacing: 1.3 }}>
+      <Text style={{ color: colors["ink-mute"], fontSize: 8.5, fontWeight: "700", letterSpacing: 1.3 }}>
         {monthStamp(month)}
       </Text>
     </View>
@@ -197,6 +197,7 @@ function SessionLine({
   onToggle: () => void;
   onOpenSession: () => void;
 }) {
+  const { colors } = useTheme();
   const isDistance = isDistanceModality(modality);
   const { hovered, handlers } = useInteractionState();
   const stamp = dayStamp(session.date).split(" ");
@@ -224,17 +225,17 @@ function SessionLine({
           paddingVertical: 9,
           paddingHorizontal: 11,
           borderTopWidth: first ? 0 : 1,
-          borderTopColor: HAIRLINE,
+          borderTopColor: withAlpha(colors.ink, 0.07),
           // The open line is the head of its drawer, so it takes the drawer's
           // recess; closed lines keep the plate's white.
-          backgroundColor: expanded ? "#f4f2ee" : hovered ? "#faf9f5" : "#ffffff",
+          backgroundColor: expanded ? colors["surface"] : hovered ? colors["surface-raised"] : colors["surface-card"],
         }}
       >
         <View className="flex-row items-baseline" style={{ width: DATE_COL, gap: 4 }}>
-          <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>
+          <Text style={{ color: colors["ink-faint"], fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>
             {stamp[0]}
           </Text>
-          <Text style={{ color: expanded ? INK : "#5c594f", fontSize: 11.5, fontFamily: MONO }}>
+          <Text style={{ color: expanded ? colors.ink : colors["ink-soft"], fontSize: 11.5, fontFamily: MONO }}>
             {stamp[1]}
           </Text>
         </View>
@@ -247,7 +248,7 @@ function SessionLine({
             <Text
               key={item.set.id}
               style={{
-                color: item.isTopSet ? INK : MUTED,
+                color: item.isTopSet ? colors.ink : colors["ink-mute"],
                 fontWeight: item.isTopSet ? "700" : "400",
               }}
             >
@@ -260,7 +261,7 @@ function SessionLine({
         </Text>
 
         {session.containsRecord ? (
-          <MaterialCommunityIcons name="crown" size={11} color="#b9791f" />
+          <MaterialCommunityIcons name="crown" size={11} color={colors["accent-amber"]} />
         ) : null}
 
         <View style={{ width: 38, alignItems: "flex-end" }}>
@@ -270,7 +271,7 @@ function SessionLine({
         <MaterialCommunityIcons
           name={expanded ? "chevron-up" : "chevron-down"}
           size={13}
-          color={expanded ? "#928d80" : "#d6d1c6"}
+          color={expanded ? colors["ink-mute"] : colors["surface-border"]}
         />
       </Pressable>
 
@@ -300,6 +301,7 @@ function SessionDetail({
   todayISO: string;
   onOpenSession: () => void;
 }) {
+  const { colors } = useTheme();
   const isDistance = isDistanceModality(modality);
   const days = daysBetween(session.date, todayISO);
   const setCount = session.sets.length;
@@ -318,7 +320,7 @@ function SessionDetail({
     .join(" · ");
 
   return (
-    <View style={{ backgroundColor: "#f7f5f1", paddingBottom: 8 }}>
+    <View style={{ backgroundColor: colors["surface-raised"], paddingBottom: 8 }}>
       {session.sets.map((item, index) => (
         <SetLine key={item.set.id} item={item} modality={modality} delay={60 + index * 40} />
       ))}
@@ -331,10 +333,10 @@ function SessionDetail({
           paddingTop: 7,
           gap: 8,
           borderTopWidth: 1,
-          borderTopColor: HAIRLINE,
+          borderTopColor: withAlpha(colors.ink, 0.07),
         }}
       >
-        <Text style={{ color: MUTED, fontSize: 10, flex: 1 }} numberOfLines={1}>
+        <Text style={{ color: colors["ink-mute"], fontSize: 10, flex: 1 }} numberOfLines={1}>
           {totals}
         </Text>
         <SessionLink onPress={onOpenSession} />
@@ -352,6 +354,7 @@ function SetLine({
   modality: Modality;
   delay: number;
 }) {
+  const { colors } = useTheme();
   const { set, intensity, isRecord, isTopSet } = item;
   const isDistance = isDistanceModality(modality);
 
@@ -363,20 +366,20 @@ function SetLine({
         paddingRight: 6,
         paddingVertical: 5,
         borderTopWidth: 1,
-        borderTopColor: HAIRLINE,
+        borderTopColor: withAlpha(colors.ink, 0.07),
         gap: 8,
       }}
     >
-      <Text style={{ color: "#cfcabf", fontSize: 9.5, fontFamily: MONO, width: 9 }}>
+      <Text style={{ color: colors["brand-200"], fontSize: 9.5, fontFamily: MONO, width: 9 }}>
         {set.set_number}
       </Text>
 
       {isDistance ? (
         <View className="flex-row items-baseline" style={{ width: 96, gap: 4 }}>
-          <Text style={{ color: INK, fontSize: 12.5, fontWeight: "700", fontFamily: MONO }}>
+          <Text style={{ color: colors.ink, fontSize: 12.5, fontWeight: "700", fontFamily: MONO }}>
             {formatDistanceValue(set.distance_km, modality) ?? "—"}
           </Text>
-          <Text style={{ color: MUTED, fontSize: 9.5 }} numberOfLines={1}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 9.5 }} numberOfLines={1}>
             {formatEffort(set.pace_sec, modality) ?? ""}
           </Text>
         </View>
@@ -384,7 +387,7 @@ function SetLine({
         <View className="flex-row items-baseline" style={{ width: 96 }}>
           <Text
             style={{
-              color: INK,
+              color: colors.ink,
               fontSize: 12.5,
               fontWeight: isTopSet ? "700" : "500",
               fontFamily: MONO,
@@ -394,9 +397,9 @@ function SetLine({
           >
             {formatKg(set.weight_kg)}
           </Text>
-          <Text style={{ color: MUTED, fontSize: 9, marginLeft: 2 }}>kg</Text>
-          <Text style={{ color: "#cfcabf", fontSize: 9, marginLeft: 5 }}>×</Text>
-          <Text style={{ color: "#5c594f", fontSize: 11.5, fontFamily: MONO, marginLeft: 4 }}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 9, marginLeft: 2 }}>kg</Text>
+          <Text style={{ color: colors["brand-200"], fontSize: 9, marginLeft: 5 }}>×</Text>
+          <Text style={{ color: colors["ink-soft"], fontSize: 11.5, fontFamily: MONO, marginLeft: 4 }}>
             {set.reps}
           </Text>
         </View>
@@ -413,7 +416,7 @@ function SetLine({
       {set.failure ? <Tag label="FALHA" tone="danger" /> : null}
       {set.rpe != null ? <Tag label={`RPE ${formatKg(set.rpe)}`} tone="plain" /> : null}
       {set.rir != null ? <Tag label={`RIR ${set.rir}`} tone="plain" /> : null}
-      {isRecord ? <MaterialCommunityIcons name="crown" size={11} color="#b9791f" /> : null}
+      {isRecord ? <MaterialCommunityIcons name="crown" size={11} color={colors["accent-amber"]} /> : null}
     </View>
   );
 }
@@ -428,6 +431,7 @@ function IntensityBar({
   emphasis: "record" | "top" | "plain";
   delay: number;
 }) {
+  const { colors } = useTheme();
   const fill = useSharedValue(0);
   // A set that carried load always draws something — a 4% bar rendering as two
   // pixels reads as "no data".
@@ -442,16 +446,17 @@ function IntensityBar({
   }, [target, delay, fill]);
 
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
-  const color = emphasis === "record" ? "#b9791f" : emphasis === "top" ? INK : "#c4bfb1";
+  const color = emphasis === "record" ? colors["accent-amber"] : emphasis === "top" ? colors.ink : colors["surface-border-strong"];
 
   return (
-    <View style={{ height: 3, borderRadius: 2, backgroundColor: "#eeeae2", overflow: "hidden" }}>
+    <View style={{ height: 3, borderRadius: 2, backgroundColor: colors["surface-tint"], overflow: "hidden" }}>
       <Animated.View style={[{ height: "100%", borderRadius: 2, backgroundColor: color }, fillStyle]} />
     </View>
   );
 }
 
 function Tag({ label, tone }: { label: string; tone: "plain" | "danger" }) {
+  const { colors } = useTheme();
   const danger = tone === "danger";
   return (
     <View
@@ -460,13 +465,13 @@ function Tag({ label, tone }: { label: string; tone: "plain" | "danger" }) {
         paddingHorizontal: 4,
         paddingVertical: 1,
         borderWidth: 1,
-        borderColor: danger ? "#e8c9c5" : "#e7e4dc",
-        backgroundColor: danger ? "#fbf0ef" : "#ffffff",
+        borderColor: danger ? colors["accent-red-soft"] : colors["brand-100"],
+        backgroundColor: danger ? colors["accent-red-soft"] : colors["surface-card"],
       }}
     >
       <Text
         style={{
-          color: danger ? "#bf3b30" : MUTED,
+          color: danger ? colors["accent-red"] : colors["ink-mute"],
           fontSize: 8.5,
           fontWeight: "700",
           fontFamily: MONO,
@@ -482,8 +487,9 @@ function Tag({ label, tone }: { label: string; tone: "plain" | "danger" }) {
  *  Signed on purpose — a deload is information, not a failure. Bare text rather
  *  than a chip: at one per line, chips were most of what made the list loud. */
 function Delta({ kg }: { kg: number }) {
+  const { colors } = useTheme();
   const up = kg > 0;
-  const color = up ? "#227a54" : "#a8382d";
+  const color = up ? colors["accent-green-ink"] : colors["accent-red-ink"];
 
   return (
     <View
@@ -502,6 +508,7 @@ function Delta({ kg }: { kg: number }) {
 }
 
 function SessionLink({ onPress }: { onPress: () => void }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -515,7 +522,7 @@ function SessionLink({ onPress }: { onPress: () => void }) {
     >
       <Text
         style={{
-          color: hovered ? INK : "#5c594f",
+          color: hovered ? colors.ink : colors["ink-soft"],
           fontSize: 10,
           fontWeight: "600",
           textDecorationLine: hovered ? "underline" : "none",
@@ -523,7 +530,7 @@ function SessionLink({ onPress }: { onPress: () => void }) {
       >
         ver sessão
       </Text>
-      <MaterialCommunityIcons name="arrow-right" size={11} color={hovered ? INK : "#928d80"} />
+      <MaterialCommunityIcons name="arrow-right" size={11} color={hovered ? colors.ink : colors["ink-mute"]} />
     </Pressable>
   );
 }
@@ -595,6 +602,7 @@ function FoldControl({
 }
 
 function FoldRow({ children }: { children: ReactNode }) {
+  const { colors } = useTheme();
   return (
     <View
       className="flex-row items-center"
@@ -603,8 +611,8 @@ function FoldRow({ children }: { children: ReactNode }) {
         paddingVertical: 6,
         gap: 4,
         borderTopWidth: 1,
-        borderTopColor: "#e7e4dc",
-        backgroundColor: "#fbfaf7",
+        borderTopColor: colors["brand-100"],
+        backgroundColor: colors["surface-raised"],
       }}
     >
       {children}
@@ -624,6 +632,7 @@ function FoldAction({
   /** The action most people want here; the other one recedes. */
   strong?: boolean;
 }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -636,13 +645,13 @@ function FoldAction({
         paddingHorizontal: 8,
         paddingVertical: 5,
         gap: 4,
-        backgroundColor: hovered ? "#ebe7df" : "transparent",
+        backgroundColor: hovered ? colors["surface-elevated"] : "transparent",
       }}
     >
-      <MaterialCommunityIcons name={icon} size={13} color={strong ? "#5c594f" : "#a8a293"} />
+      <MaterialCommunityIcons name={icon} size={13} color={strong ? colors["ink-soft"] : colors["brand-300"]} />
       <Text
         style={{
-          color: hovered ? INK : strong ? "#5c594f" : "#928d80",
+          color: hovered ? colors.ink : strong ? colors["ink-soft"] : colors["ink-mute"],
           fontSize: 11,
           fontWeight: strong ? "700" : "600",
         }}

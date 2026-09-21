@@ -11,8 +11,10 @@ import { mergedTarget } from "@/utils/programEntry";
 import { currentProgramWeekNumber } from "@/utils/cycle";
 import { getProgram, getProgramWeek, getProgramWeeks, getWeekEntries } from "@/db/queries";
 import type { ProgramEntry, ProgramWeek, RoutineUnitExercise, TrainingProgram } from "@/types";
+import { useTheme } from "@/theme";
 
 export default function EditProgramWeekScreen() {
+  const { colors } = useTheme();
   const { id, wizardWeekIds, wizardIndex, wizardSplitId } = useLocalSearchParams<{
     id: string;
     wizardWeekIds?: string;
@@ -129,21 +131,21 @@ export default function EditProgramWeekScreen() {
           isCurrentWeek ? (
             <View
               className="flex-row items-center self-start px-2.5 py-1 rounded-full mb-4"
-              style={{ backgroundColor: "#e3efe8", gap: 5 }}
+              style={{ backgroundColor: colors["accent-green-soft"], gap: 5 }}
             >
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#2f9e6e" }} />
-              <Text style={{ color: "#227a54", fontSize: 12, fontWeight: "700" }}>Semana atual do plano</Text>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors["accent-green"] }} />
+              <Text style={{ color: colors["accent-green-ink"], fontSize: 12, fontWeight: "700" }}>Semana atual do plano</Text>
             </View>
           ) : (
             <View
               className="rounded-2xl px-4 py-3 mb-4"
-              style={{ backgroundColor: "#faf1de", borderWidth: 1, borderColor: "#e8d6ac" }}
+              style={{ backgroundColor: colors["accent-amber-soft"], borderWidth: 1, borderColor: colors["gold-soft"] }}
             >
-              <Text className="text-sm mb-2" style={{ color: "#8a6a1f" }}>
+              <Text className="text-sm mb-2" style={{ color: colors["accent-amber-ink"] }}>
                 Você está editando a Semana {week.week_number}. A semana atual do plano é a Semana {currentWeekNumber}.
               </Text>
               <TouchableOpacity onPress={goToCurrentWeek} className="self-start">
-                <Text style={{ color: "#8a6a1f", fontSize: 13, fontWeight: "700", textDecorationLine: "underline" }}>
+                <Text style={{ color: colors["accent-amber-ink"], fontSize: 13, fontWeight: "700", textDecorationLine: "underline" }}>
                   Ir para a semana atual →
                 </Text>
               </TouchableOpacity>
@@ -155,7 +157,7 @@ export default function EditProgramWeekScreen() {
           value={week.label ?? ""}
           onChangeText={(label) => { r.renameWeek(week.id, label.trim() === "" ? null : label); refresh(); }}
           placeholder="Rótulo (ex.: Semana de recuperação)"
-          placeholderTextColor="#bdb8aa"
+          placeholderTextColor={colors["ink-faint"]}
           className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
         />
 
@@ -165,7 +167,7 @@ export default function EditProgramWeekScreen() {
             <View
               key={unit.id}
               className="bg-surface-card rounded-2xl mb-3 p-4"
-              style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+              style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
             >
               <Text className="text-ink font-semibold text-sm mb-3">{unit.label}</Text>
               {exercises.map((ex) => {
@@ -227,7 +229,7 @@ export default function EditProgramWeekScreen() {
               className="mt-2 py-2.5 rounded-xl items-center bg-brand-500"
               onPress={goToNextWizardWeek}
             >
-              <Text className="text-white text-sm font-medium">
+              <Text className="text-brand-ink text-sm font-medium">
                 {isLastWizardWeek ? "Concluir e ver split" : "Próxima semana →"}
               </Text>
             </TouchableOpacity>

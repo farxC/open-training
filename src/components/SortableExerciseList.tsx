@@ -5,6 +5,7 @@ import Sortable, { useItemContext } from "react-native-sortables";
 import type { SortableGridDragEndParams, SortableGridRenderItem } from "react-native-sortables";
 import { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@/theme";
 
 export interface SortableExerciseListRenderInfo<T> {
   item: T;
@@ -71,6 +72,7 @@ function Row<T>({
   index: number;
   renderItem: (info: SortableExerciseListRenderInfo<T>) => React.ReactNode;
 }) {
+  const { colors } = useTheme();
   const { isActive } = useItemContext();
   const [isActiveState, setIsActiveState] = useState(false);
 
@@ -85,7 +87,7 @@ function Row<T>({
 
   const dragHandleIcon = (
     <View style={{ padding: 8 }}>
-      <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color="#928d80" />
+      <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color={colors["ink-mute"]} />
     </View>
   );
 

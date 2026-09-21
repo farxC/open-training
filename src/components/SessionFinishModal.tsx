@@ -74,7 +74,7 @@ export function SessionFinishModal({
             onPress={handleConfirm}
             activeOpacity={0.85}
           >
-            <Text className="text-white text-sm font-semibold">Salvar e finalizar</Text>
+            <Text className="text-brand-ink text-sm font-semibold">Salvar e finalizar</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

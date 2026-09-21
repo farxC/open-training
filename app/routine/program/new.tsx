@@ -6,8 +6,10 @@ import { useRoutine } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
 import { isDistanceModality, modalityLabel } from "@/data/modalities";
 import { getProgramWeeks } from "@/db/queries";
+import { useTheme } from "@/theme";
 
 export default function NewProgramScreen() {
+  const { colors } = useTheme();
   const { splitId } = useLocalSearchParams<{ splitId: string }>();
   const r = useRoutine();
   const split = r.splits.find((s) => s.id === Number(splitId));
@@ -60,7 +62,7 @@ export default function NewProgramScreen() {
           value={name}
           onChangeText={setName}
           placeholder={isDistance ? "Nome (ex.: Plano de Corrida)" : "Nome (ex.: Bloco de força)"}
-          placeholderTextColor="#bdb8aa"
+          placeholderTextColor={colors["ink-faint"]}
           className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-3"
         />
         <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
@@ -68,7 +70,7 @@ export default function NewProgramScreen() {
           <NumField value={totalWeeks} onChange={setTotalWeeks} integer />
         </View>
         <TouchableOpacity className="py-2.5 rounded-xl items-center bg-brand-500" onPress={create}>
-          <Text className="text-white text-sm font-medium">Criar plano</Text>
+          <Text className="text-brand-ink text-sm font-medium">Criar plano</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

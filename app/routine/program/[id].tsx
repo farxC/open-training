@@ -15,6 +15,7 @@ import { addDays, todayISO, weekIndexSince } from "@/utils/cycle";
 import { getProgram, getProgramWeeks, getWeekEntries } from "@/db/queries";
 import { confirmAction, notify } from "@/components/AppModal";
 import type { ProgramEntry, ProgramWeek, RoutineUnitExercise } from "@/types";
+import { useTheme, withAlpha } from "@/theme";
 
 const SHORT_MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -33,6 +34,7 @@ function formatDateRange(startISO: string, endISO: string): string {
 }
 
 export default function EditProgramScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const programId = Number(id);
   const r = useRoutine();
@@ -164,16 +166,16 @@ export default function EditProgramScreen() {
               value={program.name}
               onChangeText={(name) => r.renameProgram(program.id, { name })}
               placeholder="Nome do plano"
-              placeholderTextColor="#bdb8aa"
+              placeholderTextColor={colors["ink-faint"]}
               className="text-ink font-display font-semibold text-2xl"
               style={{ width: 210, flexShrink: 1 }}
             />
-            <MaterialCommunityIcons name="pencil-outline" size={15} color="#928d80" style={{ flexShrink: 0 }} />
+            <MaterialCommunityIcons name="pencil-outline" size={15} color={colors["ink-mute"]} style={{ flexShrink: 0 }} />
           </TouchableOpacity>
         }
         right={
           <TouchableOpacity onPress={confirmDeleteProgram} className="p-1">
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#dc2626" />
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors["accent-red"]} />
           </TouchableOpacity>
         }
       />
@@ -181,7 +183,7 @@ export default function EditProgramScreen() {
         {/* Plan meta card */}
         <View
           className="rounded-2xl p-4 mb-5"
-          style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+          style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
         >
           <View className="flex-row items-center justify-between mb-1">
             <View className="flex-row items-center" style={{ gap: 8 }}>
@@ -189,16 +191,16 @@ export default function EditProgramScreen() {
               <NumField value={program.total_weeks} onChange={setTotalWeeks} integer suffix="semanas" />
             </View>
             {program.is_active ? (
-              <View className="flex-row items-center px-2.5 py-1 rounded-full" style={{ backgroundColor: "#e3efe8", gap: 5 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#2f9e6e" }} />
-                <Text style={{ color: "#227a54", fontSize: 12, fontWeight: "700" }}>Ativo</Text>
+              <View className="flex-row items-center px-2.5 py-1 rounded-full" style={{ backgroundColor: colors["accent-green-soft"], gap: 5 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors["accent-green"] }} />
+                <Text style={{ color: colors["accent-green-ink"], fontSize: 12, fontWeight: "700" }}>Ativo</Text>
               </View>
             ) : (
               <TouchableOpacity
                 className="px-3 py-1.5 rounded-full bg-brand-500"
                 onPress={() => r.activateProgram(split.id, program.id)}
               >
-                <Text className="text-white text-xs font-semibold">Ativar plano</Text>
+                <Text className="text-brand-ink text-xs font-semibold">Ativar plano</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -212,13 +214,13 @@ export default function EditProgramScreen() {
         {program.setup_week_number != null && (
           <TouchableOpacity
             className="flex-row items-center justify-between rounded-2xl px-4 py-3 mb-5"
-            style={{ backgroundColor: "#faf1de", borderWidth: 1, borderColor: "#e8d6ac" }}
+            style={{ backgroundColor: colors["accent-amber-soft"], borderWidth: 1, borderColor: colors["gold-soft"] }}
             onPress={resumeSetup}
           >
-            <Text className="text-sm flex-1" style={{ color: "#8a6a1f" }}>
+            <Text className="text-sm flex-1" style={{ color: colors["accent-amber-ink"] }}>
               Mapeamento incompleto — continue definindo a Semana {program.setup_week_number}
             </Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#8a6a1f" />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors["accent-amber-ink"]} />
           </TouchableOpacity>
         )}
 
@@ -226,7 +228,7 @@ export default function EditProgramScreen() {
         {program.is_active && isFinished && (
           <View
             className="rounded-2xl p-4 mb-5"
-            style={{ backgroundColor: "#ebe7df" }}
+            style={{ backgroundColor: colors["surface-elevated"] }}
           >
             <Text className="text-ink font-semibold text-sm mb-1">Plano concluído</Text>
             <Text className="text-ink-mute text-sm mb-3">
@@ -237,23 +239,23 @@ export default function EditProgramScreen() {
               className="self-start px-3 py-2 rounded-xl bg-brand-500"
               onPress={addWeek}
             >
-              <Text className="text-white text-xs font-semibold">+ Adicionar semana</Text>
+              <Text className="text-brand-ink text-xs font-semibold">+ Adicionar semana</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {currentWeek && (
-          <View className="rounded-3xl p-5 mb-5" style={{ backgroundColor: "#26241f" }}>
-            <Text style={{ color: "#a8a293", fontSize: 11, fontWeight: "700", letterSpacing: 1 }}>
+          <View className="rounded-3xl p-5 mb-5" style={{ backgroundColor: colors["brand-500"] }}>
+            <Text style={{ color: colors["brand-300"], fontSize: 11, fontWeight: "700", letterSpacing: 1 }}>
               SEMANA ATUAL
             </Text>
             <Text
               className="font-display font-semibold"
-              style={{ color: "#ffffff", fontSize: 22, letterSpacing: -0.4, marginTop: 4 }}
+              style={{ color: colors["brand-ink"], fontSize: 22, letterSpacing: -0.4, marginTop: 4 }}
             >
               Semana {currentWeek.week_number}{currentWeek.label ? ` · ${currentWeek.label}` : ""}
             </Text>
-            <Text style={{ color: "#a8a293", fontSize: 13, marginTop: 2, marginBottom: 14 }}>
+            <Text style={{ color: colors["brand-300"], fontSize: 13, marginTop: 2, marginBottom: 14 }}>
               {formatDateRange(
                 addDays(program.started_at!, (currentWeekNumber! - 1) * 7),
                 addDays(program.started_at!, (currentWeekNumber! - 1) * 7 + 6)
@@ -266,28 +268,28 @@ export default function EditProgramScreen() {
               <View style={{ gap: 8, marginBottom: 14 }}>
                 {dayDigests.map((d) => (
                   <View key={d.unitId} className="flex-row items-center" style={{ gap: 8 }}>
-                    <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600", width: 56 }} numberOfLines={1}>
+                    <Text style={{ color: colors["brand-ink"], fontSize: 13, fontWeight: "600", width: 56 }} numberOfLines={1}>
                       {d.label}
                     </Text>
-                    <Text style={{ color: "#cfcabf", fontSize: 13, flex: 1 }} numberOfLines={1}>
+                    <Text style={{ color: colors["brand-200"], fontSize: 13, flex: 1 }} numberOfLines={1}>
                       {d.summary}
                     </Text>
                   </View>
                 ))}
               </View>
             ) : (
-              <Text style={{ color: "#a8a293", fontSize: 13, marginBottom: 14 }}>
+              <Text style={{ color: colors["brand-300"], fontSize: 13, marginBottom: 14 }}>
                 Nenhum dia com treino definido ainda.
               </Text>
             )}
 
             <TouchableOpacity
               className="self-start px-3 py-2 rounded-xl flex-row items-center"
-              style={{ backgroundColor: "rgba(255,255,255,0.14)", gap: 4 }}
+              style={{ backgroundColor: withAlpha(colors["brand-ink"], 0.14), gap: 4 }}
               onPress={() => router.push(`/routine/program/week/${currentWeek.id}`)}
             >
-              <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>Editar semana atual</Text>
-              <MaterialCommunityIcons name="arrow-right" size={15} color="#ffffff" />
+              <Text style={{ color: colors["brand-ink"], fontSize: 13, fontWeight: "700" }}>Editar semana atual</Text>
+              <MaterialCommunityIcons name="arrow-right" size={15} color={colors["brand-ink"]} />
             </TouchableOpacity>
           </View>
         )}
@@ -303,7 +305,7 @@ export default function EditProgramScreen() {
               className="flex-row items-center justify-between mb-2 px-4 py-3 rounded-2xl"
               style={{
                 borderWidth: isCurrent ? 1.5 : 1,
-                borderColor: isCurrent ? "#26241f" : "#ddd8ce",
+                borderColor: isCurrent ? colors["brand-500"] : colors["surface-border"],
               }}
             >
               <TouchableOpacity
@@ -315,13 +317,13 @@ export default function EditProgramScreen() {
                   Semana {week.week_number}{week.label ? ` · ${week.label}` : ""}
                 </Text>
                 {isCurrent && (
-                  <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: "#e3efe8" }}>
-                    <Text style={{ color: "#227a54", fontSize: 10, fontWeight: "700" }}>Atual</Text>
+                  <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors["accent-green-soft"] }}>
+                    <Text style={{ color: colors["accent-green-ink"], fontSize: 10, fontWeight: "700" }}>Atual</Text>
                   </View>
                 )}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => confirmDeleteWeek(week.id)} className="px-2">
-                <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
+                <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors["accent-red"]} />
               </TouchableOpacity>
             </View>
           );
@@ -332,7 +334,7 @@ export default function EditProgramScreen() {
 
         <TouchableOpacity
           className="mt-2 py-3 rounded-xl items-center"
-          style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+          style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
           onPress={addWeek}
         >
           <Text className="text-ink text-sm font-medium">+ Adicionar semana</Text>

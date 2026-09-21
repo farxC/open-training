@@ -31,10 +31,9 @@ import {
   type MuscleLoadSummary,
 } from "@/utils/muscleLoad";
 import { monogramFor } from "@/utils/recordsGamification";
-import { useTheme } from "@/theme";
+import { useTheme, withAlpha } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Fixed width for the frequency cluster, so the bar track is exactly as wide
  *  in every row — the ranking only reads if the bars start and end together. */
@@ -114,7 +113,7 @@ export function AnalyticsMuscleBreakdown({ series, frequency, caption, breakdown
         style={{
           borderRadius: 18,
           borderWidth: 1,
-          borderColor: HAIRLINE,
+          borderColor: withAlpha(colors.ink, 0.07),
           overflow: "hidden",
           shadowColor: colors.ink,
           shadowOffset: { width: 0, height: 6 },
@@ -209,7 +208,7 @@ function LoadRow({
       cycle={cycle}
       style={{
         borderTopWidth: index === 0 ? 0 : 1,
-        borderTopColor: HAIRLINE,
+        borderTopColor: withAlpha(colors.ink, 0.07),
       }}
     >
       <Pressable
@@ -511,7 +510,7 @@ function ColumnHeader({ isAverage }: { isAverage: boolean }) {
         paddingTop: 7,
         paddingBottom: 6,
         borderBottomWidth: 1,
-        borderBottomColor: HAIRLINE,
+        borderBottomColor: withAlpha(colors.ink, 0.07),
         backgroundColor: colors["surface-raised"],
       }}
     >
@@ -545,7 +544,7 @@ function Legend({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderTopWidth: 1,
-        borderTopColor: HAIRLINE,
+        borderTopColor: withAlpha(colors.ink, 0.07),
         backgroundColor: colors["surface-raised"],
         gap: 5,
       }}

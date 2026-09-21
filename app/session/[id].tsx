@@ -582,7 +582,7 @@ export default function SessionDetailScreen() {
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={() => confirmDate(dateToISO(new Date()))}
             >
-              <Text className="text-white text-sm font-semibold">Usar hoje</Text>
+              <Text className="text-brand-ink text-sm font-semibold">Usar hoje</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

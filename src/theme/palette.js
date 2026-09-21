@@ -191,15 +191,12 @@ const dark = {
  */
 const overlays = {
   light: {
-    /** The near-invisible rule used instead of a full border on nested rows. */
-    hairline: "rgba(38, 36, 31, 0.07)",
     scrim: "rgba(38, 36, 31, 0.5)",
     /** Badge backing over a photo. Same in both schemes — it darkens the image,
      *  not the page. Consolidates the 0.72/0.78 pair that meant one thing. */
     "media-scrim": "rgba(38, 36, 31, 0.76)",
   },
   dark: {
-    hairline: "rgba(240, 236, 225, 0.06)",
     scrim: "rgba(0, 0, 0, 0.65)",
     "media-scrim": "rgba(38, 36, 31, 0.76)",
   },

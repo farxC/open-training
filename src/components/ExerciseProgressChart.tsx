@@ -15,10 +15,9 @@ import { formatVolume } from "@/utils/analyticsFormat";
 import { formatKg } from "@/utils/recordsGamification";
 import { monthlyTotals, type ExerciseHistory } from "@/utils/exerciseHistory";
 import { dayStamp, monthStamp } from "@/utils/dateLabels";
+import { useTheme } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const AMBER = "#b9791f";
 
 const PLOT_HEIGHT = 92;
 /** More columns than this on a phone and the bars stop being bars. */
@@ -54,6 +53,7 @@ interface Props {
  * wears the crown.
  */
 export function ExerciseProgressChart({ history, modality }: Props) {
+  const { colors } = useTheme();
   const [lens, setLens] = useState<Lens>("top");
   const [cursor, setCursor] = useState<number | null>(null);
   const [touched, setTouched] = useState(false);
@@ -101,7 +101,7 @@ export function ExerciseProgressChart({ history, modality }: Props) {
   return (
     <View
       className="bg-surface-card rounded-xl"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+      style={{ borderWidth: 1, borderColor: colors["brand-100"], padding: 12 }}
     >
       <View className="flex-row items-center" style={{ gap: 6 }}>
         <LensChip
@@ -126,17 +126,17 @@ export function ExerciseProgressChart({ history, modality }: Props) {
           <View style={{ marginTop: 12, marginBottom: 9 }}>
             <View className="flex-row items-center" style={{ gap: 5 }}>
               <Text
-                style={{ color: "#a8a293", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}
+                style={{ color: colors["brand-300"], fontSize: 9, fontWeight: "700", letterSpacing: 1 }}
                 numberOfLines={1}
               >
                 {active.full.toUpperCase()}
               </Text>
               {activeIndex === bestIndex ? (
-                <MaterialCommunityIcons name="crown" size={11} color={AMBER} />
+                <MaterialCommunityIcons name="crown" size={11} color={colors["accent-amber"]} />
               ) : null}
             </View>
             <View className="flex-row items-baseline" style={{ gap: 7, marginTop: 2 }}>
-              <Text style={{ color: INK, fontSize: 19, fontWeight: "700", fontFamily: MONO }}>
+              <Text style={{ color: colors.ink, fontSize: 19, fontWeight: "700", fontFamily: MONO }}>
                 {format(active.value)}
               </Text>
               {change != null && change !== 0 ? (
@@ -144,11 +144,11 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                   <MaterialCommunityIcons
                     name={change > 0 ? "arrow-up" : "arrow-down"}
                     size={10}
-                    color={change > 0 ? "#227a54" : "#a8382d"}
+                    color={change > 0 ? colors["accent-green-ink"] : colors["accent-red-ink"]}
                   />
                   <Text
                     style={{
-                      color: change > 0 ? "#227a54" : "#a8382d",
+                      color: change > 0 ? colors["accent-green-ink"] : colors["accent-red-ink"],
                       fontSize: 10.5,
                       fontWeight: "700",
                       fontFamily: MONO,
@@ -156,12 +156,12 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                   >
                     {format(Math.abs(change))}
                   </Text>
-                  <Text style={{ color: "#bdb8aa", fontSize: 9.5, marginLeft: 3 }}>
+                  <Text style={{ color: colors["ink-faint"], fontSize: 9.5, marginLeft: 3 }}>
                     {lens === "top" ? "vs. sessão anterior" : "vs. mês anterior"}
                   </Text>
                 </View>
               ) : (
-                <Text style={{ color: "#bdb8aa", fontSize: 9.5 }}>
+                <Text style={{ color: colors["ink-faint"], fontSize: 9.5 }}>
                   {previous == null ? "primeiro registro" : "sem mudança"}
                 </Text>
               )}
@@ -179,12 +179,12 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                 right: 0,
                 top: 0,
                 borderTopWidth: 1,
-                borderTopColor: "#ddd8ce",
+                borderTopColor: colors["surface-border"],
                 borderStyle: "dashed",
               }}
             />
             <View pointerEvents="none" style={{ position: "absolute", right: 0, top: -11 }}>
-              <Text style={{ color: "#bdb8aa", fontSize: 8.5, fontFamily: MONO }}>
+              <Text style={{ color: colors["ink-faint"], fontSize: 8.5, fontFamily: MONO }}>
                 {format(max)}
               </Text>
             </View>
@@ -216,7 +216,7 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                   flex: 1,
                   height: 2,
                   borderRadius: 1,
-                  backgroundColor: index === activeIndex ? INK : "transparent",
+                  backgroundColor: index === activeIndex ? colors.ink : "transparent",
                 }}
               />
             ))}
@@ -233,7 +233,7 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                   {show ? (
                     <Text
                       style={{
-                        color: index === activeIndex ? "#5c594f" : "#c4bfb1",
+                        color: index === activeIndex ? colors["ink-soft"] : colors["surface-border-strong"],
                         fontSize: 8,
                         fontFamily: MONO,
                       }}
@@ -248,7 +248,7 @@ export function ExerciseProgressChart({ history, modality }: Props) {
           </View>
 
           {!touched ? (
-            <Text style={{ color: "#c4bfb1", fontSize: 9, marginTop: 7 }}>
+            <Text style={{ color: colors["surface-border-strong"], fontSize: 9, marginTop: 7 }}>
               toque numa barra para ler a sessão
             </Text>
           ) : null}
@@ -273,6 +273,7 @@ function Column({
   label: string;
   onSelect: () => void;
 }) {
+  const { colors } = useTheme();
   const grow = useSharedValue(0);
   const { hovered, handlers } = useInteractionState();
 
@@ -288,7 +289,7 @@ function Column({
     height: Math.max(grow.value * ratio * PLOT_HEIGHT, ratio > 0 ? 3 : 0),
   }));
 
-  const color = best ? AMBER : selected ? INK : hovered ? "#b8b3a5" : "#ddd8ce";
+  const color = best ? colors["accent-amber"] : selected ? colors.ink : hovered ? colors["ink-faint"] : colors["surface-border"];
 
   return (
     <Pressable
@@ -332,6 +333,7 @@ function LensChip({
   active: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -345,11 +347,11 @@ function LensChip({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderWidth: 1,
-        borderColor: active ? INK : "#e7e4dc",
-        backgroundColor: active ? INK : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? colors.ink : colors["brand-100"],
+        backgroundColor: active ? colors.ink : hovered ? colors["surface"] : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 10.5, fontWeight: "700" }}>
+      <Text style={{ color: active ? colors["brand-ink"] : colors["ink-mute"], fontSize: 10.5, fontWeight: "700" }}>
         {label}
       </Text>
     </Pressable>

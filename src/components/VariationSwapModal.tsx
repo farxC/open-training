@@ -2,6 +2,7 @@ import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "reac
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { Exercise } from "@/types";
+import { useTheme } from "@/theme";
 
 interface Props {
   visible: boolean;
@@ -17,6 +18,7 @@ interface Props {
  *  an already-saved session. Simpler than ExercisePickerModal on purpose: no
  *  search, no creation, no multi-select. */
 export function VariationSwapModal({ visible, currentExerciseId, family, onSelect, onClose }: Props) {
+  const { colors } = useTheme();
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView className="flex-1 bg-surface">
@@ -44,7 +46,7 @@ export function VariationSwapModal({ visible, currentExerciseId, family, onSelec
                 className="flex-row items-center rounded-2xl mb-2"
                 style={{
                   borderWidth: 1,
-                  borderColor: "#e7e4dc",
+                  borderColor: colors["brand-100"],
                   padding: 14,
                   gap: 10,
                   opacity: isCurrent ? 0.5 : 1,
@@ -54,9 +56,9 @@ export function VariationSwapModal({ visible, currentExerciseId, family, onSelec
                   {exercise.name}
                 </Text>
                 {isCurrent ? (
-                  <MaterialCommunityIcons name="check" size={16} color="#928d80" />
+                  <MaterialCommunityIcons name="check" size={16} color={colors["ink-mute"]} />
                 ) : (
-                  <MaterialCommunityIcons name="chevron-right" size={16} color="#bdb8aa" />
+                  <MaterialCommunityIcons name="chevron-right" size={16} color={colors["ink-faint"]} />
                 )}
               </Pressable>
             );

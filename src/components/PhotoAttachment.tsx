@@ -44,7 +44,7 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
           <View
             key={photo.id}
             className="relative overflow-hidden"
-            style={{ width: TILE_SIZE, height: TILE_SIZE, borderRadius: 18, borderWidth: 1, borderColor: "#ddd8ce" }}
+            style={{ width: TILE_SIZE, height: TILE_SIZE, borderRadius: 18, borderWidth: 1, borderColor: colors["surface-border"] }}
           >
             <Image
               source={{ uri: photo.uri }}
@@ -113,9 +113,9 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
             height: TILE_SIZE,
             borderRadius: 18,
             borderWidth: 1.5,
-            borderColor: "#c9c3b6",
+            borderColor: colors["surface-border-strong"],
             borderStyle: "dashed",
-            backgroundColor: "#f4f2ee",
+            backgroundColor: colors["surface"],
           }}
           onPress={handlePick}
           activeOpacity={0.7}
@@ -125,13 +125,13 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
               width: 34,
               height: 34,
               borderRadius: 17,
-              backgroundColor: "#ebe7df",
+              backgroundColor: colors["surface-elevated"],
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 6,
             }}
           >
-            <MaterialCommunityIcons name="camera-plus-outline" size={17} color="#5c594f" />
+            <MaterialCommunityIcons name="camera-plus-outline" size={17} color={colors["ink-soft"]} />
           </View>
           <Text className="text-ink-soft" style={{ fontSize: 11, fontWeight: "600" }}>
             Adicionar

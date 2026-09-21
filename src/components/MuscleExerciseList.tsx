@@ -13,10 +13,9 @@ import { formatSeriesNumber } from "@/data/muscleGroups";
 import type { MuscleExerciseRow } from "@/types";
 import { useInteractionState } from "@/hooks/useInteractionState";
 import { EXERCISE_HEAD, splitExerciseRows, type ExerciseTail } from "@/utils/muscleLoad";
-import { useTheme } from "@/theme";
+import { useTheme, withAlpha } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Lines up under the group row's frequency cluster. */
 const FREQ_COL = 92;
@@ -128,7 +127,7 @@ function ExerciseRow({
         paddingRight: 14,
         paddingVertical: 8,
         borderTopWidth: first ? 0 : 1,
-        borderTopColor: HAIRLINE,
+        borderTopColor: withAlpha(colors.ink, 0.07),
       }}
     >
       <View className="flex-row items-center" style={{ gap: 8 }}>
@@ -206,7 +205,7 @@ function TailRow({
       index={index}
       step={STEP}
       cycle={cycle}
-      style={{ borderTopWidth: 1, borderTopColor: HAIRLINE }}
+      style={{ borderTopWidth: 1, borderTopColor: withAlpha(colors.ink, 0.07) }}
     >
       <Pressable
         onPress={onToggle}

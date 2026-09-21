@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { resistanceCurvePoints } from "@/data/resistanceCurves";
 import type { ResistanceCurve } from "@/types";
+import { useTheme } from "@/theme";
 
 /** Sparse enough to read as a shape at 40px wide; more columns just smear. */
 const COLUMNS = 7;
@@ -26,8 +27,11 @@ export function ResistanceCurveGlyph({
   variant,
   width = 40,
   height = 15,
-  color = "#26241f",
+  color,
 }: Props) {
+  const { colors } = useTheme();
+  // Defaulted here, not in the parameter list: a default cannot reach the hook.
+  const stroke = color ?? colors.ink;
   const points = resistanceCurvePoints(variant);
   const step = (points.length - 1) / (COLUMNS - 1);
   const samples = Array.from({ length: COLUMNS }, (_, i) => points[Math.round(i * step)].y);
@@ -48,7 +52,7 @@ export function ResistanceCurveGlyph({
             width: barWidth,
             height: Math.max(y * height, 2),
             borderRadius: 1,
-            backgroundColor: color,
+            backgroundColor: stroke,
             // The peak of the curve is the point of the glyph, so the columns
             // fade toward the shallow end instead of all reading equally loud.
             opacity: 0.35 + 0.65 * y,

@@ -66,7 +66,7 @@ export function ExerciseSessionCard({
       style={{
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: "rgba(38, 36, 31, 0.07)",
+        borderColor: withAlpha(colors.ink, 0.07),
         overflow: "hidden",
         shadowColor: colors["shadow"],
         shadowOffset: { width: 0, height: 6 },
@@ -134,7 +134,7 @@ export function ExerciseSessionCard({
         <MaterialCommunityIcons name="chevron-right" size={16} color={colors["ink-faint"]} />
       </TouchableOpacity>
 
-      <View style={{ height: 1, backgroundColor: "rgba(38, 36, 31, 0.07)" }} />
+      <View style={{ height: 1, backgroundColor: withAlpha(colors.ink, 0.07) }} />
 
       <View style={{ paddingHorizontal: 14 }}>
         {sets.map((s, i) => {
@@ -149,7 +149,7 @@ export function ExerciseSessionCard({
               style={{
                 paddingVertical: 10,
                 borderTopWidth: i === 0 ? 0 : 1,
-                borderTopColor: "rgba(38, 36, 31, 0.05)",
+                borderTopColor: withAlpha(colors.ink, 0.05),
               }}
             >
               {barPct > 0 && (
@@ -160,7 +160,7 @@ export function ExerciseSessionCard({
                     top: 4,
                     bottom: 4,
                     width: `${barPct}%`,
-                    backgroundColor: isBest ? "rgba(38, 36, 31, 0.07)" : "rgba(38, 36, 31, 0.035)",
+                    backgroundColor: isBest ? withAlpha(colors.ink, 0.07) : withAlpha(colors.ink, 0.035),
                     borderRadius: 8,
                   }}
                 />

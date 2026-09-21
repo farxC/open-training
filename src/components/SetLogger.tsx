@@ -223,7 +223,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={saveConfig}
             >
-              <Text className="text-white font-semibold text-sm">Salvar para esta sessão</Text>
+              <Text className="text-brand-ink font-semibold text-sm">Salvar para esta sessão</Text>
             </TouchableOpacity>
             <TouchableOpacity className="mt-2 py-3 items-center" onPress={restoreExerciseDefault}>
               <Text className="text-ink-soft text-sm">Restaurar padrão do exercício</Text>

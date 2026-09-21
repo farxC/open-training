@@ -53,7 +53,7 @@ export type ColorToken =
   | "dot-caminhada"
   | "shadow";
 
-export type OverlayToken = "hairline" | "scrim" | "media-scrim";
+export type OverlayToken = "scrim" | "media-scrim";
 
 export type ColorScheme = "light" | "dark";
 

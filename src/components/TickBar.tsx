@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { View } from "react-native";
-import { useTheme } from "@/theme";
+import { useTheme, withAlpha } from "@/theme";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -89,7 +89,7 @@ export function TickBar({
             left: 0,
             right: 0,
             height: 1,
-            backgroundColor: "rgba(255,255,255,0.16)",
+            backgroundColor: withAlpha(colors["brand-ink"], 0.16),
           }}
         />
       </Animated.View>

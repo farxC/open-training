@@ -53,7 +53,7 @@ export function SessionTimer({ startTime, onStart }: SessionTimerProps) {
         onPress={onStart}
         activeOpacity={0.85}
       >
-        <Text className="text-white text-sm font-semibold">Iniciar sessão</Text>
+        <Text className="text-brand-ink text-sm font-semibold">Iniciar sessão</Text>
       </TouchableOpacity>
     );
   }

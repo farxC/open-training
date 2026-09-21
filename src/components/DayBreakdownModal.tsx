@@ -58,7 +58,7 @@ export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
         onPress={onClose}
         style={{
           flex: 1,
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: colors.scrim,
           alignItems: "center",
           justifyContent: "center",
           padding: 24,

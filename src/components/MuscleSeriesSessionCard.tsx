@@ -11,10 +11,9 @@ import { FadeInRow } from "@/components/FadeInRow";
 import { TickBar } from "@/components/TickBar";
 import { formatMuscleSeriesValue, formatSeriesNumber, muscleGroupLabel } from "@/data/muscleGroups";
 import type { MuscleSeriesRow } from "@/types";
-import { useTheme } from "@/theme";
+import { useTheme, withAlpha } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Widest pip pitch we'll use — beyond this the pips start reading as a sparse
  *  dotted line instead of as counted objects. */
@@ -62,7 +61,7 @@ export function MuscleSeriesSessionCard({ data }: Props) {
       style={{
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: HAIRLINE,
+        borderColor: withAlpha(colors.ink, 0.07),
         overflow: "hidden",
         shadowColor: colors.ink,
         shadowOffset: { width: 0, height: 6 },
@@ -78,7 +77,7 @@ export function MuscleSeriesSessionCard({ data }: Props) {
           paddingTop: 12,
           paddingBottom: 10,
           borderBottomWidth: 1,
-          borderBottomColor: HAIRLINE,
+          borderBottomColor: withAlpha(colors.ink, 0.07),
           gap: 8,
         }}
       >

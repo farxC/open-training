@@ -15,7 +15,7 @@ import { muscleGroupLabel } from "@/data/muscleGroups";
 import type { DateRange } from "@/types";
 import { UNGROUPED_KEY, type MuscleRecordGroup } from "@/utils/analyticsRecords";
 import { todayISO } from "@/utils/cycle";
-import { useTheme } from "@/theme";
+import { useTheme, withAlpha } from "@/theme";
 import {
   crownRecord,
   formatKg,
@@ -169,9 +169,9 @@ function MuscleShelf({
               width: 30,
               height: 30,
               borderRadius: 9,
-              backgroundColor: isOpen ? "rgba(255,255,255,0.08)" : colors["surface"],
+              backgroundColor: isOpen ? withAlpha(colors["brand-ink"], 0.08) : colors["surface"],
               borderWidth: 1,
-              borderColor: isOpen ? "rgba(255,255,255,0.18)" : colors["brand-100"],
+              borderColor: isOpen ? withAlpha(colors["brand-ink"], 0.18) : colors["brand-100"],
             }}
           >
             <Text
@@ -198,7 +198,7 @@ function MuscleShelf({
             <View
               className="flex-row items-center rounded-full"
               style={{
-                backgroundColor: isOpen ? "rgba(217,164,65,0.22)" : colors["gold-soft"],
+                backgroundColor: isOpen ? withAlpha(colors.gold, 0.22) : colors["gold-soft"],
                 paddingHorizontal: 7,
                 paddingVertical: 2,
                 gap: 3,
@@ -224,7 +224,7 @@ function MuscleShelf({
           <View
             className="rounded-full"
             style={{
-              backgroundColor: isOpen ? "rgba(255,255,255,0.08)" : colors["surface"],
+              backgroundColor: isOpen ? withAlpha(colors["brand-ink"], 0.08) : colors["surface"],
               paddingHorizontal: 7,
               paddingVertical: 2,
             }}
@@ -266,7 +266,7 @@ function MuscleShelf({
                 height: 5,
                 borderRadius: 99,
                 marginTop: 9,
-                backgroundColor: isOpen ? "rgba(255,255,255,0.12)" : colors["surface-elevated"],
+                backgroundColor: isOpen ? withAlpha(colors["brand-ink"], 0.12) : colors["surface-elevated"],
               }}
             >
               <Animated.View

@@ -3,6 +3,7 @@ import { Modal, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { todayISO } from "@/utils/cycle";
+import { useTheme } from "@/theme";
 
 interface Props {
   visible: boolean;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function DatePickerModal({ visible, title = "Escolher data", selectedDate, onSelect, onClose }: Props) {
+  const { colors } = useTheme();
   const [monthDate, setMonthDate] = useState(() =>
     selectedDate ? new Date(selectedDate + "T00:00:00") : new Date()
   );
@@ -47,7 +49,7 @@ export function DatePickerModal({ visible, title = "Escolher data", selectedDate
 
         <TouchableOpacity
           className="mx-4 mt-6 py-2.5 rounded-xl items-center"
-          style={{ borderWidth: 1, borderColor: "#c9c3b6" }}
+          style={{ borderWidth: 1, borderColor: colors["surface-border-strong"] }}
           onPress={() => onSelect(todayISO())}
         >
           <Text className="text-ink text-sm font-medium">Hoje</Text>

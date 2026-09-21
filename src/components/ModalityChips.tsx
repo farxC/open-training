@@ -6,7 +6,7 @@ import type { ModalityConfig } from "@/data/modalities";
 import { MODALITY_CATEGORIES, modalitiesOfCategory } from "@/data/modalities";
 import { useInteractionState } from "@/hooks/useInteractionState";
 import type { Modality } from "@/types";
-import { useTheme } from "@/theme";
+import { useTheme, withAlpha } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -66,7 +66,7 @@ function Chip({ modality, active, onPress, block = false, fill = false }: ChipPr
         paddingHorizontal: block && !fill ? 22 : 14,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: active ? colors.ink : hovered ? colors["surface-border-strong"] : colors.hairline,
+        borderColor: active ? colors.ink : hovered ? colors["surface-border-strong"] : withAlpha(colors.ink, 0.07),
         backgroundColor: active
           ? colors.ink
           : pressed
@@ -168,7 +168,7 @@ export function ModalityChips({ value, onChange, layout = "scroll" }: Props) {
         <Fragment key={cat.key}>
           {catIndex > 0 && (
             <View
-              style={{ width: 1, alignSelf: "stretch", backgroundColor: colors.hairline, marginHorizontal: 4 }}
+              style={{ width: 1, alignSelf: "stretch", backgroundColor: withAlpha(colors.ink, 0.07), marginHorizontal: 4 }}
             />
           )}
           <Text

@@ -19,7 +19,7 @@ export function DateField({ value, onChange }: Props) {
         fontWeight: 500,
         color: colors["ink"],
         backgroundColor: colors["surface"],
-        border: "1px solid #e7e4dc",
+        border: `1px solid ${colors["brand-100"]}`,
         borderRadius: 8,
         padding: "6px 10px",
         fontFamily: "inherit",
