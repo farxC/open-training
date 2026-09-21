@@ -85,6 +85,7 @@ module.exports = {
           natacao: ref("dot-natacao"),
           caminhada: ref("dot-caminhada"),
         },
+        shadow: ref("shadow"),
       },
       fontFamily: {
         sans: ["Hanken Grotesk", "system-ui", "-apple-system", "sans-serif"],

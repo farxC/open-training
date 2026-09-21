@@ -27,7 +27,6 @@ const ALLOWED_DIRS = [join("src", "theme")];
  * Phase 4a: feed · 4b: profile/analytics · 4c: session · 4d: exercises · 4e: routine
  */
 const PENDING = new Set<string>([
-  "app/(tabs)/index.tsx",
   "app/(tabs)/profile.tsx",
   "app/(tabs)/routine.tsx",
   "app/exercises/[id].tsx",
@@ -82,7 +81,6 @@ const PENDING = new Set<string>([
   "src/components/ResistanceCurveChartImpl.tsx",
   "src/components/ResistanceCurveGlyph.tsx",
   "src/components/RoutineCalendar.tsx",
-  "src/components/SessionCard.tsx",
   "src/components/SessionFinishModal.tsx",
   "src/components/SessionTimer.tsx",
   "src/components/SetLogger.tsx",
@@ -98,7 +96,6 @@ const PENDING = new Set<string>([
   "src/components/VariationSwapModal.tsx",
   "src/components/VolumeChartImpl.tsx",
   "src/components/WeekdayPicker.tsx",
-  "src/data/modalities.ts",
   "src/utils/recordsGamification.test.ts",
   "src/utils/recordsGamification.ts",
 ]);

@@ -43,6 +43,7 @@ import {
 import { dateToISO } from "@/utils/cycle";
 import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
 import type { Exercise, Modality, WorkoutSet } from "@/types";
+import { useTheme } from "@/theme";
 
 /** The stat strip wants a bare number (its unit sits on the line below), so it
  *  can't use formatDistanceValue — that one carries the unit with it. */
@@ -95,6 +96,7 @@ interface ExerciseGroup {
 }
 
 export default function SessionDetailScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session, refresh } = useSession(Number(id));
 
@@ -228,7 +230,7 @@ export default function SessionDetailScreen() {
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: modalityConfig(session.modality).dotColor,
+                  backgroundColor: colors[modalityConfig(session.modality).dotToken],
                 }}
               />
               <Text
@@ -403,7 +405,7 @@ export default function SessionDetailScreen() {
                     width: 6,
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: modalityConfig(session.modality).dotColor,
+                    backgroundColor: colors[modalityConfig(session.modality).dotToken],
                   }}
                 />
                 <Text

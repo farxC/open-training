@@ -1,6 +1,7 @@
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import type { SessionSummary } from "@/types";
 import { distanceDisplay, isDistanceModality, modalityConfig, modalityLabel, toDisplayDistance } from "@/data/modalities";
+import { useTheme } from "@/theme";
 
 interface Props {
   session: SessionSummary;
@@ -44,6 +45,7 @@ function exerciseLine(names: string[]): string | null {
 }
 
 export function SessionCard({ session, onPress }: Props) {
+  const { colors } = useTheme();
   const { weekday, month, day } = parseDate(session.date);
   const duration = formatDuration(session.duration_seconds);
   const exercises = exerciseLine(session.exercise_names);
@@ -65,8 +67,7 @@ export function SessionCard({ session, onPress }: Props) {
 
   return (
     <TouchableOpacity
-      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
-      className="bg-surface-card mx-4 mb-3 rounded-2xl overflow-hidden"
+      className="bg-surface-card mx-4 mb-3 rounded-2xl overflow-hidden border border-surface-border"
       onPress={onPress}
       activeOpacity={0.75}
     >
@@ -81,16 +82,16 @@ export function SessionCard({ session, onPress }: Props) {
       <View className="p-4 flex-row">
         {/* Date rail */}
         <View style={{ width: 52 }}>
-          <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}>
             {weekday}
           </Text>
           <Text
             className="font-display"
-            style={{ color: "#26241f", fontSize: 30, lineHeight: 34, fontWeight: "500" }}
+            style={{ color: colors.ink, fontSize: 30, lineHeight: 34, fontWeight: "500" }}
           >
             {day}
           </Text>
-          <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}>
             {month}
           </Text>
         </View>
@@ -100,7 +101,7 @@ export function SessionCard({ session, onPress }: Props) {
           <View className="flex-row justify-between items-start">
             <Text
               className="font-display flex-1 pr-2"
-              style={{ color: "#26241f", fontSize: 19, fontWeight: "500", letterSpacing: -0.3 }}
+              style={{ color: colors.ink, fontSize: 19, fontWeight: "500", letterSpacing: -0.3 }}
               numberOfLines={1}
             >
               {session.name || modalityLabel(session.modality)}
@@ -111,7 +112,7 @@ export function SessionCard({ session, onPress }: Props) {
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: modalityConfig(session.modality).dotColor,
+                  backgroundColor: colors[modalityConfig(session.modality).dotToken],
                 }}
               />
               <Text
@@ -129,7 +130,7 @@ export function SessionCard({ session, onPress }: Props) {
             </Text>
           )}
 
-          <View style={{ height: 1, backgroundColor: "#ddd8ce", marginVertical: 10 }} />
+          <View className="bg-surface-border" style={{ height: 1, marginVertical: 10 }} />
 
           {(showDistance || showVolume) && (
             <View style={{ marginBottom: exercises || session.notes ? 8 : 0 }}>
@@ -137,7 +138,7 @@ export function SessionCard({ session, onPress }: Props) {
                 <>
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: colors.ink,
                       fontSize: 24,
                       fontWeight: "700",
                       fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
@@ -145,7 +146,7 @@ export function SessionCard({ session, onPress }: Props) {
                   >
                     {distanceUnit === "m" ? Math.round(shownDistance) : shownDistance.toFixed(1)}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>
+                  <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>
                     {distanceUnit.toUpperCase()}
                   </Text>
                 </>
@@ -153,7 +154,7 @@ export function SessionCard({ session, onPress }: Props) {
                 <>
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: colors.ink,
                       fontSize: 24,
                       fontWeight: "700",
                       fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
@@ -161,7 +162,7 @@ export function SessionCard({ session, onPress }: Props) {
                   >
                     {formatThousands(session.total_volume!)}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>
+                  <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1 }}>
                     KG · VOLUME TOTAL
                   </Text>
                 </>

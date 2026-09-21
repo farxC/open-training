@@ -88,6 +88,12 @@ const light = {
   "dot-ciclismo": "#2b6cb0",
   "dot-natacao": "#0e8ba8",
   "dot-caminhada": "#a1682c",
+
+  /** What a shadow is cast in. Opaque because RN multiplies shadowColor by
+   *  shadowOpacity — an rgba here would apply alpha twice. Unlike everything
+   *  else in the palette this does not invert: a shadow is still a shadow at
+   *  night, just deeper. */
+  shadow: "#26241f",
 };
 
 const dark = {
@@ -157,11 +163,13 @@ const dark = {
   "dot-ciclismo": "#6aa6e8",
   "dot-natacao": "#3fc0dd",
   "dot-caminhada": "#d49a5a",
+
+  shadow: "#000000",
 };
 
 /**
  * Alpha-bearing values. Deliberately NOT Tailwind tokens: they are consumed as
- * JS values by shadowColor, scrim backgrounds and hairline borders, and the
+ * JS values by scrim backgrounds and hairline borders, and the
  * `rgb(var(--x) / <alpha-value>)` plumbing the class tokens use only carries
  * opaque channels.
  */
@@ -170,12 +178,10 @@ const overlays = {
     /** The near-invisible rule used instead of a full border on nested rows. */
     hairline: "rgba(38, 36, 31, 0.07)",
     scrim: "rgba(38, 36, 31, 0.5)",
-    shadow: "rgba(38, 36, 31, 0.07)",
   },
   dark: {
     hairline: "rgba(240, 236, 225, 0.06)",
     scrim: "rgba(0, 0, 0, 0.65)",
-    shadow: "rgba(0, 0, 0, 0.45)",
   },
 };
 

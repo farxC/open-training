@@ -47,9 +47,10 @@ export type ColorToken =
   | "dot-corrida"
   | "dot-natacao"
   | "dot-ciclismo"
-  | "dot-caminhada";
+  | "dot-caminhada"
+  | "shadow";
 
-export type OverlayToken = "hairline" | "scrim" | "shadow";
+export type OverlayToken = "hairline" | "scrim";
 
 export type ColorScheme = "light" | "dark";
 
