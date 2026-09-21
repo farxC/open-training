@@ -1,6 +1,7 @@
 import "../global.css";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -9,10 +10,18 @@ import { SessionRecorderProvider } from "@/context/SessionRecorderContext";
 import { initDatabase } from "@/db/client";
 import { runMigrations } from "@/db/migrations";
 import { ensureSkiaReady } from "@/skia/ensureSkiaReady";
+import { ThemeProvider, useTheme } from "@/theme";
 
-export default function RootLayout() {
+/**
+ * Split out from RootLayout so the boot and error screens sit *inside*
+ * ThemeProvider. Both persistence backends read synchronously, so the theme is
+ * known on the very first render — the spinner already appears in the right
+ * colors instead of flashing paper-white on a dark device.
+ */
+function RootLayoutInner() {
   const [dbReady, setDbReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const { colors, scheme } = useTheme();
 
   useEffect(() => {
     // Skia's CanvasKit (WASM) runtime has no native equivalent to wait on — it's a
@@ -30,19 +39,33 @@ export default function RootLayout() {
       });
   }, []);
 
+  // The status bar is the one piece of chrome Android hardcodes outside the JS
+  // bundle (values/styles.xml pins it to #ffffff and values-night is empty), and
+  // android/ is checked in, so app.json can't fix it without a prebuild. Setting
+  // it here covers every platform at runtime instead.
+  const statusBar = (
+    <StatusBar style={scheme === "dark" ? "light" : "dark"} backgroundColor={colors.surface} />
+  );
+
   if (initError) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#f4f2ee", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Text style={{ color: "#bf3b30", fontWeight: "bold", marginBottom: 8 }}>Database error</Text>
-        <Text style={{ color: "#5c594f", fontSize: 12, textAlign: "center" }}>{initError}</Text>
+      <View className="flex-1 items-center justify-center bg-surface" style={{ padding: 24 }}>
+        {statusBar}
+        <Text style={{ color: colors["accent-red"], fontWeight: "bold", marginBottom: 8 }}>
+          Database error
+        </Text>
+        <Text style={{ color: colors["ink-soft"], fontSize: 12, textAlign: "center" }}>
+          {initError}
+        </Text>
       </View>
     );
   }
 
   if (!dbReady) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#f4f2ee", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color="#26241f" />
+      <View className="flex-1 items-center justify-center bg-surface">
+        {statusBar}
+        <ActivityIndicator color={colors.ink} />
       </View>
     );
   }
@@ -51,8 +74,17 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SessionRecorderProvider>
+          {statusBar}
           <AppModalHost />
-          <Stack screenOptions={{ headerShown: false }}>
+          {/* Without contentStyle the native container behind a push or a modal
+              is whatever the platform defaults to — white — so every navigation
+              flashed in dark mode. */}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.surface },
+            }}
+          >
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="settings" />
             <Stack.Screen
@@ -77,5 +109,13 @@ export default function RootLayout() {
         </SessionRecorderProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutInner />
+    </ThemeProvider>
   );
 }

@@ -1510,3 +1510,29 @@ export function updateUserProfile(
   db.runSync(`UPDATE user_profile SET ${setClauses} WHERE id = 1`, values);
 }
 
+// ─── Device preferences (user_meta) ─────────────────────────────────────────────
+
+/**
+ * Generic key/value reads against `user_meta`. This table predates the typed
+ * tables and deliberately stays out of the export payload, which makes it the
+ * right home for device-local preferences (theme, and whatever comes next)
+ * rather than training data.
+ *
+ * Tolerates a missing table: on a brand-new install the theme is read before
+ * runMigrations() has created anything.
+ */
+export function getMeta(key: string): string | null {
+  try {
+    return (
+      db.getFirstSync<{ value: string }>("SELECT value FROM user_meta WHERE key = ?", [key])
+        ?.value ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
+export function setMeta(key: string, value: string): void {
+  db.runSync("INSERT OR REPLACE INTO user_meta (key, value) VALUES (?, ?)", [key, value]);
+}
+

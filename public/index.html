@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>%WEB_TITLE%</title>
+
+    <!--
+      Theme, decided before the bundle loads.
+
+      This is load-bearing, not just a paint optimisation. react-native-css-interop
+      seeds its initial color scheme by reading whether <html> already carries the
+      `dark` class, at module load. Without this script the app always boots light
+      and then flips, which is a visible flash and a wrong first frame.
+
+      The preference is read from localStorage rather than SQLite because on web
+      the whole database lives inside one localStorage key and is only readable
+      after initSqlJs() resolves — far too late for <head>. The key is written by
+      src/theme/persistence.web.ts; keep the two in sync.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("open_training_theme");
+          var isDark =
+            stored === "dark" ||
+            ((!stored || stored === "system") &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (isDark) document.documentElement.classList.add("dark");
+          // Covers the frame before React mounts anything.
+          document.documentElement.style.backgroundColor = isDark ? "#15140f" : "#f4f2ee";
+        } catch (e) {
+          /* private mode, blocked storage — fall through to the light default */
+        }
+      })();
+    </script>
+
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

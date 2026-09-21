@@ -4,7 +4,7 @@
     "slug": "open-training",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "scheme": "open-training",
     "assetBundlePatterns": [
       "**/*"
