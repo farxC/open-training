@@ -17,11 +17,13 @@ const light = {
   surface: "#f4f2ee",
   "surface-card": "#ffffff",
   "surface-elevated": "#ebe7df",
-  /** A hair above `card` — the open/expanded state of a card. Was drifting as
-   *  #f7f5f1 / #fdfcfa / #faf9f5 across a handful of components. */
-  "surface-raised": "#f7f5f1",
-  /** Warm off-white recess, one step below `card`. Absorbed #fbfaf7 / #fffdf6. */
-  "surface-tint": "#fbfaf7",
+  /** The open/expanded panel inside a card — ExerciseSpecSheet's body,
+   *  MuscleExerciseList's expanded rows. Absorbs the #f7f5f1 / #fdfcfa /
+   *  #faf9f5 / #fffdf6 drift around the same intent. */
+  "surface-raised": "#fbfaf7",
+  /** Warm recess a step BELOW the page: the hover fill on a ghost chip.
+   *  Absorbs #f0ede6 / #efece5, which were the same color typed twice. */
+  "surface-tint": "#f0ede6",
   "surface-border": "#ddd8ce",
   /** The heavier rule used on inputs and pickers. Absorbed the #c9c3b6 /
    *  #c9c4b6 / #c9c3b7 / #c4bfb1 family, which differed by a single digit. */
@@ -95,7 +97,8 @@ const dark = {
   "surface-card": "#1c1b15",
   "surface-elevated": "#1d1c16",
   "surface-raised": "#24231c",
-  "surface-tint": "#201f19",
+  // Hover has to LIFT off the page here, where in light it sinks into it.
+  "surface-tint": "#272620",
   /** Lifted from the mock's #332f26, which scored 1.29:1 against the card —
    *  hairlines were effectively invisible. #3d392d clears 1.5:1. */
   "surface-border": "#3d392d",

@@ -27,7 +27,6 @@ const ALLOWED_DIRS = [join("src", "theme")];
  * Phase 4a: feed · 4b: profile/analytics · 4c: session · 4d: exercises · 4e: routine
  */
 const PENDING = new Set<string>([
-  "app/(tabs)/_layout.tsx",
   "app/(tabs)/index.tsx",
   "app/(tabs)/profile.tsx",
   "app/(tabs)/routine.tsx",
@@ -40,10 +39,8 @@ const PENDING = new Set<string>([
   "app/routine/program/week/[id].tsx",
   "app/session/[id].tsx",
   "app/session/new.tsx",
-  "app/settings.tsx",
   "src/components/AnalyticsFilters.tsx",
   "src/components/AnalyticsMuscleBreakdown.tsx",
-  "src/components/AppModal.tsx",
   "src/components/AvatarPicker.tsx",
   "src/components/AvatarPicker.web.tsx",
   "src/components/ComparisonTile.tsx",
@@ -85,8 +82,6 @@ const PENDING = new Set<string>([
   "src/components/ResistanceCurveChartImpl.tsx",
   "src/components/ResistanceCurveGlyph.tsx",
   "src/components/RoutineCalendar.tsx",
-  "src/components/ScreenHeader.tsx",
-  "src/components/SectionHeader.tsx",
   "src/components/SessionCard.tsx",
   "src/components/SessionFinishModal.tsx",
   "src/components/SessionTimer.tsx",
@@ -100,7 +95,6 @@ const PENDING = new Set<string>([
   "src/components/TickBar.tsx",
   "src/components/TrendBars.tsx",
   "src/components/TrophyCaseStrip.tsx",
-  "src/components/UnitCard.tsx",
   "src/components/VariationSwapModal.tsx",
   "src/components/VolumeChartImpl.tsx",
   "src/components/WeekdayPicker.tsx",

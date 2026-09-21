@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { Animated, Easing, Modal, Text, TouchableOpacity, View } from "react-native";
 import type { TextStyle, ViewStyle } from "react-native";
+import { useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type AppModalVariant = "cancel" | "destructive" | "neutral";
 
@@ -65,23 +67,41 @@ function handleAction(action: AppModalAction): void {
   if (action.onPress) setTimeout(action.onPress, 0);
 }
 
-const VARIANT_STYLES: Record<AppModalVariant, { container: ViewStyle; text: TextStyle }> = {
-  cancel: {
-    container: { borderWidth: 1, borderColor: "#ddd8ce", backgroundColor: "transparent" },
-    text: { color: "#5c594f" },
-  },
-  destructive: {
-    container: { backgroundColor: "#bf3b30" },
-    text: { color: "#ffffff" },
-  },
-  neutral: {
-    container: { backgroundColor: "#26241f" },
-    text: { color: "#ffffff" },
-  },
-};
+/**
+ * A function of the theme rather than a module constant, because AppModalHost
+ * renders outside the normal tree (it is driven by useSyncExternalStore) and a
+ * frozen style map would keep serving light colors after a theme switch.
+ */
+function variantStyles(
+  colors: ThemeColors
+): Record<AppModalVariant, { container: ViewStyle; text: TextStyle }> {
+  return {
+    cancel: {
+      container: {
+        borderWidth: 1,
+        borderColor: colors["surface-border"],
+        backgroundColor: "transparent",
+      },
+      text: { color: colors["ink-soft"] },
+    },
+    destructive: {
+      container: { backgroundColor: colors["accent-red"] },
+      // brand-ink, not a fixed white: the dark scheme lightens accent-red to
+      // #e0705f, where white drops to 3.16:1. brand-ink flips to the dark face
+      // and holds 5.84:1.
+      text: { color: colors["brand-ink"] },
+    },
+    neutral: {
+      container: { backgroundColor: colors["brand-500"] },
+      text: { color: colors["brand-ink"] },
+    },
+  };
+}
 
 export function AppModalHost() {
   const request = useSyncExternalStore(subscribe, getSnapshot);
+  const { colors } = useTheme();
+  const variants = variantStyles(colors);
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -111,7 +131,7 @@ export function AppModalHost() {
       <View
         style={{
           flex: 1,
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: colors.scrim,
           alignItems: "center",
           justifyContent: "center",
           padding: 24,
@@ -121,12 +141,12 @@ export function AppModalHost() {
           style={{
             width: "100%",
             maxWidth: 340,
-            backgroundColor: "#ffffff",
+            backgroundColor: colors["surface-card"],
             borderRadius: 24,
             padding: 24,
             opacity,
             transform: [{ scale }],
-            shadowColor: "#000",
+            shadowColor: colors.shadow,
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.2,
             shadowRadius: 24,
@@ -150,10 +170,10 @@ export function AppModalHost() {
                 activeOpacity={0.8}
                 style={[
                   { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12 },
-                  VARIANT_STYLES[action.variant].container,
+                  variants[action.variant].container,
                 ]}
               >
-                <Text style={[{ fontSize: 14, fontWeight: "600" }, VARIANT_STYLES[action.variant].text]}>
+                <Text style={[{ fontSize: 14, fontWeight: "600" }, variants[action.variant].text]}>
                   {action.label}
                 </Text>
               </TouchableOpacity>

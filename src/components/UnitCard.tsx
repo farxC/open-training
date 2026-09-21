@@ -5,6 +5,7 @@ import type { TargetPatch } from "@/hooks/useRoutine";
 import { modalityConfig } from "@/data/modalities";
 import { DistanceTargetFields, NumField } from "@/components/TargetFields";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
+import { useTheme } from "@/theme";
 
 interface Props {
   unit: RoutineUnit;
@@ -39,12 +40,12 @@ export function UnitCard({
   onMoveDown,
   onDelete,
 }: Props) {
+  const { colors } = useTheme();
   const isDistance = modalityConfig(modality).targetKind === "distance";
 
   return (
     <View
-      className="bg-surface-card rounded-2xl mb-3 overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+      className="bg-surface-card rounded-2xl mb-3 overflow-hidden border border-surface-border"
     >
       <View className="flex-row items-center p-4">
         {badge !== undefined && (
@@ -54,20 +55,20 @@ export function UnitCard({
               height: 34,
               paddingHorizontal: 8,
               borderRadius: 17,
-              backgroundColor: "#26241f",
+              backgroundColor: colors["brand-500"],
               alignItems: "center",
               justifyContent: "center",
               marginRight: 12,
             }}
           >
-            <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>{badge}</Text>
+            <Text style={{ color: colors["brand-ink"], fontSize: 12, fontWeight: "700" }}>{badge}</Text>
           </View>
         )}
         <TextInput
           value={unit.label}
           onChangeText={onRename}
           placeholder="Nome do treino"
-          placeholderTextColor="#bdb8aa"
+          placeholderTextColor={colors["ink-faint"]}
           className="flex-1 text-ink font-semibold text-base"
         />
         {onDelete && (
@@ -83,7 +84,7 @@ export function UnitCard({
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={onDelete} className="px-1">
-              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors["accent-red"]} />
             </TouchableOpacity>
           </View>
         )}
@@ -114,7 +115,7 @@ export function UnitCard({
                 keyExtractor={(re) => String(re.id)}
                 onReorder={(reordered) => onReorderExercises(reordered.map((re) => re.id))}
                 renderItem={({ item: re, index, dragHandleIcon, DragHandle }) => (
-                  <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}>
+                  <View className="py-3 border-t border-surface-border">
                     <View className="flex-row items-center justify-between mb-2">
                       <DragHandle style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                         {dragHandleIcon}
@@ -122,7 +123,7 @@ export function UnitCard({
                         <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
                       </DragHandle>
                       <TouchableOpacity onPress={() => onRemoveExercise(re.id)} className="px-2">
-                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
+                        <MaterialCommunityIcons name="trash-can-outline" size={16} color={colors["ink-mute"]} />
                       </TouchableOpacity>
                     </View>
 
@@ -157,7 +158,7 @@ export function UnitCard({
               />
               <TouchableOpacity
                 className="mt-3 py-2.5 rounded-xl items-center"
-                style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                 onPress={onAddExercise}
               >
                 <Text className="text-ink text-sm font-medium">+ Adicionar exercício</Text>

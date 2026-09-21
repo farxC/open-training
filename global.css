@@ -13,9 +13,17 @@
   font-optical-sizing: auto;
 }
 
+/* Browser chrome, which no component owns and no className reaches. The values
+   come from the same variables the Tailwind plugin emits, so these follow the
+   theme without being written down a second time. */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #f4f2ee; }
-::-webkit-scrollbar-thumb { background: #ddd8ce; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #c9c3b6; }
+::-webkit-scrollbar-track { background: rgb(var(--color-surface)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--color-surface-border)); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-surface-border-strong)); }
 
-::selection { background: rgba(38, 36, 31, 0.12); }
+::selection { background: rgb(var(--color-ink) / 0.12); }
+
+/* Belt and braces with the inline script in public/index.html: that one paints
+   before the bundle loads, this one keeps the page background correct after a
+   theme switch, when no React node covers the full viewport. */
+html { background-color: rgb(var(--color-surface)); }
