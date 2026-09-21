@@ -6,16 +6,11 @@ import type { ModalityConfig } from "@/data/modalities";
 import { MODALITY_CATEGORIES, modalitiesOfCategory } from "@/data/modalities";
 import { useInteractionState } from "@/hooks/useInteractionState";
 import type { Modality } from "@/types";
+import { useTheme } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const INK = "#26241f";
-const INK_SOFT = "#5c594f";
-const INK_MUTE = "#928d80";
-const HAIRLINE = "#ddd8ce";
-const RULE = "#f0ede6";
 /** Cream fill that makes an unselected chip read as a recessed key on a white card. */
-const RECESSED = "#f4f2ee";
 
 /** Horizontal room a chip row needs before it stops fitting; below this we wrap. */
 export const MODALITY_CHIPS_MIN_ROW_WIDTH = 720;
@@ -52,8 +47,9 @@ interface ChipProps {
  * register.
  */
 function Chip({ modality, active, onPress, block = false, fill = false }: ChipProps) {
+  const { colors } = useTheme();
   const { pressed, hovered, handlers } = useInteractionState();
-  const color = active ? "#ffffff" : hovered ? INK_SOFT : block ? INK_SOFT : INK_MUTE;
+  const color = active ? colors["brand-ink"] : hovered ? colors["ink-soft"] : block ? colors["ink-soft"] : colors["ink-mute"];
 
   return (
     <Pressable
@@ -70,20 +66,20 @@ function Chip({ modality, active, onPress, block = false, fill = false }: ChipPr
         paddingHorizontal: block && !fill ? 22 : 14,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: active ? INK : hovered ? "#c9c3b7" : HAIRLINE,
+        borderColor: active ? colors.ink : hovered ? colors["surface-border-strong"] : colors.hairline,
         backgroundColor: active
-          ? INK
+          ? colors.ink
           : pressed
-            ? "#e7e3da"
+            ? colors["brand-100"]
             : hovered
-              ? RULE
+              ? colors["surface-tint"]
               : block
-                ? RECESSED
+                ? colors["surface-tint"]
                 : "transparent",
         ...(fill ? { flexGrow: 1, flexBasis: "42%" } : null),
         ...(active
           ? {
-              shadowColor: INK,
+              shadowColor: colors.ink,
               shadowOpacity: 0.22,
               shadowRadius: 9,
               shadowOffset: { width: 0, height: 3 },
@@ -110,12 +106,13 @@ function Chip({ modality, active, onPress, block = false, fill = false }: ChipPr
 
 /** Group caption with a hairline rule running out to the edge. */
 function CategoryCaption({ label }: { label: string }) {
+  const { colors } = useTheme();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-      <Text style={{ fontSize: 9, fontWeight: "700", letterSpacing: 1, color: INK_MUTE }}>
+      <Text style={{ fontSize: 9, fontWeight: "700", letterSpacing: 1, color: colors["ink-mute"] }}>
         {label.toUpperCase()}
       </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: RULE }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors["surface-tint"] }} />
     </View>
   );
 }
@@ -130,6 +127,7 @@ function CategoryCaption({ label }: { label: string }) {
  * wide viewports get one row, narrow ones a wrapping grid.
  */
 export function ModalityChips({ value, onChange, layout = "scroll" }: Props) {
+  const { colors } = useTheme();
   if (layout === "wrap") {
     return (
       <View style={{ gap: 14 }}>
@@ -170,7 +168,7 @@ export function ModalityChips({ value, onChange, layout = "scroll" }: Props) {
         <Fragment key={cat.key}>
           {catIndex > 0 && (
             <View
-              style={{ width: 1, alignSelf: "stretch", backgroundColor: HAIRLINE, marginHorizontal: 4 }}
+              style={{ width: 1, alignSelf: "stretch", backgroundColor: colors.hairline, marginHorizontal: 4 }}
             />
           )}
           <Text

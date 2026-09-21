@@ -45,18 +45,22 @@ import { confirmAction, notify } from "@/components/AppModal";
 import { dateToISO, todayISO } from "@/utils/cycle";
 import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
 import type { Exercise, Modality, RoutineSplit, RoutineUnit, RoutineUnitExercise, SessionPhoto } from "@/types";
+import { useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const STEP_ICON_CIRCLE = {
+/** A function of the palette, not a frozen object: a module constant would keep
+ *  serving the light surface after a theme switch. */
+const stepIconCircle = (colors: ThemeColors) => ({
   width: 60,
   height: 60,
   borderRadius: 30,
-  backgroundColor: "#ebe7df",
+  backgroundColor: colors["surface-elevated"],
   alignItems: "center" as const,
   justifyContent: "center" as const,
   marginBottom: 16,
-};
+});
 
 type Step = "modality" | "splitChoice" | "resolvedDay" | "changeUnit" | "details";
 const SPLIT_STEPS: Step[] = ["splitChoice", "resolvedDay", "details"];
@@ -79,6 +83,7 @@ function describeTarget(t: RoutineUnitExercise, modality: Modality): string {
 }
 
 export default function NewSessionScreen() {
+  const { colors } = useTheme();
   const r = useRoutine();
   const recorder = useSessionRecorder();
 
@@ -318,10 +323,10 @@ export default function NewSessionScreen() {
           {step !== "modality" && step !== "details" && (
             <TouchableOpacity
               className="px-2.5 py-1.5 rounded-full flex-row items-center"
-              style={{ backgroundColor: "#ebe7df", gap: 4 }}
+              style={{ backgroundColor: colors["surface-elevated"], gap: 4 }}
               onPress={() => setDateModalVisible(true)}
             >
-              <MaterialCommunityIcons name="calendar-blank-outline" size={14} color="#5c594f" />
+              <MaterialCommunityIcons name="calendar-blank-outline" size={14} color={colors["ink-soft"]} />
               <Text className="text-ink-soft text-xs font-medium">{formatDatePill(date)}</Text>
             </TouchableOpacity>
           )}
@@ -341,7 +346,7 @@ export default function NewSessionScreen() {
                   flex: 1,
                   height: 3,
                   borderRadius: 2,
-                  backgroundColor: i <= SPLIT_STEPS.indexOf(indicatorPosition) ? "#26241f" : "#ddd8ce",
+                  backgroundColor: i <= SPLIT_STEPS.indexOf(indicatorPosition) ? colors["brand-500"] : colors["surface-border"],
                 }}
               />
             ))}
@@ -383,7 +388,7 @@ export default function NewSessionScreen() {
                 </View>
                 <TouchableOpacity
                   className="mt-4 py-3 rounded-xl items-center"
-                  style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                  style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                   onPress={skipSplit}
                 >
                   <Text className="text-ink text-sm font-medium">Sessão livre, sem split</Text>
@@ -397,10 +402,10 @@ export default function NewSessionScreen() {
                   <>
                     <View
                       className="flex-row items-center self-center px-2.5 py-1 rounded-full mb-4"
-                      style={{ backgroundColor: "#e3efe8", gap: 5 }}
+                      style={{ backgroundColor: colors["accent-green-soft"], gap: 5 }}
                     >
-                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#2f9e6e" }} />
-                      <Text style={{ color: "#227a54", fontSize: 12, fontWeight: "700" }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors["accent-green"] }} />
+                      <Text style={{ color: colors["accent-green-ink"], fontSize: 12, fontWeight: "700" }}>
                         {formatDatePill(date) === "Hoje" ? "Hoje" : formatDatePill(date)}
                       </Text>
                     </View>
@@ -413,7 +418,7 @@ export default function NewSessionScreen() {
                           <View
                             key={ex.id}
                             className="flex-row items-center justify-between px-4 py-3 rounded-2xl"
-                            style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                            style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
                           >
                             <Text className="text-ink text-sm font-medium">{ex.exercise_name}</Text>
                             <Text className="text-ink-mute text-xs">{describeTarget(ex, modality)}</Text>
@@ -446,8 +451,8 @@ export default function NewSessionScreen() {
                   </>
                 ) : (
                   <>
-                    <View style={STEP_ICON_CIRCLE}>
-                      <MaterialCommunityIcons name="weather-night" size={26} color="#26241f" />
+                    <View style={stepIconCircle(colors)}>
+                      <MaterialCommunityIcons name="weather-night" size={26} color={colors.ink} />
                     </View>
                     <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                       {formatDatePill(date) === "Hoje" ? "Hoje" : formatDatePill(date)} é descanso em {split.name}
@@ -459,7 +464,7 @@ export default function NewSessionScreen() {
                     </Text>
                     <TouchableOpacity
                       className="py-3 rounded-xl items-center mb-3"
-                      style={{ width: "100%", borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                      style={{ width: "100%", borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                       onPress={() =>
                         goToDetails({
                           modality,
@@ -498,7 +503,7 @@ export default function NewSessionScreen() {
                 </View>
                 <TouchableOpacity
                   className="mt-4 py-3 rounded-xl items-center"
-                  style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                  style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                   onPress={skipUnit}
                 >
                   <Text className="text-ink text-sm font-medium">Sessão livre, sem unidade específica</Text>
@@ -525,12 +530,12 @@ export default function NewSessionScreen() {
                       width: 30,
                       height: 30,
                       borderRadius: 15,
-                      backgroundColor: "#ebe7df",
+                      backgroundColor: colors["surface-elevated"],
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <MaterialCommunityIcons name="notebook-outline" size={15} color="#26241f" />
+                    <MaterialCommunityIcons name="notebook-outline" size={15} color={colors.ink} />
                   </View>
                   <Text className="text-ink-soft text-xs font-medium">
                     {modalityLabel(modality)}
@@ -553,7 +558,7 @@ export default function NewSessionScreen() {
                     onFocus={() => setNameFocused(true)}
                     onBlur={() => setNameFocused(false)}
                     placeholder="Ex.: Treino de pernas pesado"
-                    placeholderTextColor="#bdb8aa"
+                    placeholderTextColor={colors["ink-faint"]}
                     className="font-display text-ink text-center"
                     style={{
                       width: "100%",
@@ -563,7 +568,7 @@ export default function NewSessionScreen() {
                       paddingVertical: 5,
                       marginBottom: 3,
                       borderBottomWidth: 1.5,
-                      borderBottomColor: nameFocused ? "#26241f" : "#ddd8ce",
+                      borderBottomColor: nameFocused ? colors["brand-500"] : colors["surface-border"],
                     }}
                   />
                   <Text
@@ -625,7 +630,7 @@ export default function NewSessionScreen() {
 
                     <TouchableOpacity
                       className="py-3 rounded-xl items-center mb-6"
-                      style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                      style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                       onPress={() => setPickerVisible(true)}
                     >
                       <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
@@ -637,12 +642,12 @@ export default function NewSessionScreen() {
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Observações (opcional)"
-                  placeholderTextColor="#bdb8aa"
+                  placeholderTextColor={colors["ink-faint"]}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
                   className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-6"
-                  style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                  style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
                 />
 
                 <TouchableOpacity
@@ -713,10 +718,11 @@ function SplitOption({
   description: string;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       className="flex-row items-center rounded-2xl px-4 py-3.5 bg-surface-card"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce", gap: 14 }}
+      style={{ borderWidth: 1, borderColor: colors["surface-border"], gap: 14 }}
       onPress={onPress}
       activeOpacity={0.85}
     >
@@ -725,18 +731,18 @@ function SplitOption({
           width: 42,
           height: 42,
           borderRadius: 21,
-          backgroundColor: "#f4f2ee",
+          backgroundColor: colors["surface"],
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <MaterialCommunityIcons name={icon} size={20} color="#5c594f" />
+        <MaterialCommunityIcons name={icon} size={20} color={colors["ink-soft"]} />
       </View>
       <View style={{ flex: 1 }}>
         <Text className="text-ink text-sm font-semibold">{label}</Text>
         <Text className="text-ink-mute text-xs mt-0.5">{description}</Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color="#bdb8aa" />
+      <MaterialCommunityIcons name="chevron-right" size={20} color={colors["ink-faint"]} />
     </TouchableOpacity>
   );
 }

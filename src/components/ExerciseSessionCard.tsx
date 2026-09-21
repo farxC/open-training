@@ -3,6 +3,8 @@ import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { formatClock, formatDistanceValue, formatEffort } from "@/data/modalities";
 import type { Modality, WorkoutSet } from "@/types";
+import { useTheme, withAlpha } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 interface Props {
   exerciseId: number;
@@ -26,10 +28,17 @@ function formatThousands(n: number): string {
   return sign + withDots;
 }
 
-function intensityColor(rpe: number | null, rir: number | null, failure: 0 | 1): string {
-  if (failure || (rpe != null && rpe >= 9)) return "#bf3b30";
-  if ((rir != null && rir <= 1) || (rpe != null && rpe >= 8)) return "#b9791f";
-  return "#928d80";
+/** Takes the palette rather than reaching for it — a module-level helper has
+ *  no hook to call. */
+function intensityColor(
+  colors: ThemeColors,
+  rpe: number | null,
+  rir: number | null,
+  failure: 0 | 1
+): string {
+  if (failure || (rpe != null && rpe >= 9)) return colors["accent-red"];
+  if ((rir != null && rir <= 1) || (rpe != null && rpe >= 8)) return colors["accent-amber"];
+  return colors["ink-mute"];
 }
 
 export function ExerciseSessionCard({
@@ -40,6 +49,7 @@ export function ExerciseSessionCard({
   modality,
   onSwapVariation,
 }: Props) {
+  const { colors } = useTheme();
   const isRunGroup = sets.some((s) => s.distance_km != null);
   const vol = sets.reduce((s, x) => s + x.reps * x.weight_kg, 0);
   const dist = sets.reduce((s, x) => s + (x.distance_km ?? 0), 0);
@@ -58,7 +68,7 @@ export function ExerciseSessionCard({
         borderWidth: 1,
         borderColor: "rgba(38, 36, 31, 0.07)",
         overflow: "hidden",
-        shadowColor: "#26241f",
+        shadowColor: colors["shadow"],
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.05,
         shadowRadius: 14,
@@ -73,11 +83,11 @@ export function ExerciseSessionCard({
       >
         <View
           className="items-center justify-center"
-          style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#26241f" }}
+          style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors["brand-500"] }}
         >
           <Text
             style={{
-              color: "#ffffff",
+              color: colors["brand-ink"],
               fontSize: 10,
               fontWeight: "700",
               fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
@@ -89,7 +99,7 @@ export function ExerciseSessionCard({
 
         <Text
           className="font-display flex-1"
-          style={{ color: "#26241f", fontSize: 16, fontWeight: "600" }}
+          style={{ color: colors["ink"], fontSize: 16, fontWeight: "600" }}
           numberOfLines={1}
         >
           {exerciseName}
@@ -118,10 +128,10 @@ export function ExerciseSessionCard({
             accessibilityRole="button"
             accessibilityLabel="Trocar variação"
           >
-            <MaterialCommunityIcons name="source-branch" size={16} color="#928d80" />
+            <MaterialCommunityIcons name="source-branch" size={16} color={colors["ink-mute"]} />
           </TouchableOpacity>
         )}
-        <MaterialCommunityIcons name="chevron-right" size={16} color="#bdb8aa" />
+        <MaterialCommunityIcons name="chevron-right" size={16} color={colors["ink-faint"]} />
       </TouchableOpacity>
 
       <View style={{ height: 1, backgroundColor: "rgba(38, 36, 31, 0.07)" }} />
@@ -195,7 +205,7 @@ export function ExerciseSessionCard({
                   <MaterialCommunityIcons
                     name="trophy-outline"
                     size={13}
-                    color="#b9791f"
+                    color={colors["accent-amber"]}
                     style={{ marginRight: hasIntensity ? 6 : 0 }}
                   />
                 )}
@@ -204,14 +214,14 @@ export function ExerciseSessionCard({
                   <View
                     className="rounded-full items-center justify-center"
                     style={{
-                      backgroundColor: `${intensityColor(s.rpe, s.rir, s.failure)}1a`,
+                      backgroundColor: withAlpha(intensityColor(colors, s.rpe, s.rir, s.failure), 0.1),
                       paddingHorizontal: 7,
                       paddingVertical: 2,
                     }}
                   >
                     <Text
                       style={{
-                        color: intensityColor(s.rpe, s.rir, s.failure),
+                        color: intensityColor(colors, s.rpe, s.rir, s.failure),
                         fontSize: 10,
                         fontWeight: "700",
                       }}

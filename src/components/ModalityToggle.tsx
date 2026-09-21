@@ -8,6 +8,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -48,6 +49,7 @@ export function ModalityToggle<T extends string>({
   stretch = true,
   compact = false,
 }: Props<T>) {
+  const { colors } = useTheme();
   const pad = compact ? COMPACT_PAD : PAD;
   const segW = compact ? COMPACT_SEG_W : SEG_W;
   const thumbInset = compact ? COMPACT_THUMB_INSET : THUMB_INSET;
@@ -76,7 +78,7 @@ export function ModalityToggle<T extends string>({
       style={{
         flexDirection: "row",
         alignSelf: stretch ? "stretch" : "flex-start",
-        backgroundColor: "#ebe7df",
+        backgroundColor: colors["surface-elevated"],
         borderRadius: compact ? 10 : 14,
         padding: pad,
         position: "relative",
@@ -92,8 +94,8 @@ export function ModalityToggle<T extends string>({
               bottom: pad,
               left: 0,
               borderRadius: compact ? 7 : 10,
-              backgroundColor: "#ffffff",
-              shadowColor: "#26241f",
+              backgroundColor: colors["surface-card"],
+              shadowColor: colors["shadow"],
               shadowOpacity: 0.1,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 2 },
@@ -106,7 +108,7 @@ export function ModalityToggle<T extends string>({
 
       {options.map((opt) => {
         const active = opt.key === value;
-        const color = active ? "#26241f" : "#928d80";
+        const color = active ? colors.ink : colors["ink-mute"];
         return (
           <Pressable
             key={opt.key}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatClock, parseClock } from "@/data/modalities";
+import { useTheme } from "@/theme";
 
 interface SessionFinishModalProps {
   visible: boolean;
@@ -16,6 +17,7 @@ export function SessionFinishModal({
   onCancel,
   onConfirm,
 }: SessionFinishModalProps) {
+  const { colors } = useTheme();
   const [durationText, setDurationText] = useState(formatClock(initialDurationSec));
 
   useEffect(() => {
@@ -58,10 +60,10 @@ export function SessionFinishModal({
             value={durationText}
             onChangeText={setDurationText}
             placeholder="0:00"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType="numbers-and-punctuation"
             className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-2"
-            style={{ borderWidth: 1, borderColor: "#ddd8ce", fontSize: 18, textAlign: "center" }}
+            style={{ borderWidth: 1, borderColor: colors["surface-border"], fontSize: 18, textAlign: "center" }}
           />
           <Text className="text-ink-faint text-xs mb-6" style={{ textAlign: "center" }}>
             Revise ou ajuste o tempo antes de salvar.

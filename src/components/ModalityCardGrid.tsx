@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { MODALITY_CATEGORIES, modalitiesOfCategory } from "@/data/modalities";
 import type { Modality } from "@/types";
+import { useTheme } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -22,6 +23,7 @@ interface Props {
  * row doesn't.
  */
 export function ModalityCardGrid({ value, onSelect }: Props) {
+  const { colors } = useTheme();
   return (
     <>
       {MODALITY_CATEGORIES.map((cat) => (
@@ -44,8 +46,8 @@ export function ModalityCardGrid({ value, onSelect }: Props) {
                     paddingVertical: 18,
                     gap: 8,
                     borderWidth: 1,
-                    borderColor: on ? "#26241f" : "#ddd8ce",
-                    backgroundColor: on ? "#26241f" : "#ffffff",
+                    borderColor: on ? colors["brand-500"] : colors["surface-border"],
+                    backgroundColor: on ? colors["brand-500"] : colors["surface-card"],
                   }}
                   onPress={() => onSelect(m.key)}
                   activeOpacity={0.85}
@@ -57,16 +59,16 @@ export function ModalityCardGrid({ value, onSelect }: Props) {
                       borderRadius: 22,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: on ? "rgba(255,255,255,0.14)" : "#f4f2ee",
+                      backgroundColor: on ? "rgba(255,255,255,0.14)" : colors["surface"],
                     }}
                   >
                     <MaterialCommunityIcons
                       name={m.icon as MciName}
                       size={24}
-                      color={on ? "#ffffff" : "#5c594f"}
+                      color={on ? colors["brand-ink"] : colors["ink-soft"]}
                     />
                   </View>
-                  <Text style={{ color: on ? "#ffffff" : "#5c594f", fontSize: 13, fontWeight: "600" }}>
+                  <Text style={{ color: on ? colors["brand-ink"] : colors["ink-soft"], fontSize: 13, fontWeight: "600" }}>
                     {m.label}
                   </Text>
                 </TouchableOpacity>
