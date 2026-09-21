@@ -13,6 +13,7 @@ import {
   toDisplayDistance,
 } from "@/data/modalities";
 import type { Modality } from "@/types";
+import { useTheme } from "@/theme";
 
 export function NumField({
   value,
@@ -25,6 +26,7 @@ export function NumField({
   suffix?: string;
   integer?: boolean;
 }) {
+  const { colors } = useTheme();
   // Local text buffer so in-progress input like "5." isn't reformatted away.
   const [text, setText] = useState(value != null && value > 0 ? String(value) : "");
   return (
@@ -38,7 +40,7 @@ export function NumField({
           if (!Number.isNaN(n)) onChange(n);
         }}
         placeholder="—"
-        placeholderTextColor="#bdb8aa"
+        placeholderTextColor={colors["ink-faint"]}
         keyboardType={integer ? "number-pad" : "decimal-pad"}
         className="text-ink text-sm text-center"
         style={{ width: 34, flexShrink: 1, minWidth: 0 }}
@@ -60,6 +62,7 @@ export function TimeField({
   suffix?: string;
   placeholder?: string;
 }) {
+  const { colors } = useTheme();
   const [text, setText] = useState(value != null && value > 0 ? formatClock(value) : "");
   return (
     <View className="flex-row items-center bg-surface-elevated rounded-lg px-2 py-1" style={{ gap: 2 }}>
@@ -70,7 +73,7 @@ export function TimeField({
           onChange(parseClock(v));
         }}
         placeholder={placeholder}
-        placeholderTextColor="#bdb8aa"
+        placeholderTextColor={colors["ink-faint"]}
         className="text-ink text-sm text-center"
         style={{ width: 44, flexShrink: 1, minWidth: 0 }}
       />
@@ -110,6 +113,7 @@ export function EffortField({
   modality: Modality;
   onChange: (paceSecPerKm: number | null) => void;
 }) {
+  const { colors } = useTheme();
   const display = distanceDisplay(modality);
   const [text, setText] = useState(() => formatEffortInput(value, modality));
   return (
@@ -121,7 +125,7 @@ export function EffortField({
           onChange(parseEffort(v, modality));
         }}
         placeholder={display.effortPlaceholder}
-        placeholderTextColor="#bdb8aa"
+        placeholderTextColor={colors["ink-faint"]}
         keyboardType={display.effortMode === "speed" ? "decimal-pad" : "default"}
         className="text-ink text-sm text-center"
         style={{ width: 44, flexShrink: 1, minWidth: 0 }}
@@ -163,6 +167,7 @@ export function DistanceTargetFields({
   modality: Modality;
   onChange: (patch: Partial<DistanceTargetValue>) => void;
 }) {
+  const { colors } = useTheme();
   const isInterval = value.run_type === "interval";
   const totalSec = continuousDurationSec(value.target_distance_km, value.target_pace_sec);
 
@@ -171,23 +176,23 @@ export function DistanceTargetFields({
       {/* Run type toggle */}
       <View
         className="flex-row mb-2 rounded-lg overflow-hidden self-start"
-        style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+        style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
       >
         <TouchableOpacity
           className="px-3 py-1"
-          style={{ backgroundColor: isInterval ? "transparent" : "#26241f" }}
+          style={{ backgroundColor: isInterval ? "transparent" : colors["brand-500"] }}
           onPress={() => onChange({ run_type: "continuous" })}
         >
-          <Text style={{ color: isInterval ? "#928d80" : "#ffffff", fontSize: 12, fontWeight: "600" }}>
+          <Text style={{ color: isInterval ? colors["ink-mute"] : colors["brand-ink"], fontSize: 12, fontWeight: "600" }}>
             Contínuo
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           className="px-3 py-1"
-          style={{ backgroundColor: isInterval ? "#26241f" : "transparent" }}
+          style={{ backgroundColor: isInterval ? colors["brand-500"] : "transparent" }}
           onPress={() => onChange({ run_type: "interval" })}
         >
-          <Text style={{ color: isInterval ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+          <Text style={{ color: isInterval ? colors["brand-ink"] : colors["ink-mute"], fontSize: 12, fontWeight: "600" }}>
             Intervalado
           </Text>
         </TouchableOpacity>

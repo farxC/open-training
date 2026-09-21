@@ -5,9 +5,9 @@ import { exerciseConfigRows, type ConfigSpecRow } from "@/data/exerciseConfig";
 import { MUSCLE_LABELS } from "@/data/muscleGroups";
 import { isStrengthCategory, modalityLabel } from "@/data/modalities";
 import type { Exercise } from "@/types";
+import { useTheme } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const HAIRLINE = "#efece5";
 
 interface Props {
   exercise: Exercise;
@@ -23,6 +23,7 @@ interface Props {
  * what distinguishes this exercise from every other one in the list.
  */
 export function ExerciseSpecSheet({ exercise }: Props) {
+  const { colors } = useTheme();
   const isStrength = isStrengthCategory(exercise.modality);
   const rows = isStrength ? exerciseConfigRows(exercise.config) : [];
 
@@ -40,7 +41,7 @@ export function ExerciseSpecSheet({ exercise }: Props) {
   return (
     <View
       className="bg-surface-card rounded-xl overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc" }}
+      style={{ borderWidth: 1, borderColor: colors["brand-100"] }}
     >
       {pairs.map((pair, rowIndex) => (
         <View key={rowIndex} className="flex-row">
@@ -60,9 +61,9 @@ export function ExerciseSpecSheet({ exercise }: Props) {
               style={{
                 flex: 1,
                 borderTopWidth: rowIndex > 0 ? 1 : 0,
-                borderTopColor: HAIRLINE,
+                borderTopColor: colors["surface-tint"],
                 borderLeftWidth: 1,
-                borderLeftColor: HAIRLINE,
+                borderLeftColor: colors["surface-tint"],
               }}
             />
           ) : null}
@@ -74,8 +75,8 @@ export function ExerciseSpecSheet({ exercise }: Props) {
           paddingHorizontal: 11,
           paddingVertical: 10,
           borderTopWidth: pairs.length > 0 ? 1 : 0,
-          borderTopColor: HAIRLINE,
-          backgroundColor: "#fbfaf7",
+          borderTopColor: colors["surface-tint"],
+          backgroundColor: colors["surface-raised"],
         }}
       >
         {exercise.muscle_groups.length > 0 ? (
@@ -91,7 +92,7 @@ export function ExerciseSpecSheet({ exercise }: Props) {
         ) : null}
         <Text
           style={{
-            color: "#a8a293",
+            color: colors["brand-300"],
             fontSize: 9.5,
             fontWeight: "700",
             letterSpacing: 0.8,
@@ -118,6 +119,7 @@ function SpecCell({
   topBorder: boolean;
   leftBorder: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -125,14 +127,14 @@ function SpecCell({
         paddingHorizontal: 11,
         paddingVertical: 9,
         borderTopWidth: topBorder ? 1 : 0,
-        borderTopColor: HAIRLINE,
+        borderTopColor: colors["surface-tint"],
         borderLeftWidth: leftBorder ? 1 : 0,
-        borderLeftColor: HAIRLINE,
+        borderLeftColor: colors["surface-tint"],
       }}
     >
       <View className="flex-row items-center" style={{ gap: 6 }}>
         <Text
-          style={{ color: "#a8a293", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
+          style={{ color: colors["brand-300"], fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
           numberOfLines={1}
         >
           {row.label.toUpperCase()}
@@ -142,14 +144,14 @@ function SpecCell({
             variant={curve}
             width={32}
             height={12}
-            color={row.isDefault ? "#bdb8aa" : "#26241f"}
+            color={row.isDefault ? colors["ink-faint"] : colors.ink}
           />
         ) : null}
       </View>
       <Text
         style={{
           // Defaults recede; anything deliberate stays in ink.
-          color: row.isDefault ? "#a8a293" : "#26241f",
+          color: row.isDefault ? colors["brand-300"] : colors["ink"],
           fontSize: 12,
           fontWeight: row.isDefault ? "500" : "600",
           marginTop: 3,
@@ -165,6 +167,7 @@ function SpecCell({
 /** A muscle group and how much of a set it earns. The ½ marker is part of the
  *  spec, not decoration — it's why six logged sets can count as three séries. */
 function MuscleTag({ label, factor }: { label: string; factor: number }) {
+  const { colors } = useTheme();
   const half = factor !== 1;
 
   return (
@@ -176,17 +179,17 @@ function MuscleTag({ label, factor }: { label: string; factor: number }) {
         paddingVertical: 3,
         gap: 5,
         borderWidth: 1,
-        borderColor: "#e7e4dc",
-        backgroundColor: "#ffffff",
+        borderColor: colors["brand-100"],
+        backgroundColor: colors["surface-card"],
       }}
     >
-      <Text style={{ color: "#5c594f", fontSize: 10.5, fontWeight: "600" }}>{label}</Text>
+      <Text style={{ color: colors["ink-soft"], fontSize: 10.5, fontWeight: "600" }}>{label}</Text>
       {half ? (
         <View
           className="rounded-full"
-          style={{ paddingHorizontal: 4, paddingVertical: 0.5, backgroundColor: "#ebe7df" }}
+          style={{ paddingHorizontal: 4, paddingVertical: 0.5, backgroundColor: colors["surface-elevated"] }}
         >
-          <Text style={{ color: "#928d80", fontSize: 8.5, fontWeight: "700", fontFamily: MONO }}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 8.5, fontWeight: "700", fontFamily: MONO }}>
             ½×
           </Text>
         </View>

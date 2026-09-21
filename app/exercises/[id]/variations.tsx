@@ -9,6 +9,7 @@ import { ExerciseNameTakenError } from "@/db/queries";
 import { EQUIPMENT_LABELS, EQUIPMENT_OPTIONS, TYPE_LABELS, TYPE_OPTIONS } from "@/data/exerciseMeta";
 import { useInteractionState } from "@/hooks/useInteractionState";
 import type { Equipment, ExerciseType } from "@/types";
+import { useTheme } from "@/theme";
 
 /**
  * A variation is a grip/angle/equipment difference of a parent exercise
@@ -19,6 +20,7 @@ import type { Equipment, ExerciseType } from "@/types";
  * the same place any other exercise is edited.
  */
 export default function ExerciseVariationsScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const parentId = Number(id);
@@ -79,20 +81,20 @@ export default function ExerciseVariationsScreen() {
         {creating ? (
           <View
             className="bg-surface-card rounded-2xl mb-4"
-            style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+            style={{ borderWidth: 1, borderColor: colors["brand-100"], padding: 12 }}
           >
-            <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
+            <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
             <TextInput
               className="text-ink rounded-xl px-3 py-2.5"
               style={{
                 marginTop: 7,
-                backgroundColor: "#f4f2ee",
+                backgroundColor: colors["surface"],
                 borderWidth: 1,
-                borderColor: nameError ? "#e8c9c5" : "#e7e4dc",
+                borderColor: nameError ? colors["accent-red-soft"] : colors["brand-100"],
                 fontSize: 14,
               }}
               placeholder="Nome da variação"
-              placeholderTextColor="#bdb8aa"
+              placeholderTextColor={colors["ink-faint"]}
               value={name}
               onChangeText={(t) => {
                 setName(t);
@@ -101,11 +103,11 @@ export default function ExerciseVariationsScreen() {
               autoFocus
             />
             {nameError ? (
-              <Text style={{ color: "#bf3b30", fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
+              <Text style={{ color: colors["accent-red"], fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
             ) : null}
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Equipamento</Text>
+              <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>Equipamento</Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
                 {EQUIPMENT_OPTIONS.map((eq) => (
                   <Chip key={eq} label={EQUIPMENT_LABELS[eq]} active={equipment === eq} onPress={() => setEquipment(eq)} />
@@ -114,7 +116,7 @@ export default function ExerciseVariationsScreen() {
             </View>
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
+              <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
                 {TYPE_OPTIONS.map((t) => (
                   <Chip key={t} label={TYPE_LABELS[t]} active={type === t} onPress={() => setType(t)} />
@@ -122,7 +124,7 @@ export default function ExerciseVariationsScreen() {
               </View>
             </View>
 
-            <Text style={{ color: "#928d80", fontSize: 10.5, marginTop: 14, lineHeight: 15 }}>
+            <Text style={{ color: colors["ink-mute"], fontSize: 10.5, marginTop: 14, lineHeight: 15 }}>
               Grupos musculares e ficha técnica são clonados de "{parent.name}" e podem ser
               ajustados depois, na própria tela da variação.
             </Text>
@@ -131,12 +133,12 @@ export default function ExerciseVariationsScreen() {
               <Pressable
                 onPress={() => setCreating(false)}
                 className="flex-1 py-3 rounded-xl items-center"
-                style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
               >
-                <Text style={{ color: "#5c594f", fontSize: 13, fontWeight: "600" }}>Cancelar</Text>
+                <Text style={{ color: colors["ink-soft"], fontSize: 13, fontWeight: "600" }}>Cancelar</Text>
               </Pressable>
               <Pressable onPress={handleCreate} className="flex-1 py-3 rounded-xl items-center bg-brand-500">
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>Criar</Text>
+                <Text style={{ color: colors["brand-ink"], fontSize: 13, fontWeight: "700" }}>Criar</Text>
               </Pressable>
             </View>
           </View>
@@ -144,10 +146,10 @@ export default function ExerciseVariationsScreen() {
           <Pressable
             onPress={startCreating}
             className="flex-row items-center justify-center rounded-2xl mb-4"
-            style={{ borderWidth: 1, borderColor: "#ddd8ce", borderStyle: "dashed", paddingVertical: 14, gap: 6 }}
+            style={{ borderWidth: 1, borderColor: colors["surface-border"], borderStyle: "dashed", paddingVertical: 14, gap: 6 }}
           >
-            <MaterialCommunityIcons name="plus" size={16} color="#5c594f" />
-            <Text style={{ color: "#5c594f", fontSize: 13, fontWeight: "600" }}>Nova variação</Text>
+            <MaterialCommunityIcons name="plus" size={16} color={colors["ink-soft"]} />
+            <Text style={{ color: colors["ink-soft"], fontSize: 13, fontWeight: "600" }}>Nova variação</Text>
           </Pressable>
         )}
 
@@ -161,7 +163,7 @@ export default function ExerciseVariationsScreen() {
               key={v.id}
               onPress={() => (v.is_default_variation ? router.push(`/exercises/${v.id}`) : setDefaultVariationOf(v.id))}
               className="flex-row items-center rounded-2xl mb-2"
-              style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12, gap: 10 }}
+              style={{ borderWidth: 1, borderColor: colors["brand-100"], padding: 12, gap: 10 }}
             >
               <View className="flex-1">
                 <Text className="text-ink text-sm" style={v.is_archived ? { textDecorationLine: "line-through" } : undefined}>
@@ -174,14 +176,14 @@ export default function ExerciseVariationsScreen() {
               {v.is_default_variation ? (
                 <View
                   className="rounded-full"
-                  style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: "#26241f" }}
+                  style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: colors["brand-500"] }}
                 >
-                  <Text style={{ color: "#ffffff", fontSize: 9.5, fontWeight: "700", letterSpacing: 0.4 }}>
+                  <Text style={{ color: colors["brand-ink"], fontSize: 9.5, fontWeight: "700", letterSpacing: 0.4 }}>
                     PADRÃO
                   </Text>
                 </View>
               ) : (
-                <MaterialCommunityIcons name="chevron-right" size={18} color="#c9c3b6" />
+                <MaterialCommunityIcons name="chevron-right" size={18} color={colors["surface-border-strong"]} />
               )}
             </Pressable>
           ))
@@ -192,6 +194,7 @@ export default function ExerciseVariationsScreen() {
 }
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -203,11 +206,11 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
       className="px-3 py-1.5 rounded-full"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? colors["brand-500"] : colors["surface-border"],
+        backgroundColor: active ? colors["brand-500"] : hovered ? colors["surface"] : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>{label}</Text>
+      <Text style={{ color: active ? colors["brand-ink"] : colors["ink-mute"], fontSize: 12, fontWeight: "600" }}>{label}</Text>
     </Pressable>
   );
 }

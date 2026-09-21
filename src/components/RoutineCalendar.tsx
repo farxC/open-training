@@ -1,6 +1,7 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import type { DayScheduleEntry } from "@/hooks/useRoutine";
 import type { OverrideStatus } from "@/types";
+import { useTheme } from "@/theme";
 
 interface Props {
   monthDate: Date; // any date within the displayed month
@@ -21,6 +22,7 @@ function iso(d: Date): string {
 }
 
 export function RoutineCalendar({ monthDate, scheduleForDate, onPrevMonth, onNextMonth, onSelectDate }: Props) {
+  const { colors } = useTheme();
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
   const firstOfMonth = new Date(year, month, 1);
@@ -77,13 +79,13 @@ export function RoutineCalendar({ monthDate, scheduleForDate, onPrevMonth, onNex
                   borderRadius: 10,
                   paddingTop: 4,
                   alignItems: "center",
-                  backgroundColor: hasPlan ? "#ffffff" : "transparent",
+                  backgroundColor: hasPlan ? colors["surface-card"] : "transparent",
                   borderWidth: isToday ? 1.5 : hasPlan ? 1 : 0,
-                  borderColor: isToday ? "#26241f" : "#ddd8ce",
+                  borderColor: isToday ? colors["brand-500"] : colors["surface-border"],
                 }}
               >
                 <View className="flex-row items-center" style={{ gap: 3 }}>
-                  <Text style={{ color: "#26241f", fontSize: 12, fontWeight: isToday ? "700" : "500" }}>
+                  <Text style={{ color: colors["ink"], fontSize: 12, fontWeight: isToday ? "700" : "500" }}>
                     {day}
                   </Text>
                   {override && (
@@ -92,7 +94,7 @@ export function RoutineCalendar({ monthDate, scheduleForDate, onPrevMonth, onNex
                         width: 5,
                         height: 5,
                         borderRadius: 3,
-                        backgroundColor: override === "trained" ? "#2f9e6e" : "#bf3b30",
+                        backgroundColor: override === "trained" ? colors["accent-green"] : colors["accent-red"],
                       }}
                     />
                   )}
@@ -101,13 +103,13 @@ export function RoutineCalendar({ monthDate, scheduleForDate, onPrevMonth, onNex
                   <Text
                     key={p.split.id}
                     numberOfLines={1}
-                    style={{ color: "#928d80", fontSize: 8, fontWeight: "600", marginTop: 1, maxWidth: "100%" }}
+                    style={{ color: colors["ink-mute"], fontSize: 8, fontWeight: "600", marginTop: 1, maxWidth: "100%" }}
                   >
                     {p.unit?.label || p.split.name}
                   </Text>
                 ))}
                 {workouts.length > 2 && (
-                  <Text style={{ color: "#bdb8aa", fontSize: 8 }}>+{workouts.length - 2}</Text>
+                  <Text style={{ color: colors["ink-faint"], fontSize: 8 }}>+{workouts.length - 2}</Text>
                 )}
               </View>
             </TouchableOpacity>

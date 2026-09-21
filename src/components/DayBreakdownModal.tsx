@@ -2,6 +2,7 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { formatClock, formatDistanceValue, targetKindOf } from "@/data/modalities";
 import type { DayExerciseBreakdown, Modality } from "@/types";
 import { formatVolume } from "@/utils/analyticsFormat";
+import { useTheme } from "@/theme";
 
 const WEEKDAYS_PT = [
   "Domingo",
@@ -30,6 +31,7 @@ function dayTitle(dateISO: string): string {
 /** Centered dialog listing what a single day of training was made of. Values
  *  arrive canonical (kg, km, seconds) and are formatted here for the modality. */
 export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
+  const { colors } = useTheme();
   const isStrength = targetKindOf(modality) === "strength";
 
   const describe = (row: DayExerciseBreakdown): string => {
@@ -56,7 +58,7 @@ export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
         onPress={onClose}
         style={{
           flex: 1,
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: colors.scrim,
           alignItems: "center",
           justifyContent: "center",
           padding: 24,
@@ -69,14 +71,14 @@ export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
             width: "100%",
             maxWidth: 380,
             maxHeight: "80%",
-            backgroundColor: "#ffffff",
+            backgroundColor: colors["surface-card"],
             borderRadius: 24,
             paddingVertical: 20,
           }}
         >
           <View className="px-5 pb-3">
             <Text
-              style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
+              style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
             >
               DETALHE DO DIA
             </Text>
@@ -93,7 +95,7 @@ export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
               <View
                 key={row.exercise_id}
                 className="px-5 py-3"
-                style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: "#f0ede6" }}
+                style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: colors["surface-tint"] }}
               >
                 <Text className="text-ink text-sm" numberOfLines={2}>
                   {row.exercise_name}
@@ -105,16 +107,16 @@ export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
 
           <View
             className="px-5 pt-3 flex-row items-center justify-between"
-            style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}
+            style={{ borderTopWidth: 1, borderTopColor: colors["surface-border"] }}
           >
             <Text
-              style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
+              style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
             >
               TOTAL
             </Text>
             <Text
               style={{
-                color: "#26241f",
+                color: colors["ink"],
                 fontSize: 16,
                 fontWeight: "700",
                 fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",

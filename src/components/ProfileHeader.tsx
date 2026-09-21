@@ -6,6 +6,7 @@ import { CoverPhotoPicker } from "@/components/CoverPhotoPicker";
 import { DateField } from "@/components/DateField";
 import { daysBetween, todayISO } from "@/utils/cycle";
 import type { UserProfile } from "@/types";
+import { useTheme } from "@/theme";
 
 const MONTHS_LONG = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -44,6 +45,7 @@ interface Props {
 }
 
 export function ProfileHeader({ profile, onUpdate }: Props) {
+  const { colors } = useTheme();
   const [editing, setEditing] = useState(false);
 
   return (
@@ -64,12 +66,12 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
             width: 34,
             height: 34,
             borderRadius: 17,
-            backgroundColor: "rgba(38,36,31,0.78)",
+            backgroundColor: colors["media-scrim"],
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <MaterialCommunityIcons name={editing ? "check" : "pencil-outline"} size={editing ? 18 : 16} color="#ffffff" />
+          <MaterialCommunityIcons name={editing ? "check" : "pencil-outline"} size={editing ? 18 : 16} color={colors["on-media"]} />
         </TouchableOpacity>
       </View>
 
@@ -86,15 +88,15 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
                 value={profile.name ?? ""}
                 onChangeText={(v) => onUpdate({ name: v })}
                 placeholder="Seu nome"
-                placeholderTextColor="#bdb8aa"
+                placeholderTextColor={colors["ink-faint"]}
                 className="text-ink rounded-xl px-3 py-2"
-                style={{ backgroundColor: "#f4f2ee", borderWidth: 1, borderColor: "#e7e4dc", fontSize: 15 }}
+                style={{ backgroundColor: colors["surface"], borderWidth: 1, borderColor: colors["brand-100"], fontSize: 15 }}
               />
             </>
           ) : (
             <Text
               className="font-display font-semibold text-2xl"
-              style={{ letterSpacing: -0.6, color: profile.name ? "#26241f" : "#928d80" }}
+              style={{ letterSpacing: -0.6, color: profile.name ? colors["ink"] : colors["ink-mute"] }}
             >
               {profile.name || "Sem nome definido"}
             </Text>
@@ -109,14 +111,14 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
               </Text>
               <View
                 className="flex-row items-center rounded-xl px-3"
-                style={{ backgroundColor: "#f4f2ee", borderWidth: 1, borderColor: "#e7e4dc" }}
+                style={{ backgroundColor: colors["surface"], borderWidth: 1, borderColor: colors["brand-100"] }}
               >
                 <Text className="text-ink-mute text-sm">@</Text>
                 <TextInput
                   value={profile.username ?? ""}
                   onChangeText={(v) => onUpdate({ username: v })}
                   placeholder="usuario"
-                  placeholderTextColor="#bdb8aa"
+                  placeholderTextColor={colors["ink-faint"]}
                   autoCapitalize="none"
                   className="text-ink flex-1 py-2"
                   style={{ fontSize: 14 }}
@@ -165,7 +167,7 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
         </View>
       </View>
 
-      <View style={{ height: 1, backgroundColor: "#ddd8ce", marginHorizontal: 16, marginTop: 16 }} />
+      <View style={{ height: 1, backgroundColor: colors["surface-border"], marginHorizontal: 16, marginTop: 16 }} />
     </View>
   );
 }

@@ -1,9 +1,12 @@
+import { useTheme } from "@/theme";
+
 interface Props {
   value: string | null;
   onChange: (iso: string) => void;
 }
 
 export function DateField({ value, onChange }: Props) {
+  const { colors } = useTheme();
   return (
     <input
       type="date"
@@ -14,9 +17,9 @@ export function DateField({ value, onChange }: Props) {
       style={{
         fontSize: 13,
         fontWeight: 500,
-        color: "#26241f",
-        backgroundColor: "#f4f2ee",
-        border: "1px solid #e7e4dc",
+        color: colors["ink"],
+        backgroundColor: colors["surface"],
+        border: `1px solid ${colors["brand-100"]}`,
         borderRadius: 8,
         padding: "6px 10px",
         fontFamily: "inherit",

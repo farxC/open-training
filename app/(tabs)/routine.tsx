@@ -8,10 +8,12 @@ import { RoutineCalendar } from "@/components/RoutineCalendar";
 import { DayDetailModal } from "@/components/DayDetailModal";
 import { useRoutine } from "@/hooks/useRoutine";
 import { modalityConfig, modalityLabel } from "@/data/modalities";
+import { useTheme } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 export default function RoutineScreen() {
+  const { colors } = useTheme();
   const r = useRoutine();
   const [monthDate, setMonthDate] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function RoutineScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pt-3 pb-4 flex-row items-start">
           <View className="flex-1">
-            <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 2, marginBottom: 2 }}>
+            <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 2, marginBottom: 2 }}>
               TRAINING SPLIT
             </Text>
             <Text className="text-ink font-display font-semibold text-3xl" style={{ letterSpacing: -0.6 }}>
@@ -43,11 +45,11 @@ export default function RoutineScreen() {
             className="px-3 py-2 rounded-xl bg-brand-500"
             onPress={() => router.push("/routine/new-split")}
           >
-            <Text className="text-white text-sm font-medium">+ Novo split</Text>
+            <Text className="text-brand-ink text-sm font-medium">+ Novo split</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 1, backgroundColor: "#ddd8ce", marginHorizontal: 16, marginBottom: 16 }} />
+        <View style={{ height: 1, backgroundColor: colors["surface-border"], marginHorizontal: 16, marginBottom: 16 }} />
 
         {r.splits.length === 0 ? (
           <View className="items-center justify-center px-8" style={{ paddingTop: 60 }}>
@@ -59,7 +61,7 @@ export default function RoutineScreen() {
               className="mt-4 px-4 py-2.5 rounded-xl bg-brand-500"
               onPress={() => router.push("/routine/new-split")}
             >
-              <Text className="text-white text-sm font-medium">+ Criar split</Text>
+              <Text className="text-brand-ink text-sm font-medium">+ Criar split</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -69,7 +71,7 @@ export default function RoutineScreen() {
                 <TouchableOpacity
                   key={split.id}
                   className="flex-row items-center px-4 py-3 rounded-2xl"
-                  style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                  style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
                   onPress={() => router.push(`/routine/${split.id}`)}
                   activeOpacity={0.7}
                 >
@@ -80,14 +82,14 @@ export default function RoutineScreen() {
                       borderRadius: 15,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: "#ebe7df",
+                      backgroundColor: colors["surface-elevated"],
                       marginRight: 10,
                     }}
                   >
                     <MaterialCommunityIcons
                       name={modalityConfig(split.modality).icon as MciName}
                       size={15}
-                      color="#5c594f"
+                      color={colors["ink-soft"]}
                     />
                   </View>
                   <Text className="text-ink font-medium text-sm flex-1">{split.name}</Text>

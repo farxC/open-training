@@ -1,4 +1,5 @@
 import type { Modality } from "@/types";
+import type { ColorToken } from "@/theme";
 
 /**
  * What KIND OF TRAINING a modality is. Musculação is resistance training;
@@ -51,8 +52,12 @@ export interface ModalityConfig {
   category: ModalityCategory;
   targetKind: TargetKind;
   icon: string; // MaterialCommunityIcons glyph name
-  /** Accent dot shown next to the modality name on session cards/detail. */
-  dotColor: string;
+  /** Accent dot shown next to the modality name on session cards/detail.
+   *  A token name rather than a color: the registry is a plain module with no
+   *  access to a hook, and the light values are unusable in dark — musculação's
+   *  #26241f scores 1.11:1 against the dark card. Consumers resolve it with
+   *  useTheme(). */
+  dotToken: ColorToken;
   /** Plural noun for the session-count tile ("Treinos", "Corridas", …). */
   sessionNoun: string;
   /** Auto-provisioned exercise — distance modalities have no exercise picker,
@@ -100,7 +105,7 @@ export const MODALITIES: ModalityConfig[] = [
     category: "strength",
     targetKind: "strength",
     icon: "dumbbell",
-    dotColor: "#26241f",
+    dotToken: "dot-musculacao",
     sessionNoun: "Treinos",
   },
   {
@@ -109,7 +114,7 @@ export const MODALITIES: ModalityConfig[] = [
     category: "endurance",
     targetKind: "distance",
     icon: "run",
-    dotColor: "#2f9e6e",
+    dotToken: "dot-corrida",
     sessionNoun: "Corridas",
     defaultExerciseName: "Correr",
     distance: { ...PACE_PER_KM, effortTileLabel: "Pace médio", effortRecordLabel: "Pace mais rápido" },
@@ -120,7 +125,7 @@ export const MODALITIES: ModalityConfig[] = [
     category: "endurance",
     targetKind: "distance",
     icon: "bike",
-    dotColor: "#2b6cb0",
+    dotToken: "dot-ciclismo",
     sessionNoun: "Pedaladas",
     defaultExerciseName: "Pedalar",
     distance: {
@@ -140,7 +145,7 @@ export const MODALITIES: ModalityConfig[] = [
     category: "endurance",
     targetKind: "distance",
     icon: "swim",
-    dotColor: "#0e8ba8",
+    dotToken: "dot-natacao",
     sessionNoun: "Nados",
     defaultExerciseName: "Nadar",
     distance: {
@@ -160,7 +165,7 @@ export const MODALITIES: ModalityConfig[] = [
     category: "endurance",
     targetKind: "distance",
     icon: "walk",
-    dotColor: "#a1682c",
+    dotToken: "dot-caminhada",
     sessionNoun: "Caminhadas",
     defaultExerciseName: "Caminhar",
     distance: { ...PACE_PER_KM, effortTileLabel: "Pace médio", effortRecordLabel: "Pace mais rápido" },

@@ -12,6 +12,7 @@ import {
 import type { DateRange, DistanceRecords, Modality } from "@/types";
 import type { MuscleRecordGroup } from "@/utils/analyticsRecords";
 import { achievedInRange } from "@/utils/recordsGamification";
+import { useTheme } from "@/theme";
 
 interface Props {
   modality: Modality;

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { router, type Href } from "expo-router";
+import { useTheme } from "@/theme";
 
 interface Props {
   /** Static title text. Ignored if `titleNode` is passed (e.g. an editable name field). */
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export function ScreenHeader({ title, titleNode, onBack, fallbackHref, right, showBack = true }: Props) {
+  const { colors } = useTheme();
+
   const handleBack = () => {
     if (onBack) return onBack();
     if (router.canGoBack()) router.back();
@@ -28,7 +31,7 @@ export function ScreenHeader({ title, titleNode, onBack, fallbackHref, right, sh
     <View className="flex-row items-center px-4 py-3" style={{ gap: 2 }}>
       {showBack && (
         <TouchableOpacity onPress={handleBack} hitSlop={12} style={{ marginLeft: -8, padding: 6 }}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color="#26241f" />
+          <MaterialCommunityIcons name="chevron-left" size={28} color={colors.ink} />
         </TouchableOpacity>
       )}
       <View className="flex-1" style={!showBack ? undefined : { marginLeft: 2 }}>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { WorkoutSet } from "@/types";
+import { useTheme } from "@/theme";
 
 interface Props {
   set: WorkoutSet;
@@ -28,6 +29,7 @@ function sanitizeDecimalInput(raw: string, maxDecimals: number | null): string {
 }
 
 export function SetRow({ set, onChange, onDelete }: Props) {
+  const { colors } = useTheme();
   const [weightText, setWeightText] = useState(set.weight_kg > 0 ? String(set.weight_kg) : "");
   const [repsText, setRepsText] = useState(set.reps > 0 ? String(set.reps) : "");
   const [rpeText, setRpeText] = useState(set.rpe != null ? String(set.rpe) : "");
@@ -59,7 +61,7 @@ export function SetRow({ set, onChange, onDelete }: Props) {
   };
 
   return (
-    <View style={{ borderBottomWidth: 1, borderBottomColor: '#ddd8ce', paddingVertical: 10 }}>
+    <View style={{ borderBottomWidth: 1, borderBottomColor: colors["surface-border"], paddingVertical: 10 }}>
       {/* Primary row: set# | weight | × | reps | delete */}
       <View className="flex-row items-center" style={{ gap: 8 }}>
         <Text
@@ -78,7 +80,7 @@ export function SetRow({ set, onChange, onDelete }: Props) {
             style={{ textAlign: 'right', minWidth: 26, padding: 0 }}
             value={weightText}
             placeholder="0"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType="decimal-pad"
             onChangeText={handleWeightChange}
           />
@@ -96,7 +98,7 @@ export function SetRow({ set, onChange, onDelete }: Props) {
             style={{ textAlign: 'right', minWidth: 22, padding: 0 }}
             value={repsText}
             placeholder="0"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType="decimal-pad"
             onChangeText={handleRepsChange}
           />
@@ -104,7 +106,7 @@ export function SetRow({ set, onChange, onDelete }: Props) {
         </View>
 
         <TouchableOpacity onPress={onDelete} hitSlop={8} style={{ padding: 6 }}>
-          <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
+          <MaterialCommunityIcons name="trash-can-outline" size={16} color={colors["ink-mute"]} />
         </TouchableOpacity>
       </View>
 
@@ -112,22 +114,22 @@ export function SetRow({ set, onChange, onDelete }: Props) {
       <View className="flex-row items-center mt-2.5" style={{ gap: 16, paddingLeft: 28 }}>
         {/* RPE */}
         <View className="flex-row items-center" style={{ gap: 8 }}>
-          <Text style={{ color: '#928d80', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>
             RPE
           </Text>
           <TextInput
             style={{
-              color: '#26241f',
+              color: colors["ink"],
               fontSize: 13,
               width: 44,
               textAlign: 'center',
-              backgroundColor: '#ebe7df',
+              backgroundColor: colors["surface-elevated"],
               borderRadius: 8,
               paddingVertical: 8,
             }}
             value={rpeText}
             placeholder="—"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType="decimal-pad"
             onChangeText={handleRpeChange}
           />
@@ -135,22 +137,22 @@ export function SetRow({ set, onChange, onDelete }: Props) {
 
         {/* RIR */}
         <View className="flex-row items-center" style={{ gap: 8 }}>
-          <Text style={{ color: '#928d80', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>
             RIR
           </Text>
           <TextInput
             style={{
-              color: '#26241f',
+              color: colors["ink"],
               fontSize: 13,
               width: 44,
               textAlign: 'center',
-              backgroundColor: '#ebe7df',
+              backgroundColor: colors["surface-elevated"],
               borderRadius: 8,
               paddingVertical: 8,
             }}
             value={set.rir != null ? String(set.rir) : ""}
             placeholder="—"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType="number-pad"
             onChangeText={(v) => {
               if (v === "") { onChange({ rir: null }); return; }
@@ -170,19 +172,19 @@ export function SetRow({ set, onChange, onDelete }: Props) {
             paddingVertical: 8,
             paddingHorizontal: 10,
             borderRadius: 8,
-            backgroundColor: set.failure ? "#bf3b30" : "#ebe7df",
+            backgroundColor: set.failure ? colors["accent-red"] : colors["surface-elevated"],
           }}
         >
           <MaterialCommunityIcons
             name="close-octagon-outline"
             size={13}
-            color={set.failure ? "#ffffff" : "#928d80"}
+            color={set.failure ? colors["brand-ink"] : colors["ink-mute"]}
           />
           <Text
             style={{
               fontSize: 11,
               fontWeight: "700",
-              color: set.failure ? "#ffffff" : "#928d80",
+              color: set.failure ? colors["brand-ink"] : colors["ink-mute"],
             }}
           >
             Falha

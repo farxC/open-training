@@ -27,6 +27,7 @@ import {
 import { ResistanceCurveChart } from "@/components/ResistanceCurveChart";
 import { useInteractionState } from "@/hooks/useInteractionState";
 import type { ExerciseConfig } from "@/types";
+import { useTheme } from "@/theme";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 type Field = keyof ExerciseConfig;
@@ -45,6 +46,7 @@ function Chip({
   active: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -56,11 +58,11 @@ function Chip({
       className="px-3 py-1.5 rounded-full"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? colors["brand-500"] : colors["surface-border"],
+        backgroundColor: active ? colors["brand-500"] : hovered ? colors["surface"] : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+      <Text style={{ color: active ? colors["brand-ink"] : colors["ink-mute"], fontSize: 12, fontWeight: "600" }}>
         {label}
       </Text>
     </Pressable>
@@ -79,14 +81,15 @@ function Section({
   icon: string;
   children: ReactNode;
 }) {
+  const { colors } = useTheme();
   return (
     <View
       className="bg-surface-card rounded-2xl mb-2"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+      style={{ borderWidth: 1, borderColor: colors["brand-100"], padding: 12 }}
     >
       <View className="flex-row items-center mb-3" style={{ gap: 6 }}>
-        <MaterialCommunityIcons name={icon as MciName} size={13} color="#928d80" />
-        <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 1.2 }}>
+        <MaterialCommunityIcons name={icon as MciName} size={13} color={colors["ink-mute"]} />
+        <Text style={{ color: colors["ink-soft"], fontSize: 10, fontWeight: "700", letterSpacing: 1.2 }}>
           {title.toUpperCase()}
         </Text>
       </View>
@@ -119,11 +122,12 @@ function DimensionGroup<T extends string>({
   onSelectNone?: () => void;
   last?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={{ marginBottom: last ? 0 : 14 }}>
-      <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
+      <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
       {hint ? (
-        <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 1 }}>{hint}</Text>
+        <Text style={{ color: colors["brand-300"], fontSize: 10, marginTop: 1 }}>{hint}</Text>
       ) : null}
       <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
         {onSelectNone && (
@@ -157,10 +161,11 @@ function ToggleGroup({
   children?: ReactNode;
   last?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={{ marginBottom: last ? 0 : 14 }}>
-      <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
-      {hint ? <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 1 }}>{hint}</Text> : null}
+      <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
+      {hint ? <Text style={{ color: colors["brand-300"], fontSize: 10, marginTop: 1 }}>{hint}</Text> : null}
       <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
         <Chip label={offLabel} active={!on} onPress={() => onSet(0)} />
         <Chip label={onLabel} active={on} onPress={() => onSet(1)} />
@@ -177,6 +182,7 @@ function BenchAngles({
   angle: number;
   onSetAngle: (degrees: number) => void;
 }) {
+  const { colors } = useTheme();
   const [customOpen, setCustomOpen] = useState(false);
   const [customText, setCustomText] = useState("");
   const isPreset = BENCH_ANGLE_PRESETS.includes(angle);
@@ -209,9 +215,9 @@ function BenchAngles({
         <View className="flex-row items-center" style={{ gap: 8, marginTop: 8 }}>
           <TextInput
             className="text-ink rounded-xl px-3 py-2"
-            style={{ width: 100, backgroundColor: "#f4f2ee", borderWidth: 1, borderColor: "#e7e4dc" }}
+            style={{ width: 100, backgroundColor: colors["surface"], borderWidth: 1, borderColor: colors["brand-100"] }}
             placeholder="Graus"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType="numbers-and-punctuation"
             value={customText}
             onChangeText={setCustomText}
@@ -235,6 +241,7 @@ function BenchAngles({
  *  are only meaningful together: the summary is exactly the line that shows up on
  *  the exercise screen, so you can see what you're writing while you write it. */
 export function ExerciseConfigEditor({ value, onChange }: Props) {
+  const { colors } = useTheme();
   // Normalising on the way out keeps the dependent fields (pulley type, bench
   // angle, load mode) from lingering after their toggle is switched off.
   const emit = (next: ExerciseConfig) => onChange(normalizeExerciseConfig(next));
@@ -257,12 +264,12 @@ export function ExerciseConfigEditor({ value, onChange }: Props) {
           will use. */}
       <View
         className="rounded-2xl mb-2"
-        style={{ backgroundColor: "#efece5", padding: 11 }}
+        style={{ backgroundColor: colors["surface-tint"], padding: 11 }}
       >
-        <Text style={{ color: "#a8a293", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8 }}>
+        <Text style={{ color: colors["brand-300"], fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8 }}>
           RESUMO
         </Text>
-        <Text style={{ color: "#26241f", fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+        <Text style={{ color: colors["ink"], fontSize: 12, marginTop: 4, lineHeight: 17 }}>
           {exerciseConfigSummary(value)}
         </Text>
       </View>
@@ -340,7 +347,7 @@ export function ExerciseConfigEditor({ value, onChange }: Props) {
                 />
               ))}
             </View>
-            <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 7, lineHeight: 14 }}>
+            <Text style={{ color: colors["brand-300"], fontSize: 10, marginTop: 7, lineHeight: 14 }}>
               Como ler a carga registrada: o peso total movido, o peso extra somado ao corpo, ou a
               assistência subtraída dele.
             </Text>

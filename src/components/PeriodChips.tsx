@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import { useInteractionState } from "@/hooks/useInteractionState";
+import { useTheme } from "@/theme";
 
 export interface ChipOption<T extends string> {
   key: T;
@@ -23,6 +24,7 @@ function PeriodChip({
   active: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -36,8 +38,8 @@ function PeriodChip({
         paddingHorizontal: 15,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f0ede6" : "transparent",
+        borderColor: active ? colors["brand-500"] : colors["surface-border"],
+        backgroundColor: active ? colors["brand-500"] : hovered ? colors["surface-tint"] : "transparent",
       }}
     >
       <Text
@@ -45,7 +47,7 @@ function PeriodChip({
         style={{
           fontSize: 13,
           fontWeight: active ? "700" : "500",
-          color: active ? "#ffffff" : hovered ? "#5c594f" : "#928d80",
+          color: active ? colors["brand-ink"] : hovered ? colors["ink-soft"] : colors["ink-mute"],
           letterSpacing: -0.1,
         }}
       >

@@ -2,6 +2,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { MUSCLE_LABELS, MUSCLE_OPTIONS } from "@/data/muscleGroups";
 import { ModalityToggle } from "@/components/ModalityToggle";
 import type { ExerciseMuscleGroup, MuscleGroup } from "@/types";
+import { useTheme } from "@/theme";
 
 // How much of a full set each selected muscle earns. Deliberately two values,
 // matching the CHECK on exercise_muscle_groups.counting_factor.
@@ -20,6 +21,7 @@ interface Props {
 /** Picks an exercise's muscle groups and how much a set counts toward each.
  *  Shared by the exercise picker's inline edit and the exercise detail screen. */
 export function MuscleGroupEditor({ value, onChange, title = "Grupo muscular" }: Props) {
+  const { colors } = useTheme();
   const toggle = (mg: MuscleGroup) => {
     const next = new Map(value);
     if (next.has(mg)) next.delete(mg);
@@ -45,12 +47,12 @@ export function MuscleGroupEditor({ value, onChange, title = "Grupo muscular" }:
                 className="px-3 py-1.5 rounded-full"
                 style={{
                   borderWidth: 1,
-                  borderColor: on ? "#26241f" : "#ddd8ce",
-                  backgroundColor: on ? "#26241f" : "transparent",
+                  borderColor: on ? colors["brand-500"] : colors["surface-border"],
+                  backgroundColor: on ? colors["brand-500"] : "transparent",
                 }}
                 onPress={() => toggle(mg)}
               >
-                <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+                <Text style={{ color: on ? colors["brand-ink"] : colors["ink-mute"], fontSize: 12, fontWeight: "600" }}>
                   {MUSCLE_LABELS[mg]}
                 </Text>
               </TouchableOpacity>

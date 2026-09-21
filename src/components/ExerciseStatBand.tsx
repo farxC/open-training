@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Text, View } from "react-native";
+import { useTheme } from "@/theme";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -30,10 +31,11 @@ interface Props {
  * than as four unrelated cards.
  */
 export function ExerciseStatBand({ stats }: Props) {
+  const { colors } = useTheme();
   return (
     <View
       className="bg-surface-card rounded-xl flex-row overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc" }}
+      style={{ borderWidth: 1, borderColor: colors["brand-100"] }}
     >
       {stats.map((stat, index) => (
         <StatCell key={stat.label} stat={stat} index={index} first={index === 0} />
@@ -43,6 +45,7 @@ export function ExerciseStatBand({ stats }: Props) {
 }
 
 function StatCell({ stat, index, first }: { stat: Stat; index: number; first: boolean }) {
+  const { colors } = useTheme();
   const enter = useSharedValue(0);
 
   useEffect(() => {
@@ -65,7 +68,7 @@ function StatCell({ stat, index, first }: { stat: Stat; index: number; first: bo
           paddingVertical: 11,
           paddingHorizontal: 8,
           borderLeftWidth: first ? 0 : 1,
-          borderLeftColor: "#efece5",
+          borderLeftColor: colors["surface-tint"],
         },
         style,
       ]}
@@ -73,7 +76,7 @@ function StatCell({ stat, index, first }: { stat: Stat; index: number; first: bo
       <View className="flex-row items-baseline" style={{ gap: 2 }}>
         <Text
           style={{
-            color: stat.strong ? "#26241f" : "#5c594f",
+            color: stat.strong ? colors["ink"] : colors["ink-soft"],
             fontSize: 17,
             fontWeight: "700",
             fontFamily: MONO,
@@ -83,13 +86,13 @@ function StatCell({ stat, index, first }: { stat: Stat; index: number; first: bo
           {stat.value}
         </Text>
         {stat.unit ? (
-          <Text style={{ color: "#928d80", fontSize: 9.5 }} numberOfLines={1}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 9.5 }} numberOfLines={1}>
             {stat.unit}
           </Text>
         ) : null}
       </View>
       <Text
-        style={{ color: "#a8a293", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.7, marginTop: 3 }}
+        style={{ color: colors["brand-300"], fontSize: 8.5, fontWeight: "700", letterSpacing: 0.7, marginTop: 3 }}
         numberOfLines={1}
       >
         {stat.label}

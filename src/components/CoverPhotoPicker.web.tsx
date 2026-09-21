@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Image, TouchableOpacity } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@/theme";
 
 interface Props {
   uri: string | null;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function CoverPhotoPicker({ uri, onChange, height = 140, editable = false }: Props) {
+  const { colors } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,12 +25,12 @@ export function CoverPhotoPicker({ uri, onChange, height = 140, editable = false
     <TouchableOpacity
       onPress={editable ? () => inputRef.current?.click() : undefined}
       activeOpacity={editable ? 0.9 : 1}
-      style={{ height, backgroundColor: "#ebe7df", alignItems: "center", justifyContent: "center", overflow: "hidden" }}
+      style={{ height, backgroundColor: colors["surface-elevated"], alignItems: "center", justifyContent: "center", overflow: "hidden" }}
     >
       {uri ? (
         <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
       ) : editable ? (
-        <MaterialCommunityIcons name="image-plus" size={28} color="#928d80" />
+        <MaterialCommunityIcons name="image-plus" size={28} color={colors["ink-mute"]} />
       ) : null}
       <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleChange} />
     </TouchableOpacity>

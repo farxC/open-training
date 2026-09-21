@@ -18,6 +18,7 @@ import {
   toDisplayDistance,
 } from "@/data/modalities";
 import type { Modality, RoutineUnitExercise, WorkoutSet } from "@/types";
+import { useTheme } from "@/theme";
 
 interface Props {
   sessionId: number;
@@ -49,6 +50,7 @@ interface FieldsProps {
  * modality declares — metres and /100m for natação, km/h for ciclismo.
  */
 function DistanceFields({ set, modality, legNumber, onChange }: FieldsProps) {
+  const { colors } = useTheme();
   const display = distanceDisplay(modality);
   const [effortText, setEffortText] = useState(() => formatEffortInput(set.pace_sec, modality));
 
@@ -85,7 +87,7 @@ function DistanceFields({ set, modality, legNumber, onChange }: FieldsProps) {
             className="text-ink flex-1 text-sm"
             value={shownDistance ? String(Number(shownDistance.toFixed(3))) : ""}
             placeholder="0"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType="decimal-pad"
             onChangeText={handleDistanceChange}
           />
@@ -102,7 +104,7 @@ function DistanceFields({ set, modality, legNumber, onChange }: FieldsProps) {
             className="text-ink flex-1 text-sm"
             value={effortText}
             placeholder={display.effortPlaceholder}
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={colors["ink-faint"]}
             keyboardType={display.effortMode === "speed" ? "decimal-pad" : "default"}
             onChangeText={handleEffortChange}
           />
@@ -125,6 +127,7 @@ function DistanceFields({ set, modality, legNumber, onChange }: FieldsProps) {
  * reordered would only ever leave the session with nothing to log.
  */
 export function DistanceSessionForm({ sessionId, exerciseId, modality, targets, onSetsChanged }: Props) {
+  const { colors } = useTheme();
   const [sets, setSets] = useState<WorkoutSet[]>([]);
 
   const refreshSets = useCallback(() => {
@@ -198,7 +201,7 @@ export function DistanceSessionForm({ sessionId, exerciseId, modality, targets, 
       {multiLeg && (
         <View
           className="flex-row items-center"
-          style={{ gap: 12, marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#ddd8ce" }}
+          style={{ gap: 12, marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors["surface-border"] }}
         >
           <Text className="text-ink-mute text-xs" style={{ width: 84, fontWeight: "700", letterSpacing: 1.2 }}>
             TOTAL

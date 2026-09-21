@@ -43,6 +43,7 @@ import {
 import { dateToISO } from "@/utils/cycle";
 import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
 import type { Exercise, Modality, WorkoutSet } from "@/types";
+import { useTheme } from "@/theme";
 
 /** The stat strip wants a bare number (its unit sits on the line below), so it
  *  can't use formatDistanceValue — that one carries the unit with it. */
@@ -95,6 +96,7 @@ interface ExerciseGroup {
 }
 
 export default function SessionDetailScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session, refresh } = useSession(Number(id));
 
@@ -214,7 +216,7 @@ export default function SessionDetailScreen() {
               <Text className="text-ink-soft text-sm font-medium">{editing ? "Concluir" : "Editar"}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleDelete} className="p-1">
-              <MaterialCommunityIcons name="trash-can-outline" size={20} color="#bf3b30" />
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors["accent-red"]} />
             </TouchableOpacity>
           </View>
         }
@@ -228,7 +230,7 @@ export default function SessionDetailScreen() {
                   width: 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: modalityConfig(session.modality).dotColor,
+                  backgroundColor: colors[modalityConfig(session.modality).dotToken],
                 }}
               />
               <Text
@@ -252,14 +254,14 @@ export default function SessionDetailScreen() {
                 onChangeText={setNameText}
                 onBlur={() => updateSession(session.id, { name: nameText.trim() || null })}
                 placeholder="Ex.: Treino de pernas pesado"
-                placeholderTextColor="#bdb8aa"
+                placeholderTextColor={colors["ink-faint"]}
                 className="font-display text-ink text-center"
                 style={{
                   fontSize: 16,
                   fontWeight: "600",
                   paddingVertical: 5,
                   borderBottomWidth: 1.5,
-                  borderBottomColor: "#ddd8ce",
+                  borderBottomColor: colors["surface-border"],
                 }}
               />
             </View>
@@ -285,13 +287,13 @@ export default function SessionDetailScreen() {
                     updateSession(session.id, { duration_seconds: parseClock(durationText) ?? 0 })
                   }
                   placeholder="m:ss"
-                  placeholderTextColor="#bdb8aa"
+                  placeholderTextColor={colors["ink-faint"]}
                   style={{
                     fontSize: 13,
                     minWidth: 44,
                     textAlign: "center",
                     borderBottomWidth: 1,
-                    borderBottomColor: "#ddd8ce",
+                    borderBottomColor: colors["surface-border"],
                   }}
                 />
               </View>
@@ -302,12 +304,12 @@ export default function SessionDetailScreen() {
               onChangeText={setNotesText}
               onBlur={() => updateSession(session.id, { notes: notesText.trim() || null })}
               placeholder="Observações (opcional)"
-              placeholderTextColor="#bdb8aa"
+              placeholderTextColor={colors["ink-faint"]}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
               className="bg-surface-elevated text-ink rounded-xl px-4 py-3"
-              style={{ borderWidth: 1, borderColor: "#ddd8ce", marginTop: 20 }}
+              style={{ borderWidth: 1, borderColor: colors["surface-border"], marginTop: 20 }}
             />
 
             <View style={{ marginTop: 20 }}>
@@ -349,7 +351,7 @@ export default function SessionDetailScreen() {
 
                   <TouchableOpacity
                     className="py-3 rounded-xl items-center mb-6"
-                    style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                    style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                     onPress={() => setPickerVisible(true)}
                   >
                     <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
@@ -403,7 +405,7 @@ export default function SessionDetailScreen() {
                     width: 6,
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: modalityConfig(session.modality).dotColor,
+                    backgroundColor: colors[modalityConfig(session.modality).dotToken],
                   }}
                 />
                 <Text
@@ -425,7 +427,7 @@ export default function SessionDetailScreen() {
                 style={{
                   borderTopWidth: 1,
                   borderBottomWidth: 1,
-                  borderColor: "#ddd8ce",
+                  borderColor: colors["surface-border"],
                   paddingVertical: 12,
                   marginTop: 16,
                 }}
@@ -433,7 +435,7 @@ export default function SessionDetailScreen() {
                 <View className="flex-1">
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: colors["ink"],
                       fontSize: 18,
                       fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
                     }}
@@ -442,39 +444,39 @@ export default function SessionDetailScreen() {
                       ? formatDistanceNumber(totalDistance, session.modality)
                       : formatThousands(totalVolume)}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
+                  <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
                     {isDistance
                       ? distanceDisplay(session.modality).distanceUnit.toUpperCase()
                       : "KG · VOLUME"}
                   </Text>
                 </View>
-                <View style={{ width: 1, backgroundColor: "#ddd8ce" }} />
+                <View style={{ width: 1, backgroundColor: colors["surface-border"] }} />
                 <View className="flex-1 items-center">
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: colors["ink"],
                       fontSize: 18,
                       fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
                     }}
                   >
                     {formatDuration(session.duration_seconds)}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
+                  <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
                     DURAÇÃO
                   </Text>
                 </View>
-                <View style={{ width: 1, backgroundColor: "#ddd8ce" }} />
+                <View style={{ width: 1, backgroundColor: colors["surface-border"] }} />
                 <View className="flex-1 items-end">
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: colors["ink"],
                       fontSize: 18,
                       fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
                     }}
                   >
                     {exerciseCount}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
+                  <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
                     EXERCÍCIOS
                   </Text>
                 </View>
@@ -482,7 +484,7 @@ export default function SessionDetailScreen() {
 
               {session.notes && (
                 <View
-                  style={{ borderLeftWidth: 2, borderLeftColor: "#bdb8aa", marginTop: 16 }}
+                  style={{ borderLeftWidth: 2, borderLeftColor: colors["ink-faint"], marginTop: 16 }}
                   className="pl-3"
                 >
                   <Text className="text-ink-soft italic" style={{ fontSize: 14, lineHeight: 20 }}>
@@ -580,7 +582,7 @@ export default function SessionDetailScreen() {
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={() => confirmDate(dateToISO(new Date()))}
             >
-              <Text className="text-white text-sm font-semibold">Usar hoje</Text>
+              <Text className="text-brand-ink text-sm font-semibold">Usar hoje</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

@@ -13,11 +13,9 @@ import { formatSeriesNumber } from "@/data/muscleGroups";
 import type { MuscleExerciseRow } from "@/types";
 import { useInteractionState } from "@/hooks/useInteractionState";
 import { EXERCISE_HEAD, splitExerciseRows, type ExerciseTail } from "@/utils/muscleLoad";
+import { useTheme, withAlpha } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const MUTED = "#5c594f";
-const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Lines up under the group row's frequency cluster. */
 const FREQ_COL = 92;
@@ -35,6 +33,7 @@ interface Props {
  *  pulled out of the rack — recessed background, indented rows — because it
  *  belongs to the row above rather than sitting beside it. */
 export function MuscleExerciseList({ rows, cycle }: Props) {
+  const { colors } = useTheme();
   const { head, tail } = useMemo(() => splitExerciseRows(rows), [rows]);
   const [showAll, setShowAll] = useState(false);
 
@@ -46,7 +45,7 @@ export function MuscleExerciseList({ rows, cycle }: Props) {
 
   if (rows.length === 0) {
     return (
-      <View style={{ paddingHorizontal: 14, paddingBottom: 12, backgroundColor: "#fbfaf7" }}>
+      <View style={{ paddingHorizontal: 14, paddingBottom: 12, backgroundColor: colors["surface-raised"] }}>
         <Text className="text-ink-faint" style={{ fontSize: 11 }}>
           Nenhum exercício registrado para este grupo na janela.
         </Text>
@@ -55,10 +54,10 @@ export function MuscleExerciseList({ rows, cycle }: Props) {
   }
 
   return (
-    <View style={{ backgroundColor: "#fbfaf7", paddingBottom: 6 }}>
+    <View style={{ backgroundColor: colors["surface-raised"], paddingBottom: 6 }}>
       <Text
         style={{
-          color: "#bdb8aa",
+          color: colors["ink-faint"],
           fontSize: 9,
           fontWeight: "700",
           letterSpacing: 1.1,
@@ -109,6 +108,7 @@ function ExerciseRow({
   stagger: number;
   cycle: string;
 }) {
+  const { colors } = useTheme();
   const seriesNumber = formatSeriesNumber(row.series, row.isAverage);
   const sharePct = Math.round(row.share * 100);
 
@@ -127,11 +127,11 @@ function ExerciseRow({
         paddingRight: 14,
         paddingVertical: 8,
         borderTopWidth: first ? 0 : 1,
-        borderTopColor: HAIRLINE,
+        borderTopColor: withAlpha(colors.ink, 0.07),
       }}
     >
       <View className="flex-row items-center" style={{ gap: 8 }}>
-        <Text style={{ color: MUTED, fontSize: 12, flex: 1 }} numberOfLines={1}>
+        <Text style={{ color: colors["ink-soft"], fontSize: 12, flex: 1 }} numberOfLines={1}>
           {row.exercise_name}
         </Text>
 
@@ -139,7 +139,7 @@ function ExerciseRow({
             on the screen, three séries in the number. */}
         {row.halved ? <HalfBadge /> : null}
 
-        <Text style={{ color: INK, fontSize: 13, fontWeight: "700", fontFamily: MONO }}>
+        <Text style={{ color: colors.ink, fontSize: 13, fontWeight: "700", fontFamily: MONO }}>
           {seriesNumber}
         </Text>
       </View>
@@ -150,7 +150,7 @@ function ExerciseRow({
             <ShareBar share={row.share} delay={120 + stagger * STEP} cycle={cycle} />
           </View>
           <Text
-            style={{ color: "#928d80", fontSize: 10, fontFamily: MONO, width: 30, textAlign: "right" }}
+            style={{ color: colors["ink-mute"], fontSize: 10, fontFamily: MONO, width: 30, textAlign: "right" }}
           >
             {sharePct}%
           </Text>
@@ -159,8 +159,8 @@ function ExerciseRow({
         {/* Sessions counted, not averaged: a movement trained eight times in
             half a year is "8 sessões", never "0,3×/sem". */}
         <View className="flex-row items-center justify-end" style={{ width: FREQ_COL }}>
-          <Text style={{ color: "#928d80", fontSize: 10 }} numberOfLines={1}>
-            em <Text style={{ fontFamily: MONO, color: MUTED }}>{row.sessionCount}</Text>{" "}
+          <Text style={{ color: colors["ink-mute"], fontSize: 10 }} numberOfLines={1}>
+            em <Text style={{ fontFamily: MONO, color: colors["ink-soft"] }}>{row.sessionCount}</Text>{" "}
             {row.sessionCount === 1 ? "sessão" : "sessões"}
           </Text>
         </View>
@@ -195,6 +195,7 @@ function TailRow({
   onToggle: () => void;
   cycle: string;
 }) {
+  const { colors } = useTheme();
   const seriesNumber = formatSeriesNumber(tail.series, isAverage);
   const sharePct = Math.round(tail.share * 100);
   const { hovered, handlers } = useInteractionState();
@@ -204,7 +205,7 @@ function TailRow({
       index={index}
       step={STEP}
       cycle={cycle}
-      style={{ borderTopWidth: 1, borderTopColor: HAIRLINE }}
+      style={{ borderTopWidth: 1, borderTopColor: withAlpha(colors.ink, 0.07) }}
     >
       <Pressable
         onPress={onToggle}
@@ -222,25 +223,25 @@ function TailRow({
           paddingLeft: 24,
           paddingRight: 14,
           paddingVertical: 9,
-          backgroundColor: hovered ? "#f4f2ee" : "transparent",
+          backgroundColor: hovered ? colors["surface"] : "transparent",
         }}
       >
         <View className="flex-row items-center" style={{ gap: 6 }}>
           <MaterialCommunityIcons
             name={expanded ? "chevron-up" : "chevron-down"}
             size={14}
-            color="#928d80"
+            color={colors["ink-mute"]}
           />
-          <Text style={{ color: "#928d80", fontSize: 11, flex: 1 }} numberOfLines={1}>
+          <Text style={{ color: colors["ink-mute"], fontSize: 11, flex: 1 }} numberOfLines={1}>
             {expanded ? "recolher lista" : `+ outros ${tail.count} exercícios`}
           </Text>
 
           {expanded ? null : (
             <>
-              <Text style={{ color: "#928d80", fontSize: 10, fontFamily: MONO, marginRight: 2 }}>
+              <Text style={{ color: colors["ink-mute"], fontSize: 10, fontFamily: MONO, marginRight: 2 }}>
                 {sharePct}%
               </Text>
-              <Text style={{ color: MUTED, fontSize: 12, fontWeight: "700", fontFamily: MONO }}>
+              <Text style={{ color: colors["ink-soft"], fontSize: 12, fontWeight: "700", fontFamily: MONO }}>
                 {seriesNumber}
               </Text>
             </>
@@ -263,6 +264,7 @@ function ShareBar({
   delay: number;
   cycle: string;
 }) {
+  const { colors } = useTheme();
   const fill = useSharedValue(0);
   const target = share > 0 ? Math.min(1, Math.max(share, 0.02)) : 0;
 
@@ -281,18 +283,19 @@ function ShareBar({
       style={{
         height: 5,
         borderRadius: 3,
-        backgroundColor: "#e9e5dc",
+        backgroundColor: colors["surface-tint"],
         overflow: "hidden",
       }}
     >
       <Animated.View
-        style={[{ height: "100%", borderRadius: 3, backgroundColor: "#8a8577" }, fillStyle]}
+        style={[{ height: "100%", borderRadius: 3, backgroundColor: colors["ink-mute"] }, fillStyle]}
       />
     </View>
   );
 }
 
 function HalfBadge() {
+  const { colors } = useTheme();
   return (
     <View
       className="rounded-full"
@@ -300,11 +303,11 @@ function HalfBadge() {
         paddingHorizontal: 5,
         paddingVertical: 1,
         borderWidth: 1,
-        borderColor: "#ddd8ce",
-        backgroundColor: "#f4f2ee",
+        borderColor: colors["surface-border"],
+        backgroundColor: colors["surface"],
       }}
     >
-      <Text style={{ color: "#928d80", fontSize: 9, fontWeight: "700", fontFamily: MONO }}>
+      <Text style={{ color: colors["ink-mute"], fontSize: 9, fontWeight: "700", fontFamily: MONO }}>
         ½×
       </Text>
     </View>

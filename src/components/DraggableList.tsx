@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@/theme";
 
 export interface DraggableListRenderInfo<T> {
   item: T;
@@ -141,6 +142,7 @@ function Row<T>({
   onReorder: (finalOrder: string[]) => void;
   renderItem: (info: DraggableListRenderInfo<T>) => React.ReactNode;
 }) {
+  const { colors } = useTheme();
   const startTop = useSharedValue(0);
   const dragY = useSharedValue(0);
   const lift = useSharedValue(0);
@@ -207,7 +209,7 @@ function Row<T>({
       transform: [{ translateY }, { scale }],
       zIndex: active ? 10 : 0,
       elevation: active ? 6 : 0,
-      shadowColor: "#000",
+      shadowColor: colors["shadow"],
       shadowOffset: { width: 0, height: 4 * lift.value },
       shadowOpacity: 0.2 * lift.value,
       shadowRadius: 8 * lift.value,
@@ -217,7 +219,7 @@ function Row<T>({
   const dragHandle = (
     <GestureDetector gesture={pan}>
       <View style={{ padding: 8 }}>
-        <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color="#928d80" />
+        <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color={colors["ink-mute"]} />
       </View>
     </GestureDetector>
   );

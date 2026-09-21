@@ -16,6 +16,7 @@ import {
 } from "@/db/queries";
 import { exerciseConfigSummary } from "@/data/exerciseConfig";
 import type { ExerciseConfig, RoutineUnitExercise, SessionExercise, WorkoutSet } from "@/types";
+import { useTheme } from "@/theme";
 
 interface Props {
   exerciseId: number;
@@ -39,6 +40,7 @@ function targetLabel(targets: RoutineUnitExercise): string | null {
 }
 
 export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandleIcon, DragHandle, index, onSetsChanged }: Props) {
+  const { colors } = useTheme();
   const [sets, setSets] = useState<WorkoutSet[]>([]);
   const [sessionExercise, setSessionExercise] = useState<SessionExercise | null>(null);
   const [configModalVisible, setConfigModalVisible] = useState(false);
@@ -141,7 +143,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
           {index != null && (
             <Text className="text-ink-mute text-xs" style={{ width: 16 }}>{index + 1}.</Text>
           )}
-          <View style={{ width: 2, height: 14, backgroundColor: '#26241f', borderRadius: 1 }} />
+          <View style={{ width: 2, height: 14, backgroundColor: colors["brand-500"], borderRadius: 1 }} />
           <View>
             <Text className="text-ink font-semibold text-base">{exerciseName}</Text>
             {targets && targetLabel(targets) && (
@@ -157,7 +159,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
         <View className="flex-row items-center" style={{ gap: 14 }}>
           {sessionExercise && (
             <TouchableOpacity onPress={openConfigEditor} hitSlop={10}>
-              <MaterialCommunityIcons name="tune-variant" size={18} color="#928d80" />
+              <MaterialCommunityIcons name="tune-variant" size={18} color={colors["ink-mute"]} />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={onRemoveExercise}>
@@ -188,7 +190,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
 
       <TouchableOpacity
         className="mt-2 py-2.5 rounded-lg items-center"
-        style={{ borderWidth: 1, borderColor: '#c9c3b6', borderStyle: 'dashed' }}
+        style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: 'dashed' }}
         onPress={handleAdd}
       >
         <Text className="text-ink text-sm">+ Add Set</Text>
@@ -221,7 +223,7 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={saveConfig}
             >
-              <Text className="text-white font-semibold text-sm">Salvar para esta sessão</Text>
+              <Text className="text-brand-ink font-semibold text-sm">Salvar para esta sessão</Text>
             </TouchableOpacity>
             <TouchableOpacity className="mt-2 py-3 items-center" onPress={restoreExerciseDefault}>
               <Text className="text-ink-soft text-sm">Restaurar padrão do exercício</Text>

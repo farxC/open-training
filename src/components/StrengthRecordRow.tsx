@@ -11,6 +11,7 @@ import Animated, {
 import { Stamp } from "@/components/RecordStamp";
 import type { StrengthRecord } from "@/types";
 import { daysSinceRecord, formatAgo, medalFor, type StampTone } from "@/utils/recordsGamification";
+import { useTheme } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
 /** Past this the stagger stops paying for itself and just delays the tail. */
@@ -42,6 +43,7 @@ export function StrengthRecordRow({
   todayISO,
   onPress,
 }: Props) {
+  const { colors } = useTheme();
   const reveal = useSharedValue(0);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export function StrengthRecordRow({
         activeOpacity={0.7}
         accessibilityRole="button"
         className="rounded-xl mb-2 flex-row"
-        style={{ backgroundColor: isChampion ? "#fffdf6" : "#ffffff" }}
+        style={{ backgroundColor: isChampion ? colors["surface-raised"] : colors["surface-card"] }}
       >
         {/* Podium metal bleeds into the card edge — the ranking stays readable
             down the left gutter even when the labels blur past. The card can't
@@ -82,7 +84,7 @@ export function StrengthRecordRow({
         <View
           style={{
             width: 3,
-            backgroundColor: medal?.ring ?? "#ebe7df",
+            backgroundColor: medal ? colors[medal.ring] : colors["surface-elevated"],
             borderTopLeftRadius: 12,
             borderBottomLeftRadius: 12,
           }}
@@ -95,14 +97,14 @@ export function StrengthRecordRow({
               width: 26,
               height: 26,
               borderRadius: 13,
-              backgroundColor: medal?.bg ?? "#f4f2ee",
+              backgroundColor: medal ? colors[medal.bg] : colors["surface"],
               borderWidth: medal ? 1.5 : 1,
-              borderColor: medal?.ring ?? "#e7e4dc",
+              borderColor: medal ? colors[medal.ring] : colors["brand-100"],
             }}
           >
             <Text
               style={{
-                color: medal?.ink ?? "#a8a293",
+                color: medal ? colors[medal.ink] : colors["brand-300"],
                 fontSize: 11,
                 fontWeight: "700",
                 fontFamily: MONO,
@@ -121,7 +123,7 @@ export function StrengthRecordRow({
             <View className="flex-row items-center" style={[{ gap: 5 }, raised]}>
               <Text
                 style={{
-                  color: "#26241f",
+                  color: colors["ink"],
                   fontSize: 11,
                   fontWeight: "700",
                   letterSpacing: 0.9,
@@ -148,7 +150,7 @@ export function StrengthRecordRow({
               </Text>
               <Text
                 style={{
-                  color: "#26241f",
+                  color: colors["ink"],
                   fontSize: isChampion ? 21 : 18,
                   fontWeight: "700",
                   fontFamily: MONO,
@@ -163,7 +165,7 @@ export function StrengthRecordRow({
             </View>
           </View>
 
-          <MaterialCommunityIcons name="chevron-right" size={18} color="#cfcabf" />
+          <MaterialCommunityIcons name="chevron-right" size={18} color={colors["brand-200"]} />
         </View>
       </TouchableOpacity>
     </Animated.View>

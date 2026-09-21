@@ -1,5 +1,6 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { dateToISO, todayISO } from "@/utils/cycle";
+import { useTheme } from "@/theme";
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const MONTHS = [
@@ -17,6 +18,7 @@ interface Props {
 /** A plain month grid — no modal, no title, no "today" shortcut. Embed it wherever a
  *  date needs picking (a modal, a wizard step, …); those callers own the chrome around it. */
 export function MonthCalendar({ monthDate, onMonthChange, selectedDate, onSelectDate }: Props) {
+  const { colors } = useTheme();
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
   const firstOfMonth = new Date(year, month, 1);
@@ -69,14 +71,14 @@ export function MonthCalendar({ monthDate, onMonthChange, selectedDate, onSelect
                   borderRadius: 10,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: isSelected ? "#26241f" : "transparent",
+                  backgroundColor: isSelected ? colors["brand-500"] : "transparent",
                   borderWidth: isToday && !isSelected ? 1.5 : 0,
-                  borderColor: "#26241f",
+                  borderColor: colors["brand-500"],
                 }}
               >
                 <Text
                   style={{
-                    color: isSelected ? "#ffffff" : "#26241f",
+                    color: isSelected ? colors["brand-ink"] : colors["ink"],
                     fontSize: 14,
                     fontWeight: isToday || isSelected ? "700" : "500",
                   }}

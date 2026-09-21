@@ -8,10 +8,12 @@ import { SessionCard } from "@/components/SessionCard";
 import { useSessions } from "@/hooks/useSessions";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type { SessionSummary } from "@/types";
+import { useTheme } from "@/theme";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function FeedScreen() {
+  const { colors } = useTheme();
   const { sessions, refresh } = useSessions();
   const { profile, refresh: refreshProfile } = useUserProfile();
 
@@ -26,7 +28,7 @@ export default function FeedScreen() {
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       {/* Header */}
       <View className="px-4 pt-3 pb-4">
-        <Text style={{ color: '#928d80', fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 2 }}>
+        <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 2 }}>
           {DAY_NAMES[new Date().getDay()].toUpperCase()}
         </Text>
         <View className="flex-row items-center">
@@ -41,13 +43,13 @@ export default function FeedScreen() {
           <TouchableOpacity
             className="w-10 h-10 rounded-full items-center justify-center overflow-hidden"
             onPress={() => router.push("/(tabs)/profile")}
-            style={{ marginRight: 8, backgroundColor: "#ebe7df" }}
+            style={{ marginRight: 8, backgroundColor: colors["surface-elevated"] }}
             hitSlop={8}
           >
             {profile.photo_uri ? (
               <Image source={{ uri: profile.photo_uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
             ) : (
-              <MaterialCommunityIcons name="account-circle-outline" size={26} color="#5c594f" />
+              <MaterialCommunityIcons name="account-circle-outline" size={26} color={colors["ink-soft"]} />
             )}
           </TouchableOpacity>
           <TouchableOpacity
@@ -56,26 +58,26 @@ export default function FeedScreen() {
             style={{ marginRight: 8 }}
             hitSlop={8}
           >
-            <MaterialCommunityIcons name="cog-outline" size={22} color="#5c594f" />
+            <MaterialCommunityIcons name="cog-outline" size={22} color={colors["ink-soft"]} />
           </TouchableOpacity>
           <TouchableOpacity
-            className="bg-ink w-11 h-11 rounded-full items-center justify-center"
+            className="bg-brand-500 w-11 h-11 rounded-full items-center justify-center"
             onPress={() => router.push("/session/new")}
             style={{
-              shadowColor: '#26241f',
+              shadowColor: colors.shadow,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.25,
               shadowRadius: 12,
               elevation: 8,
             }}
           >
-            <Text style={{ color: '#ffffff', fontSize: 24, fontWeight: '300', lineHeight: 28, marginTop: -1 }}>+</Text>
+            <Text style={{ color: colors["brand-ink"], fontSize: 24, fontWeight: '300', lineHeight: 28, marginTop: -1 }}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Divider */}
-      <View style={{ height: 1, backgroundColor: '#ddd8ce', marginHorizontal: 16, marginBottom: 8 }} />
+      <View className="bg-surface-border" style={{ height: 1, marginHorizontal: 16, marginBottom: 8 }} />
 
       <FlatList<SessionSummary>
         data={sessions}
@@ -90,7 +92,7 @@ export default function FeedScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center" style={{ paddingTop: 80 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#ebe7df', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors["surface-elevated"], alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 22 }}>🏋️</Text>
             </View>
             <Text className="text-ink-soft text-base font-medium">No sessions yet</Text>

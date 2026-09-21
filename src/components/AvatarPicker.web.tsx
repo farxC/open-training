@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Image, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@/theme";
 
 interface Props {
   uri: string | null;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function AvatarPicker({ uri, onChange, size = 84, editable = false }: Props) {
+  const { colors } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,8 +33,8 @@ export function AvatarPicker({ uri, onChange, size = 84, editable = false }: Pro
           height: size,
           borderRadius: size / 2,
           borderWidth: 3,
-          borderColor: "#f4f2ee",
-          backgroundColor: "#ebe7df",
+          borderColor: colors["surface"],
+          backgroundColor: colors["surface-elevated"],
           overflow: "hidden",
           alignItems: "center",
           justifyContent: "center",
@@ -41,7 +43,7 @@ export function AvatarPicker({ uri, onChange, size = 84, editable = false }: Pro
         {uri ? (
           <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
-          <MaterialCommunityIcons name="account" size={size * 0.55} color="#928d80" />
+          <MaterialCommunityIcons name="account" size={size * 0.55} color={colors["ink-mute"]} />
         )}
       </View>
       {editable && (
@@ -53,14 +55,14 @@ export function AvatarPicker({ uri, onChange, size = 84, editable = false }: Pro
             width: size * 0.32,
             height: size * 0.32,
             borderRadius: (size * 0.32) / 2,
-            backgroundColor: "rgba(38,36,31,0.78)",
+            backgroundColor: colors["media-scrim"],
             alignItems: "center",
             justifyContent: "center",
             borderWidth: 2,
-            borderColor: "#f4f2ee",
+            borderColor: colors["surface"],
           }}
         >
-          <MaterialCommunityIcons name="camera-plus-outline" size={size * 0.16} color="#ffffff" />
+          <MaterialCommunityIcons name="camera-plus-outline" size={size * 0.16} color={colors["on-media"]} />
         </View>
       )}
       <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleChange} />

@@ -4,6 +4,7 @@ import type { RoutineUnit, RoutineUnitExercise } from "@/types";
 import type { TargetPatch } from "@/hooks/useRoutine";
 import { NumField } from "@/components/TargetFields";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
+import { useTheme } from "@/theme";
 
 export function strengthSummary(exercises: RoutineUnitExercise[]): string {
   if (exercises.length === 0) return "—";
@@ -50,12 +51,13 @@ export function StrengthPlanTable({
   onMoveDown,
   onDelete,
 }: StrengthPlanTableProps) {
+  const { colors } = useTheme();
   if (units.length === 0) return null;
 
   return (
     <View
       className="bg-surface-card rounded-2xl mb-3 overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+      style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
     >
       {units.map((unit, i) => {
         const exercises = exercisesByUnit[unit.id] ?? [];
@@ -65,7 +67,7 @@ export function StrengthPlanTable({
         return (
           <View
             key={unit.id}
-            style={i > 0 ? { borderTopWidth: 1, borderTopColor: "#ddd8ce" } : undefined}
+            style={i > 0 ? { borderTopWidth: 1, borderTopColor: colors["surface-border"] } : undefined}
           >
             {/* Compact summary row */}
             <TouchableOpacity
@@ -79,13 +81,13 @@ export function StrengthPlanTable({
                   width: 22,
                   height: 22,
                   borderRadius: 11,
-                  backgroundColor: "#26241f",
+                  backgroundColor: colors["brand-500"],
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>{i + 1}</Text>
+                <Text style={{ color: colors["brand-ink"], fontSize: 10, fontWeight: "700" }}>{i + 1}</Text>
               </View>
 
               <Text className="text-ink text-sm font-medium" style={{ flex: 1 }} numberOfLines={1}>
@@ -109,7 +111,7 @@ export function StrengthPlanTable({
             {expanded && (
               <View
                 className="px-4 pb-4"
-                style={{ borderTopWidth: 1, borderTopColor: "#ebe7df" }}
+                style={{ borderTopWidth: 1, borderTopColor: colors["surface-elevated"] }}
               >
                 {/* Label + controls */}
                 <View className="flex-row items-center mt-3 mb-3" style={{ gap: 8 }}>
@@ -117,7 +119,7 @@ export function StrengthPlanTable({
                     value={unit.label}
                     onChangeText={(label) => onRename(unit.id, label)}
                     placeholder="Nome do treino"
-                    placeholderTextColor="#bdb8aa"
+                    placeholderTextColor={colors["ink-faint"]}
                     className="flex-1 text-ink text-sm bg-surface-elevated rounded-lg px-3 py-2"
                   />
                   {onMoveUp && i > 0 && (
@@ -132,7 +134,7 @@ export function StrengthPlanTable({
                   )}
                   {onDelete && (
                     <TouchableOpacity onPress={() => onDelete(unit.id)} className="px-1">
-                      <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
+                      <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors["accent-red"]} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -142,7 +144,7 @@ export function StrengthPlanTable({
                   keyExtractor={(ex) => String(ex.id)}
                   onReorder={(reordered) => onReorderExercises(unit.id, reordered.map((ex) => ex.id))}
                   renderItem={({ item: ex, index, dragHandleIcon, DragHandle }) => (
-                    <View className="py-2" style={{ borderTopWidth: 1, borderTopColor: "#ebe7df" }}>
+                    <View className="py-2" style={{ borderTopWidth: 1, borderTopColor: colors["surface-elevated"] }}>
                       <View className="flex-row items-center justify-between mb-2">
                         <DragHandle style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                           {dragHandleIcon}
@@ -150,7 +152,7 @@ export function StrengthPlanTable({
                           <Text className="text-ink text-sm flex-1">{ex.exercise_name}</Text>
                         </DragHandle>
                         <TouchableOpacity onPress={() => onRemoveExercise(ex.id)} className="px-2">
-                          <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
+                          <MaterialCommunityIcons name="trash-can-outline" size={16} color={colors["ink-mute"]} />
                         </TouchableOpacity>
                       </View>
                       <View className="flex-row items-center flex-wrap" style={{ gap: 8 }}>
@@ -189,7 +191,7 @@ export function StrengthPlanTable({
 
                 <TouchableOpacity
                   className="mt-3 py-2 rounded-xl items-center"
-                  style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                  style={{ borderWidth: 1, borderColor: colors["surface-border-strong"], borderStyle: "dashed" }}
                   onPress={() => onAddExercise(unit.id)}
                 >
                   <Text className="text-ink text-xs font-medium">+ Adicionar exercício</Text>

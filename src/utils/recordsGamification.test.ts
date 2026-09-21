@@ -267,7 +267,7 @@ describe("stampsFor", () => {
 
 describe("medalFor / monogramFor", () => {
   it("hands out metal for the podium only", () => {
-    expect(medalFor(0)?.ink).toBe("#8a5a12");
+    expect(medalFor(0)?.ink).toBe("gold-ink");
     expect(medalFor(2)).not.toBeNull();
     expect(medalFor(3)).toBeNull();
   });

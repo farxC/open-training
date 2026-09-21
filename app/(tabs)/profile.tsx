@@ -13,8 +13,10 @@ import { isStrengthCategory, targetKindOf } from "@/data/modalities";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { todayISO } from "@/utils/cycle";
+import { useTheme } from "@/theme";
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
   const {
     modality,
     granularity,
@@ -69,7 +71,7 @@ export default function ProfileScreen() {
         <View className="px-4">
           <Text
             style={{
-              color: "#928d80",
+              color: colors["ink-mute"],
               fontSize: 10,
               fontWeight: "700",
               letterSpacing: 2,

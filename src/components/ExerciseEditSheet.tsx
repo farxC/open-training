@@ -10,6 +10,7 @@ import { EQUIPMENT_LABELS, EQUIPMENT_OPTIONS, TYPE_LABELS, TYPE_OPTIONS } from "
 import { isStrengthCategory } from "@/data/modalities";
 import { ExerciseNameTakenError } from "@/db/queries";
 import { useInteractionState } from "@/hooks/useInteractionState";
+import { useTheme } from "@/theme";
 import type {
   Equipment,
   Exercise,
@@ -64,6 +65,7 @@ export function ExerciseEditSheet({
   onClose,
   onArchived,
 }: Props) {
+  const { colors } = useTheme();
   const isStrength = isStrengthCategory(exercise.modality);
 
   const [name, setName] = useState(exercise.name);
@@ -174,20 +176,20 @@ export function ExerciseEditSheet({
           <SectionHeader title="Identidade" />
           <View
             className="bg-surface-card rounded-2xl mb-4"
-            style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+            style={{ borderWidth: 1, borderColor: colors["brand-100"], padding: 12 }}
           >
-            <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
+            <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
             <TextInput
               className="text-ink rounded-xl px-3 py-2.5"
               style={{
                 marginTop: 7,
-                backgroundColor: "#f4f2ee",
+                backgroundColor: colors["surface"],
                 borderWidth: 1,
-                borderColor: nameError ? "#e8c9c5" : "#e7e4dc",
+                borderColor: nameError ? colors["accent-red-soft"] : colors["brand-100"],
                 fontSize: 14,
               }}
               placeholder="Nome do exercício"
-              placeholderTextColor="#bdb8aa"
+              placeholderTextColor={colors["ink-faint"]}
               value={name}
               onChangeText={(t) => {
                 setName(t);
@@ -195,11 +197,11 @@ export function ExerciseEditSheet({
               }}
             />
             {nameError ? (
-              <Text style={{ color: "#bf3b30", fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
+              <Text style={{ color: colors["accent-red"], fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
             ) : null}
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>
+              <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>
                 Equipamento
               </Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
@@ -215,8 +217,8 @@ export function ExerciseEditSheet({
             </View>
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
-              <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 1 }}>
+              <Text style={{ color: colors["ink"], fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
+              <Text style={{ color: colors["brand-300"], fontSize: 10, marginTop: 1 }}>
                 Composto move mais de uma articulação; isolado, uma só.
               </Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
@@ -237,7 +239,7 @@ export function ExerciseEditSheet({
               <SectionHeader title="Grupos musculares" />
               <View
                 className="bg-surface-card rounded-2xl mb-4"
-                style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12, paddingBottom: 0 }}
+                style={{ borderWidth: 1, borderColor: colors["brand-100"], padding: 12, paddingBottom: 0 }}
               >
                 <MuscleGroupEditor
                   value={muscles}
@@ -258,16 +260,16 @@ export function ExerciseEditSheet({
                 marginTop: 8,
                 padding: 12,
                 gap: 12,
-                backgroundColor: applyToHistory ? "#fbf5e9" : "#efece5",
+                backgroundColor: applyToHistory ? colors["accent-amber-soft"] : colors["surface-tint"],
                 borderWidth: 1,
-                borderColor: applyToHistory ? "#eadfbe" : "#e7e4dc",
+                borderColor: applyToHistory ? colors["gold-soft"] : colors["brand-100"],
               }}
             >
               <View className="flex-1">
-                <Text style={{ color: "#26241f", fontSize: 12, fontWeight: "600" }}>
+                <Text style={{ color: colors["ink"], fontSize: 12, fontWeight: "600" }}>
                   Aplicar às sessões já registradas
                 </Text>
-                <Text style={{ color: "#928d80", fontSize: 10.5, marginTop: 3, lineHeight: 15 }}>
+                <Text style={{ color: colors["ink-mute"], fontSize: 10.5, marginTop: 3, lineHeight: 15 }}>
                   Por padrão a configuração nova vale só das próximas sessões em diante — o
                   histórico guarda a configuração com que foi treinado.
                 </Text>
@@ -283,8 +285,8 @@ export function ExerciseEditSheet({
               className="rounded-2xl flex-row items-center justify-center"
               style={{ marginTop: 10, paddingVertical: 12, gap: 6 }}
             >
-              <MaterialCommunityIcons name="archive-outline" size={14} color="#bf3b30" />
-              <Text style={{ color: "#bf3b30", fontSize: 12, fontWeight: "600" }}>
+              <MaterialCommunityIcons name="archive-outline" size={14} color={colors["accent-red"]} />
+              <Text style={{ color: colors["accent-red"], fontSize: 12, fontWeight: "600" }}>
                 Arquivar exercício
               </Text>
             </Pressable>
@@ -299,8 +301,8 @@ export function ExerciseEditSheet({
             paddingTop: 10,
             paddingBottom: 10,
             borderTopWidth: 1,
-            borderTopColor: "#e7e4dc",
-            backgroundColor: "#f4f2ee",
+            borderTopColor: colors["brand-100"],
+            backgroundColor: colors["surface"],
           }}
         >
           <SaveButton onPress={handleSave} />
@@ -311,6 +313,7 @@ export function ExerciseEditSheet({
 }
 
 function SaveButton({ onPress }: { onPress: () => void }) {
+  const { colors } = useTheme();
   const { pressed, handlers } = useInteractionState();
 
   return (
@@ -321,10 +324,10 @@ function SaveButton({ onPress }: { onPress: () => void }) {
       className="rounded-xl items-center justify-center"
       style={{
         paddingVertical: 13,
-        backgroundColor: pressed ? "#1a1815" : "#26241f",
+        backgroundColor: pressed ? colors["brand-600"] : colors["brand-500"],
       }}
     >
-      <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700", letterSpacing: 0.2 }}>
+      <Text style={{ color: colors["brand-ink"], fontSize: 13, fontWeight: "700", letterSpacing: 0.2 }}>
         Salvar
       </Text>
     </Pressable>
@@ -340,6 +343,7 @@ function IconButton({
   label: string;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -354,11 +358,11 @@ function IconButton({
         width: 32,
         height: 32,
         borderWidth: 1,
-        borderColor: "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: colors["brand-100"],
+        backgroundColor: hovered ? colors["surface-elevated"] : colors["surface-card"],
       }}
     >
-      <MaterialCommunityIcons name={icon} size={17} color="#5c594f" />
+      <MaterialCommunityIcons name={icon} size={17} color={colors["ink-soft"]} />
     </Pressable>
   );
 }
@@ -372,6 +376,7 @@ function Chip({
   active: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -383,11 +388,11 @@ function Chip({
       className="px-3 py-1.5 rounded-full"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? colors["brand-500"] : colors["surface-border"],
+        backgroundColor: active ? colors["brand-500"] : hovered ? colors["surface"] : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+      <Text style={{ color: active ? colors["brand-ink"] : colors["ink-mute"], fontSize: 12, fontWeight: "600" }}>
         {label}
       </Text>
     </Pressable>

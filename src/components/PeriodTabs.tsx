@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "@/theme";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -24,6 +25,7 @@ interface Props<T extends string> {
  * the modality toggle above it.
  */
 export function PeriodTabs<T extends string>({ options, value, onChange }: Props<T>) {
+  const { colors } = useTheme();
   const [rowW, setRowW] = useState(0);
   const activeIndex = Math.max(0, options.findIndex((o) => o.key === value));
   const progress = useSharedValue(activeIndex);
@@ -64,7 +66,7 @@ export function PeriodTabs<T extends string>({ options, value, onChange }: Props
                 style={{
                   fontSize: 13,
                   fontWeight: active ? "700" : "500",
-                  color: active ? "#26241f" : "#928d80",
+                  color: active ? colors.ink : colors["ink-mute"],
                   letterSpacing: -0.1,
                 }}
               >
@@ -76,7 +78,7 @@ export function PeriodTabs<T extends string>({ options, value, onChange }: Props
       </View>
 
       {/* Hairline baseline + sliding ink indicator */}
-      <View style={{ height: 2, backgroundColor: "#ebe7df", borderRadius: 1, position: "relative" }}>
+      <View style={{ height: 2, backgroundColor: colors["surface-elevated"], borderRadius: 1, position: "relative" }}>
         {rowW > 0 && (
           <Animated.View
             pointerEvents="none"
@@ -86,7 +88,7 @@ export function PeriodTabs<T extends string>({ options, value, onChange }: Props
                 top: 0,
                 bottom: 0,
                 left: 0,
-                backgroundColor: "#26241f",
+                backgroundColor: colors["brand-500"],
                 borderRadius: 1,
               },
               indicatorStyle,

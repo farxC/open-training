@@ -20,6 +20,7 @@ import { daysBetween, todayISO } from "@/utils/cycle";
 import { formatVolume } from "@/utils/analyticsFormat";
 import { formatKg } from "@/utils/recordsGamification";
 import { buildExerciseHistory } from "@/utils/exerciseHistory";
+import { useTheme } from "@/theme";
 
 /**
  * One exercise, read as a logbook page.
@@ -30,6 +31,7 @@ import { buildExerciseHistory } from "@/utils/exerciseHistory";
  * a chart and dump the sets at the bottom as undated rows.
  */
 export default function ExerciseDetailScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const exerciseId = Number(id);
@@ -112,11 +114,11 @@ export default function ExerciseDetailScreen() {
                 paddingHorizontal: 8,
                 paddingVertical: 3,
                 borderWidth: 1,
-                borderColor: "#e7e4dc",
-                backgroundColor: "#ffffff",
+                borderColor: colors["brand-100"],
+                backgroundColor: colors["surface-card"],
               }}
             >
-              <Text style={{ color: "#5c594f", fontSize: 10.5, fontWeight: "600" }}>
+              <Text style={{ color: colors["ink-soft"], fontSize: 10.5, fontWeight: "600" }}>
                 {MUSCLE_LABELS[group.muscle_group]}
                 {group.counting_factor !== 1 ? " ½×" : ""}
               </Text>
@@ -129,13 +131,13 @@ export default function ExerciseDetailScreen() {
                 paddingHorizontal: 8,
                 paddingVertical: 3,
                 gap: 4,
-                backgroundColor: "#efece5",
+                backgroundColor: colors["surface-tint"],
                 borderWidth: 1,
-                borderColor: "#ddd8ce",
+                borderColor: colors["surface-border"],
               }}
             >
-              <MaterialCommunityIcons name="archive-outline" size={10} color="#928d80" />
-              <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 0.6 }}>
+              <MaterialCommunityIcons name="archive-outline" size={10} color={colors["ink-mute"]} />
+              <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 0.6 }}>
                 ARQUIVADO
               </Text>
             </View>
@@ -199,6 +201,7 @@ export default function ExerciseDetailScreen() {
 /** Section-level action: reads as a control without competing with the section's
  *  own label for attention. */
 function GhostButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -213,12 +216,12 @@ function GhostButton({ label, onPress }: { label: string; onPress: () => void })
         paddingVertical: 3,
         gap: 4,
         borderWidth: 1,
-        borderColor: hovered ? "#cfcabf" : "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: hovered ? colors["brand-200"] : colors["brand-100"],
+        backgroundColor: hovered ? colors["surface-elevated"] : colors["surface-card"],
       }}
     >
-      <MaterialCommunityIcons name="pencil-outline" size={11} color="#5c594f" />
-      <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>
+      <MaterialCommunityIcons name="pencil-outline" size={11} color={colors["ink-soft"]} />
+      <Text style={{ color: colors["ink-soft"], fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>
         {label}
       </Text>
     </Pressable>
@@ -229,6 +232,7 @@ function GhostButton({ label, onPress }: { label: string; onPress: () => void })
  *  back to its parent — same ghost-pill visual language as the section-level
  *  "editar" affordance, but standalone rather than inside a SectionHeader. */
 function VariationLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -243,12 +247,12 @@ function VariationLink({ label, onPress }: { label: string; onPress: () => void 
         paddingVertical: 3,
         gap: 4,
         borderWidth: 1,
-        borderColor: hovered ? "#cfcabf" : "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: hovered ? colors["brand-200"] : colors["brand-100"],
+        backgroundColor: hovered ? colors["surface-elevated"] : colors["surface-card"],
       }}
     >
-      <MaterialCommunityIcons name="source-branch" size={11} color="#5c594f" />
-      <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>{label}</Text>
+      <MaterialCommunityIcons name="source-branch" size={11} color={colors["ink-soft"]} />
+      <Text style={{ color: colors["ink-soft"], fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -256,6 +260,7 @@ function VariationLink({ label, onPress }: { label: string; onPress: () => void 
 /** The edit affordance, in the header where a screen-level action belongs — it
  *  used to be a bare "Editar" floating next to the metadata line. */
 function EditButton({ onPress }: { onPress: () => void }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -270,11 +275,11 @@ function EditButton({ onPress }: { onPress: () => void }) {
         width: 34,
         height: 34,
         borderWidth: 1,
-        borderColor: hovered ? "#cfcabf" : "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: hovered ? colors["brand-200"] : colors["brand-100"],
+        backgroundColor: hovered ? colors["surface-elevated"] : colors["surface-card"],
       }}
     >
-      <MaterialCommunityIcons name="pencil-outline" size={16} color="#5c594f" />
+      <MaterialCommunityIcons name="pencil-outline" size={16} color={colors["ink-soft"]} />
     </Pressable>
   );
 }
