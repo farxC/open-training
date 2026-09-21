@@ -3,6 +3,7 @@ import { ModalityChips } from "@/components/ModalityChips";
 import { PeriodChips } from "@/components/PeriodChips";
 import { PeriodTabs } from "@/components/PeriodTabs";
 import type { Granularity, Modality } from "@/types";
+import { useTheme } from "@/theme";
 
 const PERIOD_OPTIONS: { key: Granularity; label: string }[] = [
   { key: "week", label: "Semana" },
@@ -22,9 +23,10 @@ interface Props {
 }
 
 function FilterLabel({ children }: { children: string }) {
+  const { colors } = useTheme();
   return (
     <Text
-      style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 8 }}
+      style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 8 }}
     >
       {children}
     </Text>
@@ -38,6 +40,7 @@ export function AnalyticsFilters({
   onModalityChange,
   onGranularityChange,
 }: Props) {
+  const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const isDesktop = width >= DESKTOP_MIN_WIDTH;
 
@@ -77,7 +80,7 @@ export function AnalyticsFilters({
       <FilterLabel>MODALIDADE</FilterLabel>
       <ModalityChips value={modality} onChange={onModalityChange} layout="wrap" />
 
-      <View style={{ height: 1, backgroundColor: "#f0ede6", marginVertical: 16 }} />
+      <View style={{ height: 1, backgroundColor: colors["surface-tint"], marginVertical: 16 }} />
 
       <FilterLabel>PERÍODO</FilterLabel>
       <PeriodTabs<Granularity>

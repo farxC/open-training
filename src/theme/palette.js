@@ -79,6 +79,17 @@ const light = {
   "copper-soft": "#f3e2d5",
   "copper-ink": "#8a5333",
 
+  /** Glyphs and labels that sit on a photo rather than on a themed surface —
+   *  the camera badge on an avatar, the edit pencil on a cover. They ride on
+   *  media-scrim, so they stay light in both schemes: the thing underneath is
+   *  the user's photo, not the app's paper. */
+  "on-media": "#ffffff",
+
+  /** The "FRIO" record stamp — a stale personal best. The only cool hue in an
+   *  otherwise warm palette, which is the point: it reads as absence of heat. */
+  "cold-soft": "#e9edf0",
+  "cold-ink": "#6f7b85",
+
   // ─── Modality dots ──────────────────────────────────────────────────────────
   // Blue, cyan and tan exist nowhere else in the palette, so they are their own
   // tokens rather than reuses. Musculação deliberately matches the ink/fill
@@ -155,6 +166,11 @@ const dark = {
   "copper-soft": "#2e231b",
   "copper-ink": "#e0ae86",
 
+  "cold-soft": "#1e242a",
+  "cold-ink": "#9db0bd",
+
+  "on-media": "#ffffff",
+
   // ─── Modality dots ──────────────────────────────────────────────────────────
   // The light values are unusable here: musculação's #26241f scores 1.11:1
   // against the dark card, i.e. invisible.
@@ -178,10 +194,14 @@ const overlays = {
     /** The near-invisible rule used instead of a full border on nested rows. */
     hairline: "rgba(38, 36, 31, 0.07)",
     scrim: "rgba(38, 36, 31, 0.5)",
+    /** Badge backing over a photo. Same in both schemes — it darkens the image,
+     *  not the page. Consolidates the 0.72/0.78 pair that meant one thing. */
+    "media-scrim": "rgba(38, 36, 31, 0.76)",
   },
   dark: {
     hairline: "rgba(240, 236, 225, 0.06)",
     scrim: "rgba(0, 0, 0, 0.65)",
+    "media-scrim": "rgba(38, 36, 31, 0.76)",
   },
 };
 

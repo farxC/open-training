@@ -5,6 +5,7 @@ import { UnitCard } from "./UnitCard";
 import { ExercisePickerModal } from "./ExercisePickerModal";
 import type { DayScheduleEntry, TargetPatch } from "@/hooks/useRoutine";
 import type { Exercise, Modality, OverrideStatus, RoutineUnitExercise } from "@/types";
+import { useTheme } from "@/theme";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 function fmt(iso: string): string {
@@ -27,17 +28,18 @@ interface Props {
 }
 
 function OverrideButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       onPress={onPress}
       className="px-3 py-2 rounded-xl"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : "transparent",
+        borderColor: active ? colors["brand-500"] : colors["surface-border"],
+        backgroundColor: active ? colors["brand-500"] : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 13, fontWeight: "600" }}>{label}</Text>
+      <Text style={{ color: active ? colors["brand-ink"] : colors["ink-mute"], fontSize: 13, fontWeight: "600" }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -55,6 +57,7 @@ export function DayDetailModal({
   onSetOverride,
   onClearOverride,
 }: Props) {
+  const { colors } = useTheme();
   const [pickerUnitId, setPickerUnitId] = useState<number | null>(null);
   const [pickerModality, setPickerModality] = useState<Modality | undefined>(undefined);
   const [expandedUnitId, setExpandedUnitId] = useState<number | null>(null);
@@ -75,7 +78,7 @@ export function DayDetailModal({
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
           {/* Execution override */}
-          <View className="bg-surface-card rounded-2xl p-4 mb-4" style={{ borderWidth: 1, borderColor: "#ddd8ce" }}>
+          <View className="bg-surface-card rounded-2xl p-4 mb-4" style={{ borderWidth: 1, borderColor: colors["surface-border"] }}>
             <Text className="text-ink-mute text-xs" style={{ letterSpacing: 1, fontWeight: "700" }}>
               O QUE ACONTECEU
             </Text>
@@ -127,7 +130,7 @@ export function DayDetailModal({
               <View
                 key={entry.split.id}
                 className="bg-surface-card rounded-2xl mb-3 p-4 flex-row items-center justify-between"
-                style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                style={{ borderWidth: 1, borderColor: colors["surface-border"] }}
               >
                 <Text className="text-ink text-sm font-medium">{entry.split.name}</Text>
                 <Text className="text-ink-mute text-sm">Descanso</Text>

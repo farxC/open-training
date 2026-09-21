@@ -15,6 +15,7 @@ import { muscleGroupLabel } from "@/data/muscleGroups";
 import type { DateRange } from "@/types";
 import { UNGROUPED_KEY, type MuscleRecordGroup } from "@/utils/analyticsRecords";
 import { todayISO } from "@/utils/cycle";
+import { useTheme } from "@/theme";
 import {
   crownRecord,
   formatKg,
@@ -27,9 +28,6 @@ import {
 } from "@/utils/recordsGamification";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const BRASS = "#d9a441";
-const CREAM = "#f4f2ee";
-const INK = "#26241f";
 
 interface Props {
   groups: MuscleRecordGroup[];
@@ -111,6 +109,7 @@ function MuscleShelf({
   activeStamp,
   onActivateStamp,
 }: ShelfProps) {
+  const { colors } = useTheme();
   const crown = crownRecord(group);
   const milestone = crown ? nextMilestone(crown.max_weight_kg) : null;
   const fresh = freshCount(group, currentRange);
@@ -147,8 +146,8 @@ function MuscleShelf({
 
   // Open shelves invert to ink — the case swings open and the group you are
   // reading is unmistakable against the paper around it.
-  const titleColor = isOpen ? CREAM : INK;
-  const mutedColor = isOpen ? "#a8a293" : "#928d80";
+  const titleColor = isOpen ? colors["surface"] : colors.ink;
+  const mutedColor = isOpen ? colors["brand-300"] : colors["ink-mute"];
 
   return (
     // A bubble opened on the last row hangs past this shelf and into the next
@@ -161,7 +160,7 @@ function MuscleShelf({
         accessibilityState={{ expanded: isOpen }}
         accessibilityLabel={`${groupLabel(group.muscle_group)}, ${group.records.length} records`}
         className="rounded-2xl px-3.5 py-3"
-        style={{ backgroundColor: isOpen ? INK : "#ffffff" }}
+        style={{ backgroundColor: isOpen ? colors.ink : colors["surface-card"] }}
       >
         <View className="flex-row items-center" style={{ gap: 10 }}>
           <View
@@ -170,14 +169,14 @@ function MuscleShelf({
               width: 30,
               height: 30,
               borderRadius: 9,
-              backgroundColor: isOpen ? "rgba(255,255,255,0.08)" : CREAM,
+              backgroundColor: isOpen ? "rgba(255,255,255,0.08)" : colors["surface"],
               borderWidth: 1,
-              borderColor: isOpen ? "rgba(255,255,255,0.18)" : "#e7e4dc",
+              borderColor: isOpen ? "rgba(255,255,255,0.18)" : colors["brand-100"],
             }}
           >
             <Text
               style={{
-                color: isOpen ? CREAM : "#6f6b5f",
+                color: isOpen ? colors["surface"] : colors["brand-400"],
                 fontSize: 11,
                 fontWeight: "700",
                 fontFamily: MONO,
@@ -199,7 +198,7 @@ function MuscleShelf({
             <View
               className="flex-row items-center rounded-full"
               style={{
-                backgroundColor: isOpen ? "rgba(217,164,65,0.22)" : "#f6e8c8",
+                backgroundColor: isOpen ? "rgba(217,164,65,0.22)" : colors["gold-soft"],
                 paddingHorizontal: 7,
                 paddingVertical: 2,
                 gap: 3,
@@ -208,11 +207,11 @@ function MuscleShelf({
               <MaterialCommunityIcons
                 name="star-four-points"
                 size={9}
-                color={isOpen ? "#f0cf8e" : "#8a5a12"}
+                color={isOpen ? colors["gold-soft"] : colors["gold-ink"]}
               />
               <Text
                 style={{
-                  color: isOpen ? "#f0cf8e" : "#8a5a12",
+                  color: isOpen ? colors["gold-soft"] : colors["gold-ink"],
                   fontSize: 10,
                   fontWeight: "700",
                 }}
@@ -225,7 +224,7 @@ function MuscleShelf({
           <View
             className="rounded-full"
             style={{
-              backgroundColor: isOpen ? "rgba(255,255,255,0.08)" : CREAM,
+              backgroundColor: isOpen ? "rgba(255,255,255,0.08)" : colors["surface"],
               paddingHorizontal: 7,
               paddingVertical: 2,
             }}
@@ -239,7 +238,7 @@ function MuscleShelf({
             <MaterialCommunityIcons
               name="chevron-down"
               size={18}
-              color={isOpen ? "#a8a293" : "#bdb8aa"}
+              color={isOpen ? colors["brand-300"] : colors["ink-faint"]}
             />
           </Animated.View>
         </View>
@@ -248,7 +247,7 @@ function MuscleShelf({
           <>
             {/* The shelf front: what's crowning this group right now. */}
             <View className="flex-row items-baseline mt-3" style={{ gap: 7 }}>
-              <MaterialCommunityIcons name="trophy-variant" size={12} color={BRASS} />
+              <MaterialCommunityIcons name="trophy-variant" size={12} color={colors["gold"]} />
               <Text style={{ color: mutedColor, fontSize: 12, flex: 1 }} numberOfLines={1}>
                 {crown.exercise_name}
               </Text>
@@ -267,18 +266,18 @@ function MuscleShelf({
                 height: 5,
                 borderRadius: 99,
                 marginTop: 9,
-                backgroundColor: isOpen ? "rgba(255,255,255,0.12)" : "#ebe7df",
+                backgroundColor: isOpen ? "rgba(255,255,255,0.12)" : colors["surface-elevated"],
               }}
             >
               <Animated.View
-                style={[{ height: "100%", borderRadius: 99, backgroundColor: BRASS }, fillStyle]}
+                style={[{ height: "100%", borderRadius: 99, backgroundColor: colors["gold"] }, fillStyle]}
               />
             </View>
 
             <View className="flex-row items-center justify-between" style={{ marginTop: 5 }}>
               <View className="flex-row items-center" style={{ gap: 4 }}>
                 {milestone.justHit ? (
-                  <MaterialCommunityIcons name="star-four-points" size={9} color={BRASS} />
+                  <MaterialCommunityIcons name="star-four-points" size={9} color={colors["gold"]} />
                 ) : null}
                 <Text style={{ color: mutedColor, fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>
                   {milestone.justHit
@@ -301,7 +300,7 @@ function MuscleShelf({
             marginLeft: 15,
             paddingLeft: 11,
             borderLeftWidth: 1.5,
-            borderLeftColor: "#e7e4dc",
+            borderLeftColor: colors["brand-100"],
           }}
         >
           {group.records.map((record, index) => (
@@ -328,6 +327,7 @@ function MuscleShelf({
 
 /** An empty case still has to say what would fill it. */
 function EmptyCase() {
+  const { colors } = useTheme();
   return (
     <View className="bg-surface-card rounded-2xl items-center" style={{ paddingVertical: 26, paddingHorizontal: 20 }}>
       <View
@@ -337,14 +337,14 @@ function EmptyCase() {
           height: 44,
           borderRadius: 22,
           borderWidth: 1.5,
-          borderColor: "#e7e4dc",
-          backgroundColor: CREAM,
+          borderColor: colors["brand-100"],
+          backgroundColor: colors["surface"],
           marginBottom: 10,
         }}
       >
-        <MaterialCommunityIcons name="trophy-outline" size={20} color="#bdb8aa" />
+        <MaterialCommunityIcons name="trophy-outline" size={20} color={colors["ink-faint"]} />
       </View>
-      <Text style={{ color: INK, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
+      <Text style={{ color: colors.ink, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
         Vitrine vazia
       </Text>
       <Text className="text-ink-mute text-xs text-center" style={{ marginTop: 4, lineHeight: 17 }}>

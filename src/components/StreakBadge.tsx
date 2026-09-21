@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { useTheme } from "@/theme";
 
 interface Props {
   days: number;
@@ -17,19 +18,20 @@ function buildGrid(recentDates: string[]): { date: string; trained: boolean; isT
 }
 
 export function StreakBadge({ days, recentDates }: Props) {
+  const { colors } = useTheme();
   const grid = buildGrid(recentDates ?? []);
 
   return (
     <View className="bg-surface-card rounded-2xl p-4 mb-4">
       <View className="flex-row items-center justify-between mb-4">
         <View className="flex-row items-center" style={{ gap: 8 }}>
-          <View style={{ width: 2, height: 14, backgroundColor: '#26241f', borderRadius: 1 }} />
-          <Text style={{ color: '#928d80', fontSize: 10, fontWeight: '600', letterSpacing: 1.5 }}>
+          <View style={{ width: 2, height: 14, backgroundColor: colors["brand-500"], borderRadius: 1 }} />
+          <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: '600', letterSpacing: 1.5 }}>
             TRAINING STREAK
           </Text>
         </View>
         <View className="flex-row items-baseline" style={{ gap: 4 }}>
-          <Text style={{ color: '#26241f', fontSize: 28, fontWeight: '700', fontFamily: 'JetBrains Mono, Menlo, Courier New, monospace', lineHeight: 32 }}>
+          <Text style={{ color: colors.ink, fontSize: 28, fontWeight: '700', fontFamily: 'JetBrains Mono, Menlo, Courier New, monospace', lineHeight: 32 }}>
             {days}
           </Text>
           <Text className="text-ink-mute text-xs">days</Text>
@@ -45,9 +47,9 @@ export function StreakBadge({ days, recentDates }: Props) {
               width: 18,
               height: 18,
               borderRadius: 4,
-              backgroundColor: trained ? '#26241f' : '#ebe7df',
+              backgroundColor: trained ? colors["brand-500"] : colors["surface-elevated"],
               borderWidth: isToday ? 1.5 : 0,
-              borderColor: '#26241f',
+              borderColor: colors["brand-500"],
               opacity: trained ? 1 : 1,
             }}
           />

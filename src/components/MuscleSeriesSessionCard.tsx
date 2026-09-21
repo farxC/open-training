@@ -11,10 +11,9 @@ import { FadeInRow } from "@/components/FadeInRow";
 import { TickBar } from "@/components/TickBar";
 import { formatMuscleSeriesValue, formatSeriesNumber, muscleGroupLabel } from "@/data/muscleGroups";
 import type { MuscleSeriesRow } from "@/types";
+import { useTheme } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const FAINT = "#928d80";
 const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Widest pip pitch we'll use — beyond this the pips start reading as a sparse
@@ -40,6 +39,7 @@ interface Props {
  *  section heading lives inside the card so the block is one object on screen.
  */
 export function MuscleSeriesSessionCard({ data }: Props) {
+  const { colors } = useTheme();
   const [lane, setLane] = useState(0);
 
   if (data.length === 0) return null;
@@ -64,7 +64,7 @@ export function MuscleSeriesSessionCard({ data }: Props) {
         borderWidth: 1,
         borderColor: HAIRLINE,
         overflow: "hidden",
-        shadowColor: INK,
+        shadowColor: colors.ink,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.05,
         shadowRadius: 14,
@@ -82,14 +82,14 @@ export function MuscleSeriesSessionCard({ data }: Props) {
           gap: 8,
         }}
       >
-        <View style={{ width: 2, height: 12, backgroundColor: INK, borderRadius: 1 }} />
-        <Text style={{ color: FAINT, fontSize: 10, fontWeight: "700", letterSpacing: 1.4, flex: 1 }}>
+        <View style={{ width: 2, height: 12, backgroundColor: colors.ink, borderRadius: 1 }} />
+        <Text style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1.4, flex: 1 }}>
           SÉRIES POR GRUPO
         </Text>
-        <Text style={{ color: INK, fontSize: 12, fontFamily: MONO }}>
+        <Text style={{ color: colors.ink, fontSize: 12, fontFamily: MONO }}>
           {formatSeriesNumber(total, false)}
         </Text>
-        <Text style={{ color: FAINT, fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>
+        <Text style={{ color: colors["ink-mute"], fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>
           SÉRIES
         </Text>
       </View>
@@ -114,7 +114,7 @@ export function MuscleSeriesSessionCard({ data }: Props) {
             >
               <Text
                 style={{
-                  color: INK,
+                  color: colors.ink,
                   fontSize: 11,
                   fontWeight: "700",
                   letterSpacing: 0.7,
@@ -138,7 +138,7 @@ export function MuscleSeriesSessionCard({ data }: Props) {
 
               <Text
                 style={{
-                  color: INK,
+                  color: colors.ink,
                   fontSize: 14,
                   fontFamily: MONO,
                   minWidth: 26,
@@ -185,6 +185,7 @@ function SeriesPips({
 }
 
 function Pip({ size, partial, delay }: { size: number; partial: boolean; delay: number }) {
+  const { colors } = useTheme();
   const pop = useSharedValue(0);
 
   useEffect(() => {
@@ -205,9 +206,9 @@ function Pip({ size, partial, delay }: { size: number; partial: boolean; delay: 
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: partial ? "transparent" : INK,
+          backgroundColor: partial ? "transparent" : colors.ink,
           borderWidth: partial ? 1.5 : 0,
-          borderColor: INK,
+          borderColor: colors.ink,
         },
         style,
       ]}

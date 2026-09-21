@@ -5,6 +5,7 @@ import { distanceDisplay, formatDistanceValue, formatEffort, modalityConfig } fr
 import type { DistanceSummary, Modality, StrengthSummary } from "@/types";
 import { delta } from "@/utils/analyticsAgg";
 import { formatCount, formatDeltaText, formatVolume } from "@/utils/analyticsFormat";
+import { useTheme } from "@/theme";
 
 type Props = { comparisonLabel: string } & (
   | { kind: "strength"; modality: Modality; current: StrengthSummary; previous: StrengthSummary }

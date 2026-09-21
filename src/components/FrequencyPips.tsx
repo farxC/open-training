@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { View } from "react-native";
+import { useTheme } from "@/theme";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -8,8 +9,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-const INK = "#26241f";
-const EMPTY = "#d6d0c3";
 
 interface Props {
   value: number;
@@ -59,6 +58,7 @@ function Pip({
   delay: number;
   cycle?: string | number;
 }) {
+  const { colors } = useTheme();
   const pop = useSharedValue(0);
 
   useEffect(() => {
@@ -82,9 +82,9 @@ function Pip({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: state === "full" ? INK : state === "empty" ? EMPTY : "transparent",
+          backgroundColor: state === "full" ? colors["brand-500"] : state === "empty" ? colors["surface-border"] : "transparent",
           borderWidth: state === "partial" ? 1.5 : 0,
-          borderColor: INK,
+          borderColor: colors["brand-500"],
         },
         style,
       ]}

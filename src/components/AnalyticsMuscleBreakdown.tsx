@@ -31,10 +31,9 @@ import {
   type MuscleLoadSummary,
 } from "@/utils/muscleLoad";
 import { monogramFor } from "@/utils/recordsGamification";
+import { useTheme } from "@/theme";
 
 const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const CREAM = "#f4f2ee";
 const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Fixed width for the frequency cluster, so the bar track is exactly as wide
@@ -64,6 +63,7 @@ interface Props {
  *  one row: volume as a racked plate bar, frequency as countable pips, and the
  *  ranking swappable between the two so neither reading loses its order. */
 export function AnalyticsMuscleBreakdown({ series, frequency, caption, breakdown }: Props) {
+  const { colors } = useTheme();
   const [sort, setSort] = useState<LoadSortKey>("series");
   // One group open at a time: the panel runs to ten rows, and the ranking is
   // only readable while it stays short.
@@ -116,7 +116,7 @@ export function AnalyticsMuscleBreakdown({ series, frequency, caption, breakdown
           borderWidth: 1,
           borderColor: HAIRLINE,
           overflow: "hidden",
-          shadowColor: INK,
+          shadowColor: colors.ink,
           shadowOffset: { width: 0, height: 6 },
           shadowOpacity: 0.05,
           shadowRadius: 14,
@@ -180,6 +180,7 @@ function LoadRow({
   onToggle,
   exercises,
 }: RowProps) {
+  const { colors } = useTheme();
   const label = muscleGroupLabel(row.muscle_group);
   const leading = rank === 1;
   const seriesLed = emphasis === "series";
@@ -220,14 +221,14 @@ function LoadRow({
         style={{
           paddingHorizontal: 14,
           paddingVertical: 11,
-          backgroundColor: open ? "#fbfaf7" : hovered ? "#fbfaf7" : "transparent",
+          backgroundColor: open ? colors["surface-raised"] : hovered ? colors["surface-raised"] : "transparent",
         }}
       >
         <View className="flex-row items-center" style={{ gap: 9 }}>
           <Text
             style={{
               width: 11,
-              color: leading ? INK : "#bdb8aa",
+              color: leading ? colors.ink : colors["ink-faint"],
               fontSize: 9,
               fontWeight: "700",
               fontFamily: MONO,
@@ -244,14 +245,14 @@ function LoadRow({
               width: 26,
               height: 26,
               borderRadius: 8,
-              backgroundColor: leading ? INK : CREAM,
+              backgroundColor: leading ? colors.ink : colors["surface"],
               borderWidth: 1,
-              borderColor: leading ? INK : "#e7e4dc",
+              borderColor: leading ? colors.ink : colors["brand-100"],
             }}
           >
             <Text
               style={{
-                color: leading ? CREAM : "#6f6b5f",
+                color: leading ? colors["surface"] : colors["brand-400"],
                 fontSize: 10,
                 fontWeight: "700",
                 fontFamily: MONO,
@@ -263,7 +264,7 @@ function LoadRow({
           </View>
 
           <Text
-            style={{ color: INK, fontSize: 12, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
+            style={{ color: colors.ink, fontSize: 12, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
             numberOfLines={1}
           >
             {label.toUpperCase()}
@@ -273,7 +274,7 @@ function LoadRow({
               times down the panel. */}
           <Text
             style={{
-              color: seriesLed ? INK : "#5c594f",
+              color: seriesLed ? colors.ink : colors["ink-soft"],
               fontSize: 17,
               fontWeight: "700",
               fontFamily: MONO,
@@ -286,7 +287,7 @@ function LoadRow({
             <MaterialCommunityIcons
               name="chevron-down"
               size={16}
-              color={open ? "#6f6b5f" : "#c9c4b6"}
+              color={open ? colors["brand-400"] : colors["surface-border-strong"]}
             />
           </Animated.View>
         </View>
@@ -299,7 +300,7 @@ function LoadRow({
               slots={slots}
               // The drawer's paper shows through the grooves once it's open —
               // the plates have to stay cut against whatever is behind them.
-              grooveColor={open ? "#fbfaf7" : "#ffffff"}
+              grooveColor={open ? colors["surface-raised"] : colors["surface-card"]}
               delay={180 + index * STEP}
               cycle={cycle}
             />
@@ -317,7 +318,7 @@ function LoadRow({
             />
             <Text
               style={{
-                color: seriesLed ? "#5c594f" : INK,
+                color: seriesLed ? colors["ink-soft"] : colors.ink,
                 fontSize: 11,
                 fontWeight: seriesLed ? "500" : "700",
                 fontFamily: MONO,
@@ -345,6 +346,7 @@ function LoadStrip({
   summary: MuscleLoadSummary;
   isAverage: boolean;
 }) {
+  const { colors } = useTheme();
   const { totalSeries, groupCount, topFrequency } = summary;
 
   return (
@@ -354,7 +356,7 @@ function LoadStrip({
     >
       <Cell label="CARGA TOTAL" flex={1.2}>
         <View className="flex-row items-baseline" style={{ gap: 2 }}>
-          <Text style={{ color: INK, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+          <Text style={{ color: colors.ink, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
             {formatSeriesNumber(totalSeries, isAverage)}
           </Text>
           <Text className="text-ink-mute" style={{ fontSize: 9 }}>
@@ -366,7 +368,7 @@ function LoadStrip({
       <Divider />
 
       <Cell label="GRUPOS" flex={0.8}>
-        <Text style={{ color: INK, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+        <Text style={{ color: colors.ink, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
           {groupCount}
         </Text>
       </Cell>
@@ -380,10 +382,10 @@ function LoadStrip({
               <MaterialCommunityIcons
                 name="repeat-variant"
                 size={13}
-                color="#928d80"
+                color={colors["ink-mute"]}
                 style={{ marginRight: 3 }}
               />
-              <Text style={{ color: INK, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+              <Text style={{ color: colors.ink, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
                 {formatFrequencyNumber(topFrequency.frequency, isAverage)}
               </Text>
               <Text className="text-ink-mute" style={{ fontSize: 9 }}>
@@ -395,7 +397,7 @@ function LoadStrip({
             </Text>
           </>
         ) : (
-          <Text style={{ color: "#bdb8aa", fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+          <Text style={{ color: colors["ink-faint"], fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
             —
           </Text>
         )}
@@ -405,10 +407,11 @@ function LoadStrip({
 }
 
 function Cell({ label, flex, children }: { label: string; flex: number; children: ReactNode }) {
+  const { colors } = useTheme();
   return (
     <View style={{ flex }} className="items-center px-2">
       <Text
-        style={{ color: "#928d80", fontSize: 9, fontWeight: "700", letterSpacing: 1.2, marginBottom: 3 }}
+        style={{ color: colors["ink-mute"], fontSize: 9, fontWeight: "700", letterSpacing: 1.2, marginBottom: 3 }}
       >
         {label}
       </Text>
@@ -418,7 +421,8 @@ function Cell({ label, flex, children }: { label: string; flex: number; children
 }
 
 function Divider() {
-  return <View style={{ width: 1, backgroundColor: "#ede9e1", marginVertical: 2 }} />;
+  const { colors } = useTheme();
+  return <View style={{ width: 1, backgroundColor: colors["surface-tint"], marginVertical: 2 }} />;
 }
 
 const SORT_OPTIONS: { key: LoadSortKey; label: string }[] = [
@@ -435,9 +439,10 @@ function SortChips({
   value: LoadSortKey;
   onChange: (key: LoadSortKey) => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View className="flex-row items-center mb-2.5" style={{ gap: 6 }}>
-      <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
+      <Text style={{ color: colors["ink-faint"], fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
         ORDENAR
       </Text>
       {SORT_OPTIONS.map((opt) => (
@@ -463,6 +468,7 @@ function SortChip({
   active: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const { hovered, handlers } = useInteractionState();
 
   return (
@@ -476,15 +482,15 @@ function SortChip({
         paddingHorizontal: 11,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: active ? INK : "#ddd8ce",
-        backgroundColor: active ? INK : hovered ? "#f0ede6" : "transparent",
+        borderColor: active ? colors.ink : colors["surface-border"],
+        backgroundColor: active ? colors.ink : hovered ? colors["surface-tint"] : "transparent",
       }}
     >
       <Text
         style={{
           fontSize: 11,
           fontWeight: active ? "700" : "500",
-          color: active ? "#ffffff" : hovered ? "#5c594f" : "#928d80",
+          color: active ? colors["brand-ink"] : hovered ? colors["ink-soft"] : colors["ink-mute"],
         }}
       >
         {label}
@@ -496,6 +502,7 @@ function SortChip({
 /** The panel is a table, so it gets a table's header: the unit, once, over the
  *  column it belongs to. */
 function ColumnHeader({ isAverage }: { isAverage: boolean }) {
+  const { colors } = useTheme();
   return (
     <View
       className="flex-row items-center justify-between"
@@ -505,13 +512,13 @@ function ColumnHeader({ isAverage }: { isAverage: boolean }) {
         paddingBottom: 6,
         borderBottomWidth: 1,
         borderBottomColor: HAIRLINE,
-        backgroundColor: "#fdfcfa",
+        backgroundColor: colors["surface-raised"],
       }}
     >
-      <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
+      <Text style={{ color: colors["ink-faint"], fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
         GRUPO
       </Text>
-      <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
+      <Text style={{ color: colors["ink-faint"], fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
         {isAverage ? "SÉRIES/SEM" : "SÉRIES"}
       </Text>
     </View>
@@ -528,6 +535,7 @@ function Legend({
   pips: number | null;
   isAverage: boolean;
 }) {
+  const { colors } = useTheme();
   if (slots == null && pips == null) return null;
 
   return (
@@ -538,13 +546,13 @@ function Legend({
         paddingVertical: 8,
         borderTopWidth: 1,
         borderTopColor: HAIRLINE,
-        backgroundColor: "#fdfcfa",
+        backgroundColor: colors["surface-raised"],
         gap: 5,
       }}
     >
       {slots != null ? (
         <>
-          <View style={{ width: 6, height: 9, borderRadius: 1.5, backgroundColor: INK }} />
+          <View style={{ width: 6, height: 9, borderRadius: 1.5, backgroundColor: colors.ink }} />
           <Text className="text-ink-faint" style={{ fontSize: 9, letterSpacing: 0.3 }}>
             1 série
           </Text>
@@ -559,7 +567,7 @@ function Legend({
 
       {pips != null ? (
         <>
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: INK }} />
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.ink }} />
           <Text className="text-ink-faint" style={{ fontSize: 9, letterSpacing: 0.3 }}>
             {isAverage ? "1 sessão/semana" : "1 sessão"}
           </Text>
@@ -571,6 +579,7 @@ function Legend({
 
 /** An empty panel still has to say what would fill it. */
 function EmptyPanel() {
+  const { colors } = useTheme();
   return (
     <View
       className="bg-surface-card rounded-2xl items-center"
@@ -583,14 +592,14 @@ function EmptyPanel() {
           height: 44,
           borderRadius: 22,
           borderWidth: 1.5,
-          borderColor: "#e7e4dc",
-          backgroundColor: CREAM,
+          borderColor: colors["brand-100"],
+          backgroundColor: colors["surface"],
           marginBottom: 10,
         }}
       >
-        <MaterialCommunityIcons name="chart-timeline-variant" size={20} color="#bdb8aa" />
+        <MaterialCommunityIcons name="chart-timeline-variant" size={20} color={colors["ink-faint"]} />
       </View>
-      <Text style={{ color: INK, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
+      <Text style={{ color: colors.ink, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
         Nada no período
       </Text>
       <Text className="text-ink-mute text-xs text-center" style={{ marginTop: 4, lineHeight: 17 }}>

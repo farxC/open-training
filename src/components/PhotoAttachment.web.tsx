@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@/theme";
 
 interface Photo {
   id: number;
@@ -17,6 +18,7 @@ interface Props {
 const TILE_SIZE = 92;
 
 export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
+  const { colors } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,12 +57,12 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
                 width: 24,
                 height: 24,
                 borderRadius: 12,
-                backgroundColor: "rgba(38,36,31,0.72)",
+                backgroundColor: colors["media-scrim"],
               }}
               onPress={() => onRemove(photo.id)}
               hitSlop={6}
             >
-              <MaterialCommunityIcons name="close" size={13} color="#ffffff" />
+              <MaterialCommunityIcons name="close" size={13} color={colors["on-media"]} />
             </TouchableOpacity>
             {onMove && (
               <View
@@ -73,14 +75,14 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
                     width: 24,
                     height: 24,
                     borderRadius: 12,
-                    backgroundColor: "rgba(38,36,31,0.72)",
+                    backgroundColor: colors["media-scrim"],
                     opacity: index === 0 ? 0.4 : 1,
                   }}
                   onPress={() => onMove(photo.id, "up")}
                   disabled={index === 0}
                   hitSlop={6}
                 >
-                  <MaterialCommunityIcons name="chevron-left" size={16} color="#ffffff" />
+                  <MaterialCommunityIcons name="chevron-left" size={16} color={colors["on-media"]} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="items-center justify-center"
@@ -88,14 +90,14 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
                     width: 24,
                     height: 24,
                     borderRadius: 12,
-                    backgroundColor: "rgba(38,36,31,0.72)",
+                    backgroundColor: colors["media-scrim"],
                     opacity: index === photos.length - 1 ? 0.4 : 1,
                   }}
                   onPress={() => onMove(photo.id, "down")}
                   disabled={index === photos.length - 1}
                   hitSlop={6}
                 >
-                  <MaterialCommunityIcons name="chevron-right" size={16} color="#ffffff" />
+                  <MaterialCommunityIcons name="chevron-right" size={16} color={colors["on-media"]} />
                 </TouchableOpacity>
               </View>
             )}

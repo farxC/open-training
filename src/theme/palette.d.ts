@@ -43,6 +43,9 @@ export type ColorToken =
   | "copper"
   | "copper-soft"
   | "copper-ink"
+  | "cold-soft"
+  | "cold-ink"
+  | "on-media"
   | "dot-musculacao"
   | "dot-corrida"
   | "dot-natacao"
@@ -50,7 +53,7 @@ export type ColorToken =
   | "dot-caminhada"
   | "shadow";
 
-export type OverlayToken = "hairline" | "scrim";
+export type OverlayToken = "hairline" | "scrim" | "media-scrim";
 
 export type ColorScheme = "light" | "dark";
 

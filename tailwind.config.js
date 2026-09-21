@@ -78,6 +78,8 @@ module.exports = {
         gold: { DEFAULT: ref("gold"), soft: ref("gold-soft"), ink: ref("gold-ink") },
         pewter: { DEFAULT: ref("pewter"), soft: ref("pewter-soft"), ink: ref("pewter-ink") },
         copper: { DEFAULT: ref("copper"), soft: ref("copper-soft"), ink: ref("copper-ink") },
+        cold: { soft: ref("cold-soft"), ink: ref("cold-ink") },
+        "on-media": ref("on-media"),
         dot: {
           musculacao: ref("dot-musculacao"),
           corrida: ref("dot-corrida"),

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { View } from "react-native";
+import { useTheme } from "@/theme";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -8,8 +9,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-const INK = "#26241f";
-const TRACK = "#e9e5dc";
 
 interface Props {
   value: number;
@@ -37,10 +36,15 @@ export function TickBar({
   capacity,
   slots,
   height = 10,
-  grooveColor = "#ffffff",
+  grooveColor,
   delay = 0,
   cycle,
 }: Props) {
+  const { colors } = useTheme();
+  // The grooves are painted in whatever surface the bar sits on, so the caller
+  // owns this. Defaulted here rather than in the parameter list because a
+  // default cannot reach the hook.
+  const groove = grooveColor ?? colors["surface-card"];
   const fill = useSharedValue(0);
 
   const raw = capacity > 0 ? value / capacity : 0;
@@ -66,13 +70,13 @@ export function TickBar({
       style={{
         height,
         borderRadius: radius,
-        backgroundColor: TRACK,
+        backgroundColor: colors["surface-tint"],
         overflow: "hidden",
       }}
     >
       <Animated.View
         style={[
-          { height: "100%", backgroundColor: INK, borderRadius: radius },
+          { height: "100%", backgroundColor: colors.ink, borderRadius: radius },
           fillStyle,
         ]}
       >
@@ -101,7 +105,7 @@ export function TickBar({
               style={{
                 flex: 1,
                 borderRightWidth: i === slots - 1 ? 0 : grooveWidth,
-                borderRightColor: grooveColor,
+                borderRightColor: groove,
               }}
             />
           ))}

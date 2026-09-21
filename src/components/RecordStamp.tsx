@@ -1,5 +1,7 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Pressable, Text, View } from "react-native";
+import { useTheme } from "@/theme";
+import type { ThemeColors } from "@/theme";
 import {
   HOT_MIN_GAINS,
   HOT_WINDOW_DAYS,
@@ -13,29 +15,36 @@ import {
  *  explanation, and the thresholds are interpolated so the copy follows the rule
  *  if the rule ever moves. Kept to one short sentence — the bubble hangs off a
  *  chip barely 50px wide, and a paragraph there reads as a panel, not a hint. */
-const STAMPS = {
+/** Copy and glyph are fixed; only the colours depend on the scheme, so the two
+ *  are kept apart — the bubble reads `meaning` without needing the palette. */
+const STAMP_COPY = {
   new: {
-    bg: "#2f9e6e",
-    ink: "#ffffff",
     icon: "star-four-points",
     text: "NOVO",
     meaning: "Batido no período selecionado.",
   },
   hot: {
-    bg: "#fbe8cf",
-    ink: "#a25c12",
     icon: "fire",
     text: "QUENTE",
     meaning: `Carga subiu ${HOT_MIN_GAINS}+ vezes em ${HOT_WINDOW_DAYS} dias.`,
   },
   cold: {
-    bg: "#e9edf0",
-    ink: "#6f7b85",
     icon: "snowflake",
     text: "FRIO",
     meaning: `Sem record novo há ${STALE_AFTER_DAYS}+ dias.`,
   },
 } as const satisfies Record<StampTone, unknown>;
+
+/** NOVO is the odd one out: a saturated fill rather than a tint, so its label
+ *  takes brand-ink. A fixed white would fall to 2.21:1 once the dark scheme
+ *  lightens accent-green. */
+function stampColors(colors: ThemeColors): Record<StampTone, { bg: string; ink: string }> {
+  return {
+    new: { bg: colors["accent-green"], ink: colors["brand-ink"] },
+    hot: { bg: colors["accent-amber-soft"], ink: colors["accent-amber-ink"] },
+    cold: { bg: colors["cold-soft"], ink: colors["cold-ink"] },
+  };
+}
 
 interface StampProps {
   tone: StampTone;
@@ -48,7 +57,9 @@ interface StampProps {
  *  anchored to the chip itself. Nested inside the row's touchable, it swallows
  *  the press so asking what a stamp means never navigates away from the answer. */
 export function Stamp({ tone, isActive, onActivate }: StampProps) {
-  const { bg, ink, icon, text, meaning } = STAMPS[tone];
+  const { colors } = useTheme();
+  const { icon, text, meaning } = STAMP_COPY[tone];
+  const { bg, ink } = stampColors(colors)[tone];
 
   return (
     <View>
@@ -84,6 +95,7 @@ export function Stamp({ tone, isActive, onActivate }: StampProps) {
 /** Hangs off the bottom-right of its own chip, sized to its sentence. Right-
  *  aligned so it grows leftward into the card instead of off the screen edge. */
 function StampTooltip({ tone }: { tone: StampTone }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -120,8 +132,8 @@ function StampTooltip({ tone }: { tone: StampTone }) {
           transform: [{ rotate: "45deg" }],
         }}
       />
-      <Text style={{ color: "#e7e4dc", fontSize: 11, lineHeight: 15 }}>
-        {STAMPS[tone].meaning}
+      <Text style={{ color: colors["brand-100"], fontSize: 11, lineHeight: 15 }}>
+        {STAMP_COPY[tone].meaning}
       </Text>
     </View>
   );

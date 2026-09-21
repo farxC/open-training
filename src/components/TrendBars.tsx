@@ -1,4 +1,5 @@
 import { Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "@/theme";
 
 interface Props {
   bars: { label: string; value: number }[];
@@ -24,6 +25,7 @@ const DAY_STRIP = 15;
 const BAR_AREA = PLOT_HEIGHT - VALUE_STRIP - DAY_STRIP;
 
 export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPress }: Props) {
+  const { colors } = useTheme();
   const max = Math.max(...bars.map((b) => b.value), 0);
   const hasData = max > 0;
   const highlight = highlightIndex ?? bars.length - 1;
@@ -32,7 +34,7 @@ export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPre
     <View className="bg-surface-card rounded-2xl p-3">
       {caption ? (
         <Text
-          style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}
+          style={{ color: colors["ink-mute"], fontSize: 10, fontWeight: "700", letterSpacing: 1 }}
           className="mb-2"
           numberOfLines={1}
         >
@@ -63,7 +65,7 @@ export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPre
                 <View style={{ height: VALUE_STRIP, justifyContent: "flex-end" }}>
                   {isCurrent && formatValue ? (
                     <Text
-                      style={{ color: "#5c594f", fontSize: 9, lineHeight: 11, fontWeight: "600" }}
+                      style={{ color: colors["ink-soft"], fontSize: 9, lineHeight: 11, fontWeight: "600" }}
                       numberOfLines={1}
                     >
                       {formatValue(bar.value)}
@@ -74,14 +76,14 @@ export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPre
                   style={{
                     width: "100%",
                     height,
-                    backgroundColor: isCurrent ? "#26241f" : "#ddd8ce",
+                    backgroundColor: isCurrent ? colors["brand-500"] : colors["surface-border"],
                     borderTopLeftRadius: 3,
                     borderTopRightRadius: 3,
                   }}
                 />
                 <View style={{ height: DAY_STRIP, justifyContent: "center" }}>
                   <Text
-                    style={{ color: "#928d80", fontSize: 9, lineHeight: 11 }}
+                    style={{ color: colors["ink-mute"], fontSize: 9, lineHeight: 11 }}
                     numberOfLines={1}
                   >
                     {bar.label}
