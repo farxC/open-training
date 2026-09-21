@@ -61,7 +61,7 @@ Cada dia do ciclo tem sua lista fixa de exercícios (reordenável por arrastar) 
   <img src="docs/images/split-detail.png" width="45%" alt="Estrutura do split" />
 </p>
 
-### Analytics
+### Perfil
 
 <p>
   <img src="docs/images/analytics-1.png" width="30%" alt="Streak e resumo" />
@@ -147,7 +147,7 @@ npx jest             # testes
 
 ```
 app/                  # rotas do Expo Router
-  (tabs)/             # Feed · Analytics · Routine
+  (tabs)/             # Feed · Perfil · Routine
   session/            # nova sessão (wizard + logger) e detalhe
   routine/            # splits, dias do ciclo, programas de progressão
   exercises/[id].tsx  # histórico e ficha técnica do exercício

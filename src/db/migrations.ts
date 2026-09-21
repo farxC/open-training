@@ -707,6 +707,16 @@ export function runMigrations(dbHandle: DbHandle = db): void {
     );
   }
 
+  // v20: a single-row user profile (id fixed to 1) sketching what a local
+  // "account" looks like — name, username, photos, birthdate, and a
+  // manually-declared training start date. Seeded unconditionally, like
+  // exercise_config's backfill: self-healing regardless of currentVersion,
+  // safe to re-run every launch via INSERT OR IGNORE.
+  dbHandle.runSync(
+    `INSERT OR IGNORE INTO user_profile (id, created_at) VALUES (1, ?)`,
+    [new Date().toISOString()]
+  );
+
   if (currentVersion < SCHEMA_VERSION) {
     dbHandle.runSync(
       "INSERT OR REPLACE INTO user_meta (key, value) VALUES ('schema_version', ?)",

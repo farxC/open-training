@@ -16,6 +16,7 @@ export type {
   ExerciseConfig,
 } from "./exercise";
 export type { Session, SessionPhoto, SessionExercise, WorkoutSet, SessionWithSets, SessionSummary } from "./session";
+export type { UserProfile } from "./profile";
 export type { SplitMode, RoutineSplit, RoutineUnit, RoutineUnitExercise, OverrideStatus, RoutineOverride, TrainingProgram, ProgramWeek, ProgramEntry } from "./routine";
 export type {
   Granularity,

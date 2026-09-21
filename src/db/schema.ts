@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 19;
+export const SCHEMA_VERSION = 20;
 
 export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS exercises (
@@ -181,6 +181,17 @@ export const CREATE_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS user_meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS user_profile (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    name TEXT,
+    username TEXT,
+    photo_uri TEXT,
+    cover_photo_uri TEXT,
+    birthdate TEXT,
+    training_start_date TEXT,
+    created_at TEXT NOT NULL
   )`,
 
   `CREATE TABLE IF NOT EXISTS training_programs (

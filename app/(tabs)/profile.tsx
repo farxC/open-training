@@ -7,12 +7,14 @@ import { AnalyticsMuscleBreakdown } from "@/components/AnalyticsMuscleBreakdown"
 import { AnalyticsRecords } from "@/components/AnalyticsRecords";
 import { AnalyticsSummary } from "@/components/AnalyticsSummary";
 import { AnalyticsTrend } from "@/components/AnalyticsTrend";
+import { ProfileHeader } from "@/components/ProfileHeader";
 import { StreakBadge } from "@/components/StreakBadge";
 import { isStrengthCategory, targetKindOf } from "@/data/modalities";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { todayISO } from "@/utils/cycle";
 
-export default function AnalyticsScreen() {
+export default function ProfileScreen() {
   const {
     modality,
     granularity,
@@ -36,11 +38,13 @@ export default function AnalyticsScreen() {
     analysisWindow,
     refresh,
   } = useAnalytics();
+  const { profile, refresh: refreshProfile, update: updateProfile } = useUserProfile();
 
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh])
+      refreshProfile();
+    }, [refresh, refreshProfile])
   );
 
   // Two different questions: which summary/records shape to render (metric),
@@ -57,31 +61,24 @@ export default function AnalyticsScreen() {
         contentContainerStyle={{ paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="px-4 pt-3 pb-4">
+        {/* Sits outside the px-4 block on purpose: the cover photo is full-bleed
+            and the avatar overlaps it with a negative margin. ProfileHeader also
+            draws the divider that separates it from the stats below. */}
+        <ProfileHeader profile={profile} onUpdate={updateProfile} />
+
+        <View className="px-4">
           <Text
             style={{
               color: "#928d80",
               fontSize: 10,
               fontWeight: "700",
               letterSpacing: 2,
-              marginBottom: 2,
+              marginBottom: 14,
             }}
           >
-            PERFORMANCE
+            DESEMPENHO
           </Text>
-          <Text
-            className="text-ink font-display font-semibold text-3xl"
-            style={{ letterSpacing: -0.6 }}
-          >
-            Analytics
-          </Text>
-        </View>
 
-        {/* Divider */}
-        <View style={{ height: 1, backgroundColor: "#ddd8ce", marginHorizontal: 16, marginBottom: 20 }} />
-
-        <View className="px-4">
           <AnalyticsFilters
             modality={modality}
             granularity={granularity}

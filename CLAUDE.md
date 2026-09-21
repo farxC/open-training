@@ -57,7 +57,7 @@ npx jest path/to/file.test.ts
 app/                       # Expo Router file-based routes
   (tabs)/                  # Bottom-tab navigator group
     index.tsx              # Feed tab — session list + FAB
-    analytics.tsx          # Analytics tab — charts, PRs, streak
+    profile.tsx            # Perfil tab — user profile + charts, PRs, streak
     routine.tsx            # Routine tab — weekly training split
   session/
     record.tsx             # Live session recording (modal)

@@ -874,6 +874,54 @@ describe("runMigrations adds exercise variation columns (v18 -> v19)", () => {
   });
 });
 
+describe("runMigrations seeds the singleton user_profile row (v19 -> v20)", () => {
+  it("seeds exactly one user_profile row with id 1 and a created_at timestamp", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    const rows = dbHandle.getAllSync<{ id: number; created_at: string | null }>(
+      "SELECT id, created_at FROM user_profile",
+      []
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(1);
+    expect(rows[0].created_at).toEqual(expect.any(String));
+
+    const versionRow = dbHandle.getFirstSync<{ value: string }>(
+      "SELECT value FROM user_meta WHERE key = 'schema_version'",
+      []
+    );
+    expect(versionRow!.value).toBe(String(SCHEMA_VERSION));
+  });
+
+  it("is idempotent — running migrations twice does not duplicate the row or overwrite edits", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+    dbHandle.runSync("UPDATE user_profile SET name = 'Rafael' WHERE id = 1", []);
+
+    runMigrations(dbHandle);
+
+    const rows = dbHandle.getAllSync<{ id: number; name: string | null }>("SELECT id, name FROM user_profile", []);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe("Rafael");
+  });
+
+  it("enforces the singleton id via the CHECK constraint", async () => {
+    const dbHandle: DbHandle = await createInMemoryDb();
+    dbHandle.execSync(loadFixture("v15-pre-bench-angle.sql"));
+
+    runMigrations(dbHandle);
+
+    expect(() =>
+      dbHandle.runSync("INSERT INTO user_profile (id, created_at) VALUES (2, '2026-01-01T00:00:00.000Z')", [])
+    ).toThrow();
+  });
+});
+
 describe("runMigrations against an already-current device", () => {
   it("leaves existing rows untouched, adding only the missing modality seeds", async () => {
     const dbHandle: DbHandle = await createInMemoryDb();

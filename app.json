@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "open-training",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.opentraining.app"
@@ -30,7 +32,8 @@
           "photosPermission": "The app accesses your photos to attach to workout sessions."
         }
       ],
-      "./plugins/withAndroidReleaseSigning"
+      "./plugins/withAndroidReleaseSigning",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

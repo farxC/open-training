@@ -21,6 +21,7 @@ import type {
   Session,
   SessionPhoto,
   SessionExercise,
+  UserProfile,
   SessionSummary,
   SessionWithSets,
   WorkoutSet,
@@ -1489,5 +1490,23 @@ export function getSessionDatesByModality(modality: Modality): string[] {
     [modality]
   );
   return rows.map((r) => r.date);
+}
+
+// ─── User profile ───────────────────────────────────────────────────────────────
+
+export function getUserProfile(): UserProfile {
+  return db.getFirstSync<UserProfile>("SELECT * FROM user_profile WHERE id = 1", [])!;
+}
+
+export function updateUserProfile(
+  patch: Partial<
+    Pick<UserProfile, "name" | "username" | "photo_uri" | "cover_photo_uri" | "birthdate" | "training_start_date">
+  >
+): void {
+  const fields = Object.keys(patch) as (keyof typeof patch)[];
+  if (fields.length === 0) return;
+  const setClauses = fields.map((f) => `${f} = ?`).join(", ");
+  const values = fields.map((f) => patch[f] ?? null);
+  db.runSync(`UPDATE user_profile SET ${setClauses} WHERE id = 1`, values);
 }
 

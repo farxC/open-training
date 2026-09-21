@@ -1,22 +1,25 @@
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
-import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { SessionCard } from "@/components/SessionCard";
 import { useSessions } from "@/hooks/useSessions";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import type { SessionSummary } from "@/types";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function FeedScreen() {
   const { sessions, refresh } = useSessions();
+  const { profile, refresh: refreshProfile } = useUserProfile();
 
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh])
+      refreshProfile();
+    }, [refresh, refreshProfile])
   );
 
   return (
@@ -35,6 +38,18 @@ export default function FeedScreen() {
                 : "No sessions yet"}
             </Text>
           </View>
+          <TouchableOpacity
+            className="w-10 h-10 rounded-full items-center justify-center overflow-hidden"
+            onPress={() => router.push("/(tabs)/profile")}
+            style={{ marginRight: 8, backgroundColor: "#ebe7df" }}
+            hitSlop={8}
+          >
+            {profile.photo_uri ? (
+              <Image source={{ uri: profile.photo_uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+            ) : (
+              <MaterialCommunityIcons name="account-circle-outline" size={26} color="#5c594f" />
+            )}
+          </TouchableOpacity>
           <TouchableOpacity
             className="w-10 h-10 rounded-full items-center justify-center"
             onPress={() => router.push("/settings")}

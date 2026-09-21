@@ -33,9 +33,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="analytics"
+        name="profile"
         options={{
-          title: "Analytics",
+          title: "Perfil",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bar-chart" size={size - 2} color={color} />
           ),
