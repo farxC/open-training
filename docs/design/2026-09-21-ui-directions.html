@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-scenario="caderno" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Training — Direções</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   SHELL — a moldura da apresentação (não faz parte do app)
+   ═══════════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:#0c0d10;
+  color:#d8dbe0;
+  font-family:'Archivo',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background:
+    radial-gradient(900px 500px at 12% -5%, rgba(120,140,255,.10), transparent 60%),
+    radial-gradient(700px 420px at 92% 8%, rgba(255,120,60,.07), transparent 60%);
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.wrap{position:relative;z-index:1;max-width:1560px;margin:0 auto;padding:0 28px 100px}
+
+/* ── Topo ── */
+.masthead{padding:56px 0 30px;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between}
+.mast-l{max-width:640px}
+.eyebrow{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:#6b7280;font-weight:700;margin:0 0 14px}
+.masthead h1{
+  margin:0;font-size:clamp(34px,5.2vw,62px);line-height:.95;font-weight:800;letter-spacing:-.035em;
+  background:linear-gradient(96deg,#fff 22%,#8f96a3 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.masthead p{margin:16px 0 0;color:#8b919c;font-size:15px;line-height:1.6}
+.masthead p b{color:#cfd3da;font-weight:600}
+
+/* ── Barra de controle ── */
+.controls{
+  position:sticky;top:0;z-index:40;margin:0 -28px 34px;padding:14px 28px;
+  background:rgba(12,13,16,.82);backdrop-filter:blur(18px) saturate(1.4);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
+}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{
+  appearance:none;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);
+  color:#9aa1ad;padding:9px 16px 9px 13px;border-radius:999px;cursor:pointer;
+  font:inherit;font-size:13px;font-weight:600;letter-spacing:-.01em;
+  display:flex;align-items:center;gap:9px;transition:all .22s cubic-bezier(.2,.8,.3,1);
+}
+.tab:hover{background:rgba(255,255,255,.08);color:#e6e9ee;transform:translateY(-1px)}
+.tab .swatch{width:15px;height:15px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.tab .k{font-size:10px;opacity:.45;font-variant-numeric:tabular-nums;margin-left:2px}
+.tab[aria-selected="true"]{background:#fff;color:#0c0d10;border-color:#fff;box-shadow:0 6px 22px -6px rgba(255,255,255,.35)}
+.tab[aria-selected="true"] .k{opacity:.4}
+.mode-switch{
+  display:flex;gap:3px;padding:3px;border-radius:999px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+}
+.mode-switch button{
+  appearance:none;border:0;background:transparent;color:#8b919c;cursor:pointer;
+  font:inherit;font-size:12px;font-weight:600;padding:7px 15px;border-radius:999px;
+  transition:all .2s;display:flex;align-items:center;gap:6px;
+}
+.mode-switch button[aria-pressed="true"]{background:#fff;color:#0c0d10}
+
+/* ── Painel de notas ── */
+.notes{
+  display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:1px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;overflow:hidden;margin-bottom:36px;
+}
+.note{background:#101217;padding:24px 24px 26px}
+.note h3{margin:0 0 10px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#6b7280;font-weight:700}
+.note .big{font-size:23px;font-weight:800;letter-spacing:-.028em;color:#fff;margin:0 0 9px;line-height:1.12}
+.note p{margin:0;font-size:13.5px;line-height:1.62;color:#9aa1ad}
+.note p + p{margin-top:9px}
+.note b{color:#dfe3e9;font-weight:600}
+.riskbar{display:flex;gap:4px;margin-top:13px}
+.riskbar i{height:4px;flex:1;border-radius:2px;background:rgba(255,255,255,.1)}
+.riskbar i.on{background:var(--risk-color,#7dd3a0)}
+.risk-label{font-size:11px;color:#6b7280;margin-top:8px;display:block;letter-spacing:.02em}
+.fontspec{font-size:12.5px;color:#9aa1ad;line-height:1.85}
+.fontspec span{color:#fff;font-weight:600}
+.palette{display:flex;gap:5px;margin-top:14px;flex-wrap:wrap}
+.palette i{width:26px;height:26px;border-radius:7px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+
+/* ── Palco dos telefones ── */
+.stage-label{
+  display:flex;align-items:baseline;gap:14px;margin:0 0 20px;
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#6b7280;font-weight:700;
+}
+.stage-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1)}
+.stage{display:flex;gap:22px;overflow-x:auto;padding:4px 4px 30px;scrollbar-width:thin}
+.stage::-webkit-scrollbar{height:7px}
+.stage::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:4px}
+.phone-wrap{flex:0 0 auto;display:flex;flex-direction:column;gap:11px}
+.phone-cap{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#71777f;font-weight:700;padding-left:4px}
+.phone-cap em{font-style:normal;color:#4d5259;text-transform:none;letter-spacing:0;font-weight:500;margin-left:7px}
+.phone{
+  width:356px;height:706px;border-radius:46px;padding:11px;flex:0 0 auto;
+  background:linear-gradient(160deg,#2a2d34,#131519 55%,#22252b);
+  box-shadow:0 44px 80px -28px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.1);
+}
+.screen{
+  width:100%;height:100%;border-radius:34px;overflow:hidden;position:relative;
+  background:var(--bg);color:var(--ink);
+  font-family:var(--font-body);
+  display:flex;flex-direction:column;
+  transition:background .4s ease,color .4s ease;
+}
+.screen::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:5;background:var(--page-texture,none);opacity:var(--texture-op,0)}
+.notch{height:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:10px;font-weight:700;color:var(--ink-mute);font-family:var(--font-data);letter-spacing:.04em}
+.scrollarea{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.scrollarea::-webkit-scrollbar{display:none}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOKENS — o mesmo markup, quatro linguagens visuais
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --radius:16px; --radius-sm:10px; --radius-lg:20px; --pill:999px;
+  --bw:1px; --shadow:none; --shadow-lg:none;
+  --label-tr:.14em; --label-case:uppercase; --label-w:700;
+  --display-w:600; --display-tr:-.02em;
+  --texture-op:0;
+  --tap:rgba(0,0,0,.05);
+}
+
+/* ─────────── 1 · CADERNO ─────────── */
+[data-scenario="caderno"]{
+  --font-display:'Fraunces',Georgia,serif;
+  --font-body:'Hanken Grotesk',system-ui,sans-serif;
+  --font-data:'JetBrains Mono',monospace;
+  --radius:18px; --radius-sm:11px; --radius-lg:22px; --bw:1px;
+  --display-w:600; --display-tr:-.025em; --label-tr:.16em;
+}
+[data-scenario="caderno"][data-mode="light"]{
+  --bg:#f4f2ee; --bg-alt:#ebe7df; --card:#ffffff; --elev:#f7f5f1; --border:#ddd8ce;
+  --ink:#26241f; --ink-soft:#5c594f; --ink-mute:#928d80; --ink-faint:#bdb8aa;
+  --accent:#26241f; --accent-ink:#ffffff; --accent-soft:#e7e4dc;
+  --ok:#2f9e6e; --warn:#b9791f; --bad:#bf3b30;
+  --shadow:0 1px 2px rgba(38,36,31,.05); --shadow-lg:0 10px 30px -14px rgba(38,36,31,.3);
+  --page-texture:repeating-linear-gradient(0deg,rgba(38,36,31,.022) 0 1px,transparent 1px 28px);
+  --texture-op:1;
+}
+[data-scenario="caderno"][data-mode="dark"]{
+  --bg:#15140f; --bg-alt:#1d1c16; --card:#1c1b15; --elev:#24231c; --border:#332f26;
+  --ink:#f0ece1; --ink-soft:#b6b0a1; --ink-mute:#807b6d; --ink-faint:#5a564b;
+  --accent:#f0ece1; --accent-ink:#15140f; --accent-soft:#2b2921;
+  --ok:#5bc191; --warn:#d9a24a; --bad:#e0705f;
+  --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 14px 36px -16px rgba(0,0,0,.8);
+  --page-texture:repeating-linear-gradient(0deg,rgba(240,236,225,.017) 0 1px,transparent 1px 28px);
+  --texture-op:1;
+}
+
+/* ─────────── 2 · TERMINAL ─────────── */
+[data-scenario="terminal"]{
+  --font-display:'IBM Plex Sans Condensed',sans-serif;
+  --font-body:'IBM Plex Sans Condensed',sans-serif;
+  --font-data:'IBM Plex Mono',monospace;
+  --radius:3px; --radius-sm:2px; --radius-lg:4px; --pill:3px; --bw:1px;
+  --display-w:600; --display-tr:-.005em; --label-tr:.22em;
+}
+[data-scenario="terminal"][data-mode="dark"]{
+  --bg:#08090b; --bg-alt:#0e1014; --card:#101317; --elev:#161a1f; --border:#242a31;
+  --ink:#e9edf1; --ink-soft:#9aa5b0; --ink-mute:#616c77; --ink-faint:#414a53;
+  --accent:#d4ff3f; --accent-ink:#0b0d0a; --accent-soft:#1c2410;
+  --ok:#d4ff3f; --warn:#ffa02e; --bad:#ff4d3d;
+  --shadow:none; --shadow-lg:0 0 0 1px #242a31;
+  --page-texture:linear-gradient(rgba(212,255,63,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(212,255,63,.022) 1px,transparent 1px);
+  --texture-op:1;
+}
+[data-scenario="terminal"][data-mode="light"]{
+  --bg:#e9ebee; --bg-alt:#dfe2e6; --card:#ffffff; --elev:#f4f5f7; --border:#c3c9d0;
+  --ink:#0b0d10; --ink-soft:#434b54; --ink-mute:#6d757e; --ink-faint:#9aa1a9;
+  --accent:#0b0d10; --accent-ink:#d4ff3f; --accent-soft:#e6f2b8;
+  --ok:#3f7d18; --warn:#a55c00; --bad:#c62e1e;
+  --shadow:none; --shadow-lg:0 0 0 1px #c3c9d0;
+  --page-texture:linear-gradient(rgba(11,13,16,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(11,13,16,.028) 1px,transparent 1px);
+  --texture-op:1;
+}
+[data-scenario="terminal"] .screen{background-size:22px 22px}
+[data-scenario="terminal"] .bignum .val{letter-spacing:-.04em}
+
+/* ─────────── 3 · VITRINE ─────────── */
+[data-scenario="vitrine"]{
+  --font-display:'Bricolage Grotesque',sans-serif;
+  --font-body:'Archivo',sans-serif;
+  --font-data:'Archivo',sans-serif;
+  --radius:4px; --radius-sm:3px; --radius-lg:6px; --pill:999px; --bw:0px;
+  --display-w:800; --display-tr:-.045em; --label-tr:.2em;
+}
+[data-scenario="vitrine"][data-mode="light"]{
+  --bg:#faf7f2; --bg-alt:#f0ebe2; --card:#ffffff; --elev:#f5f1ea; --border:#1a1817;
+  --ink:#141312; --ink-soft:#4a4642; --ink-mute:#8a837a; --ink-faint:#b8b1a6;
+  --accent:#ff4b17; --accent-ink:#ffffff; --accent-soft:#ffe6dd;
+  --ok:#0f7a4d; --warn:#c07a00; --bad:#ff4b17;
+  --shadow:none; --shadow-lg:14px 14px 0 -2px rgba(20,19,18,.1);
+}
+[data-scenario="vitrine"][data-mode="dark"]{
+  --bg:#0c0b0a; --bg-alt:#151312; --card:#161413; --elev:#1f1c1a; --border:#f5efe6;
+  --ink:#f7f2e9; --ink-soft:#bab2a6; --ink-mute:#847c72; --ink-faint:#5a544c;
+  --accent:#ff5a22; --accent-ink:#0c0b0a; --accent-soft:#3a1a0d;
+  --ok:#43c98a; --warn:#e5a63a; --bad:#ff5a22;
+  --shadow:none; --shadow-lg:14px 14px 0 -2px rgba(247,242,233,.08);
+}
+[data-scenario="vitrine"] .card{border:0;border-top:2px solid var(--border);border-radius:0}
+[data-scenario="vitrine"] .card:hover{box-shadow:var(--shadow-offset)}
+[data-scenario="vitrine"] .session .daterail{display:none}
+[data-scenario="vitrine"] .only-vitrine{display:block}
+[data-scenario="vitrine"] .session h3{
+  font-size:24px;line-height:.99;text-transform:uppercase;white-space:normal;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+[data-scenario="vitrine"] .session-photo{height:160px}
+[data-scenario="vitrine"] .bignum .val{font-size:46px}
+
+/* ─────────── 4 · ANILHA ─────────── */
+[data-scenario="anilha"]{
+  --font-display:'Syne',sans-serif;
+  --font-body:'Figtree',system-ui,sans-serif;
+  --font-data:'Figtree',system-ui,sans-serif;
+  --radius:22px; --radius-sm:14px; --radius-lg:28px; --bw:0px;
+  --display-w:800; --display-tr:-.03em; --label-tr:.13em;
+}
+[data-scenario="anilha"][data-mode="light"]{
+  --bg:#eceef2; --bg-alt:#e2e5eb; --card:#ffffff; --elev:#f6f7fa; --border:#dfe3ea;
+  --ink:#171a20; --ink-soft:#4e5663; --ink-mute:#858e9c; --ink-faint:#b3bac5;
+  --accent:#d42027; --accent-ink:#ffffff; --accent-soft:#fde8e9;
+  --ok:#118c4f; --warn:#e0a400; --bad:#d42027;
+  --shadow:0 2px 5px rgba(23,26,32,.06),0 10px 22px -12px rgba(23,26,32,.18);
+  --shadow-lg:0 16px 44px -18px rgba(23,26,32,.36);
+}
+[data-scenario="anilha"][data-mode="dark"]{
+  --bg:#121419; --bg-alt:#181b21; --card:#1e2229; --elev:#262b33; --border:#2c323b;
+  --ink:#eef1f6; --ink-soft:#a8b1be; --ink-mute:#78818f; --ink-faint:#525a67;
+  --accent:#ff3b43; --accent-ink:#0f1115; --accent-soft:#3a1116;
+  --ok:#2bc276; --warn:#ffc233; --bad:#ff3b43;
+  --shadow:0 2px 6px rgba(0,0,0,.4),0 12px 26px -14px rgba(0,0,0,.7);
+  --shadow-lg:0 20px 50px -20px rgba(0,0,0,.85);
+}
+[data-scenario="anilha"] .screen{
+  background-image:radial-gradient(520px 300px at 88% -6%,var(--accent-soft),transparent 62%);
+}
+[data-scenario="anilha"] .apphead h1{font-size:17px}
+/* Syne é larga: em vez de truncar o nome da sessão, a tag sobe para a própria linha
+   e vira pílula colorida — combina com a direção "cor vinda do equipamento". */
+[data-scenario="anilha"] .session h3{font-size:16px}
+[data-scenario="anilha"] .session-top{flex-wrap:wrap;gap:6px}
+[data-scenario="anilha"] .session-top .tag{
+  order:-1;margin-right:auto;background:var(--accent-soft);color:var(--accent);
+  padding:3px 9px;border-radius:var(--pill);font-size:9px;
+}
+[data-scenario="anilha"] .session-top h3{flex:1 0 100%}
+[data-scenario="anilha"] .profile-id h2{font-size:18.5px}
+[data-scenario="anilha"] .exc-h .nm{font-size:13.5px}
+[data-scenario="anilha"] .daterail .dnum{font-size:25px}
+[data-scenario="anilha"] .avatar{font-size:20px}
+[data-scenario="anilha"] .typespec .dsp{font-size:26px}
+[data-scenario="vitrine"] .exc-h .nm{font-size:14.5px}
+[data-scenario="anilha"] .daterail{
+  background:var(--elev);border-radius:16px;padding:9px 0 8px;align-self:flex-start;width:50px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENTES DO APP (markup único, temas acima)
+   ═══════════════════════════════════════════════════════════════ */
+.pad{padding:0 16px}
+.apphead{padding:10px 16px 14px}
+.kicker{font-size:10px;font-weight:var(--label-w);letter-spacing:var(--label-tr);text-transform:var(--label-case);color:var(--ink-mute);margin:0 0 3px}
+.apphead-row{display:flex;align-items:center;gap:6px}
+.apphead h1{
+  font-family:var(--font-display);font-weight:var(--display-w);letter-spacing:var(--display-tr);
+  font-size:20px;line-height:1.1;margin:0;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+[data-scenario="vitrine"] .apphead h1{text-transform:uppercase;font-size:19px}
+.apphead .sub{font-size:11.5px;color:var(--ink-mute);margin:3px 0 0}
+.spacer{flex:1}
+.iconbtn{
+  width:30px;height:30px;border-radius:var(--pill);display:grid;place-items:center;flex:0 0 auto;
+  background:var(--bg-alt);color:var(--ink-soft);border:var(--bw) solid var(--border);
+  transition:transform .18s cubic-bezier(.2,.8,.3,1),background .2s;
+}
+.iconbtn:hover{transform:translateY(-1.5px)}
+.iconbtn svg{width:16px;height:16px}
+.fab{
+  width:36px;height:36px;border-radius:var(--pill);display:grid;place-items:center;flex:0 0 auto;
+  background:var(--accent);color:var(--accent-ink);border:0;
+  box-shadow:var(--shadow-lg);font-size:20px;font-weight:400;line-height:1;
+  transition:transform .2s cubic-bezier(.2,.8,.3,1);
+}
+.fab:hover{transform:rotate(90deg) scale(1.06)}
+[data-scenario="terminal"] .fab{box-shadow:0 0 18px -4px var(--accent)}
+.rule{height:1px;background:var(--border);border:0;margin:0}
+
+/* ── Card de sessão ── */
+.card{
+  background:var(--card);border:var(--bw) solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+  transition:transform .26s cubic-bezier(.2,.8,.3,1),box-shadow .26s,border-color .26s,background .4s;
+}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.session{margin:0 16px 11px}
+.session-photo{height:118px;width:100%;overflow:hidden;position:relative;background:var(--bg-alt)}
+.session-photo .ph{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(200deg,rgba(0,0,0,.4),transparent 55%),
+    conic-gradient(from 210deg at 32% 78%, #6b7280, #3f4650, #8a8175, #55504a, #6b7280);
+  filter:saturate(.7);
+}
+.session-photo .tagline{
+  position:absolute;left:12px;bottom:10px;color:#fff;font-size:10px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.6);
+}
+.session-body{padding:13px;display:flex;gap:11px}
+.daterail{width:46px;flex:0 0 auto;text-align:left;display:flex;flex-direction:column;align-items:center}
+[data-scenario="caderno"] .daterail,[data-scenario="terminal"] .daterail{align-items:flex-start}
+.daterail .dow,.daterail .mon{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-mute)}
+.daterail .dnum{font-family:var(--font-display);font-size:29px;line-height:1.02;font-weight:var(--display-w);color:var(--ink)}
+[data-scenario="terminal"] .daterail .dnum{font-family:var(--font-data);font-weight:600}
+.session-main{flex:1;min-width:0}
+.session-top{display:flex;align-items:flex-start;gap:8px}
+.session h3{
+  font-family:var(--font-display);font-weight:var(--display-w);letter-spacing:var(--display-tr);
+  font-size:17px;line-height:1.15;margin:0;flex:1;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tag{display:flex;align-items:center;gap:5px;flex:0 0 auto;font-size:9.5px;font-weight:700;letter-spacing:.11em;color:var(--ink-soft)}
+.tag .dot{width:6px;height:6px;border-radius:var(--pill);background:var(--ok)}
+[data-scenario="vitrine"] .tag{background:var(--accent);color:var(--accent-ink);padding:3px 8px;border-radius:var(--pill)}
+[data-scenario="vitrine"] .tag .dot{display:none}
+[data-scenario="terminal"] .tag{border:1px solid var(--border);padding:2px 6px}
+.meta{font-size:11.5px;color:var(--ink-mute);margin:3px 0 0}
+.session .rule{margin:10px 0}
+.bignum{display:flex;flex-direction:column;gap:1px;margin-bottom:8px}
+.bignum .val{font-family:var(--font-data);font-size:25px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:-.02em}
+[data-scenario="anilha"] .bignum .val,[data-scenario="vitrine"] .bignum .val{font-family:var(--font-display);font-weight:800;letter-spacing:-.04em}
+.bignum .unit{font-size:9.5px;font-weight:700;letter-spacing:.13em;color:var(--ink-mute)}
+.exlist{font-size:11.5px;color:var(--ink-mute);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.only-vitrine{display:none;font-size:10px;letter-spacing:.2em;font-weight:700;color:var(--accent);margin:0 0 5px}
+
+/* ── Tab bar ── */
+.tabbar{
+  flex:0 0 auto;display:flex;border-top:1px solid var(--border);background:var(--card);
+  padding:9px 0 15px;transition:background .4s;
+}
+[data-scenario="anilha"] .tabbar{
+  margin:0 12px 12px;border-radius:var(--radius-lg);border:0;box-shadow:var(--shadow-lg);padding:9px 0;
+}
+.tabitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-mute);font-size:9.5px;font-weight:600;letter-spacing:.04em}
+.tabitem svg{width:19px;height:19px}
+.tabitem.on{color:var(--ink)}
+[data-scenario="anilha"] .tabitem.on,[data-scenario="terminal"] .tabitem.on,[data-scenario="vitrine"] .tabitem.on{color:var(--accent)}
+[data-scenario="terminal"] .tabitem.on::after{content:'';width:16px;height:2px;background:var(--accent);border-radius:1px}
+
+/* ── Perfil ── */
+.cover{height:96px;flex:0 0 auto;position:relative;background:var(--bg-alt);overflow:hidden}
+.cover .ph{position:absolute;inset:0;background:conic-gradient(from 140deg at 60% 30%,#4a5058,#6e6459,#39404a,#5c5850,#4a5058);filter:saturate(.6)}
+.avatar{
+  width:64px;height:64px;border-radius:var(--pill);margin:-32px 0 0 16px;position:relative;z-index:2;
+  background:var(--elev);border:3px solid var(--card);display:grid;place-items:center;
+  font-family:var(--font-display);font-size:23px;font-weight:var(--display-w);color:var(--ink-soft);
+  box-shadow:var(--shadow);
+}
+[data-scenario="terminal"] .avatar{border-radius:3px}
+.profile-id{padding:9px 16px 0}
+.profile-id h2{font-family:var(--font-display);font-size:21px;font-weight:var(--display-w);letter-spacing:var(--display-tr);margin:0;color:var(--ink)}
+.profile-id p{font-size:11.5px;color:var(--ink-mute);margin:2px 0 0}
+.section-t{font-size:10px;font-weight:var(--label-w);letter-spacing:var(--label-tr);text-transform:uppercase;color:var(--ink-mute);margin:20px 0 11px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{
+  padding:6px 12px;border-radius:var(--pill);border:var(--bw) solid var(--border);
+  background:var(--card);font-size:11px;font-weight:600;color:var(--ink-soft);
+  transition:all .2s cubic-bezier(.2,.8,.3,1);
+}
+[data-scenario="vitrine"] .chip{border:1px solid var(--border)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+[data-scenario="terminal"] .chip.on{box-shadow:0 0 14px -4px var(--accent)}
+.streak{
+  display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:var(--radius);
+  background:var(--card);border:var(--bw) solid var(--border);box-shadow:var(--shadow);margin-bottom:14px;
+}
+.streak .flame{width:34px;height:34px;border-radius:var(--pill);display:grid;place-items:center;background:var(--accent-soft);font-size:16px}
+[data-scenario="terminal"] .streak .flame{border-radius:2px}
+.streak .n{font-family:var(--font-data);font-size:21px;font-weight:700;line-height:1;color:var(--ink)}
+.streak .l{font-size:10.5px;color:var(--ink-mute);margin-top:2px}
+.streak .pips{display:flex;gap:3px;margin-left:auto}
+.streak .pips i{width:7px;height:20px;border-radius:2px;background:var(--border)}
+.streak .pips i.on{background:var(--ok)}
+
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{
+  background:var(--card);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);
+  padding:12px;box-shadow:var(--shadow);transition:transform .22s cubic-bezier(.2,.8,.3,1);
+}
+.tile:hover{transform:translateY(-2px)}
+.tile .l{font-size:9.5px;font-weight:700;letter-spacing:.12em;color:var(--ink-mute);text-transform:uppercase}
+.tile .v{font-family:var(--font-data);font-size:23px;font-weight:700;line-height:1.1;margin-top:5px;color:var(--ink);letter-spacing:-.025em}
+[data-scenario="anilha"] .tile .v,[data-scenario="vitrine"] .tile .v{font-family:var(--font-display);font-weight:800}
+.tile .d{font-size:10.5px;font-weight:600;margin-top:3px;color:var(--ok)}
+.tile .d.down{color:var(--bad)}
+
+.chart{
+  margin-top:14px;background:var(--card);border:var(--bw) solid var(--border);
+  border-radius:var(--radius);padding:14px 13px 11px;box-shadow:var(--shadow);
+}
+.chart .ct{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:13px}
+.chart .ct b{font-size:12.5px;font-weight:600;color:var(--ink)}
+.chart .ct span{font-size:10px;color:var(--ink-mute);font-weight:600;letter-spacing:.1em}
+.bars{display:flex;align-items:flex-end;gap:5px;height:82px}
+.bars i{
+  flex:1;background:var(--accent);border-radius:var(--radius-sm) var(--radius-sm) 2px 2px;
+  transform-origin:bottom;animation:grow .7s cubic-bezier(.2,.9,.3,1) backwards;opacity:.9;
+}
+[data-scenario="terminal"] .bars i{border-radius:0}
+[data-scenario="caderno"] .bars i{opacity:1}
+.bars i.muted{background:var(--border)}
+@keyframes grow{from{transform:scaleY(.04);opacity:0}to{transform:scaleY(1);opacity:.9}}
+.bars-x{display:flex;gap:5px;margin-top:7px}
+.bars-x span{flex:1;text-align:center;font-size:8.5px;font-weight:700;letter-spacing:.06em;color:var(--ink-faint)}
+
+.loadrow{display:flex;align-items:center;gap:10px;padding:8px 0}
+.loadrow + .loadrow{border-top:1px solid var(--border)}
+.loadrow .nm{font-size:12px;font-weight:600;width:76px;flex:0 0 auto;color:var(--ink)}
+.loadrow .track{flex:1;height:7px;border-radius:var(--pill);background:var(--bg-alt);overflow:hidden}
+.loadrow .track i{display:block;height:100%;background:var(--accent);border-radius:var(--pill);animation:slide .8s cubic-bezier(.2,.9,.3,1) backwards}
+@keyframes slide{from{transform:scaleX(0);transform-origin:left}}
+.loadrow .n{font-family:var(--font-data);font-size:12px;font-weight:700;width:34px;text-align:right;color:var(--ink-soft)}
+
+.medals{display:flex;gap:7px;margin-top:4px}
+.medal{
+  flex:1;border-radius:var(--radius-sm);padding:10px 8px;text-align:center;
+  background:var(--card);border:var(--bw) solid var(--border);box-shadow:var(--shadow);
+}
+.medal .ic{font-size:17px}
+.medal .v{font-family:var(--font-data);font-size:14px;font-weight:700;margin-top:3px;color:var(--ink)}
+.medal .l{font-size:8.5px;letter-spacing:.09em;font-weight:700;color:var(--ink-mute);text-transform:uppercase;margin-top:2px}
+
+/* ── Sessão ao vivo ── */
+.livebar{
+  margin:0 16px 12px;padding:13px 14px;border-radius:var(--radius);
+  background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;gap:11px;
+  box-shadow:var(--shadow-lg);
+}
+[data-scenario="caderno"][data-mode="light"] .livebar{background:var(--ink);color:#fff}
+.livebar .rec{width:9px;height:9px;border-radius:50%;background:currentColor;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+.livebar .t{font-family:var(--font-data);font-size:22px;font-weight:700;letter-spacing:-.02em}
+.livebar .l{font-size:9.5px;font-weight:700;letter-spacing:.16em;opacity:.7;text-transform:uppercase}
+.livebar .stop{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.09em;padding:6px 12px;border-radius:var(--pill);background:rgba(255,255,255,.18);text-transform:uppercase}
+.exc{margin:0 16px 11px;background:var(--card);border:var(--bw) solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.exc-h{padding:12px 13px 10px;display:flex;align-items:center;gap:9px}
+.exc-h .grip{color:var(--ink-faint);font-size:13px;letter-spacing:-2px}
+.exc-h .nm{font-family:var(--font-display);font-size:15.5px;font-weight:var(--display-w);letter-spacing:var(--display-tr);color:var(--ink);flex:1}
+.exc-h .cfg{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--ink-mute);padding:3px 7px;border-radius:var(--pill);background:var(--bg-alt)}
+.setrow{display:flex;align-items:center;gap:7px;padding:8px 13px;border-top:1px solid var(--border)}
+.setrow .idx{width:19px;height:19px;border-radius:var(--pill);display:grid;place-items:center;font-family:var(--font-data);font-size:9.5px;font-weight:700;background:var(--bg-alt);color:var(--ink-soft);flex:0 0 auto}
+.setrow .fld{
+  flex:1;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;
+  background:var(--elev);display:flex;align-items:baseline;gap:4px;
+}
+.setrow .fld b{font-family:var(--font-data);font-size:13.5px;font-weight:700;color:var(--ink)}
+.setrow .fld span{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--ink-faint)}
+.setrow .rpe{width:34px;text-align:center;font-family:var(--font-data);font-size:11px;font-weight:700;color:var(--warn)}
+.setrow .ck{width:23px;height:23px;border-radius:var(--pill);display:grid;place-items:center;background:var(--ok);color:var(--card);flex:0 0 auto}
+.setrow .ck svg{width:12px;height:12px}
+.setrow.pending .ck{background:var(--bg-alt);color:var(--ink-faint)}
+.addset{
+  margin:9px 13px 12px;padding:9px;border-radius:var(--radius-sm);text-align:center;
+  border:1px dashed var(--border);color:var(--ink-mute);font-size:11.5px;font-weight:600;
+  transition:all .2s;
+}
+.addset:hover{border-color:var(--accent);color:var(--accent)}
+.restchip{
+  margin:0 16px 11px;padding:9px 13px;border-radius:var(--pill);display:flex;align-items:center;gap:9px;
+  background:var(--accent-soft);color:var(--ink);font-size:11.5px;font-weight:600;
+}
+.restchip .rt{font-family:var(--font-data);font-weight:700;margin-left:auto;font-size:13px}
+.primary{
+  margin:6px 16px 16px;padding:14px;border-radius:var(--radius);text-align:center;
+  background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;letter-spacing:.05em;
+  box-shadow:var(--shadow-lg);text-transform:var(--label-case);
+}
+[data-scenario="caderno"] .primary{text-transform:none;letter-spacing:.01em}
+
+/* ── Galeria de componentes ── */
+.gallery{
+  margin-top:14px;background:var(--bg);border-radius:20px;padding:26px;
+  border:1px solid rgba(255,255,255,.07);
+}
+.gal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(214px,1fr));gap:22px}
+.gal-cell{font-family:var(--font-body)}
+.gal-cell h4{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin:0 0 11px}
+.btnrow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.btn{padding:9px 15px;border-radius:var(--pill);font-size:12px;font-weight:700;background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow)}
+.btn.ghost{background:transparent;color:var(--ink);border:var(--bw) solid var(--border);box-shadow:none}
+[data-scenario="vitrine"] .btn.ghost{border:1px solid var(--border)}
+.btn.quiet{background:var(--bg-alt);color:var(--ink-soft);box-shadow:none}
+.inp{
+  border:var(--bw) solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;background:var(--card);
+  display:flex;align-items:center;justify-content:space-between;
+}
+[data-scenario="vitrine"] .inp{border:1px solid var(--border)}
+.inp .ph{font-size:12.5px;color:var(--ink-faint)}
+.inp .u{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--ink-mute)}
+.seg{display:flex;padding:3px;border-radius:var(--pill);background:var(--bg-alt);gap:3px}
+.seg span{flex:1;text-align:center;padding:7px 0;font-size:11px;font-weight:600;color:var(--ink-mute);border-radius:var(--pill)}
+.seg span.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+[data-scenario="terminal"] .seg span.on{background:var(--accent);color:var(--accent-ink)}
+.empty{text-align:center;padding:16px 10px;border:1px dashed var(--border);border-radius:var(--radius)}
+.empty .ic{font-size:21px}
+.empty b{display:block;font-size:12.5px;margin-top:7px;color:var(--ink-soft)}
+.empty span{display:block;font-size:11px;margin-top:3px;color:var(--ink-mute)}
+.typespec{color:var(--ink)}
+.typespec .dsp{font-family:var(--font-display);font-size:29px;font-weight:var(--display-w);letter-spacing:var(--display-tr);line-height:1.08}
+.typespec .bdy{font-size:12.5px;color:var(--ink-soft);margin-top:7px;line-height:1.5}
+.typespec .dta{font-family:var(--font-data);font-size:17px;font-weight:700;margin-top:9px;letter-spacing:-.02em}
+
+/* ── Rodapé / plano ── */
+.plan{margin-top:56px;border-top:1px solid rgba(255,255,255,.1);padding-top:38px}
+.plan h2{font-size:24px;font-weight:800;letter-spacing:-.03em;margin:0 0 8px;color:#fff}
+.plan .lede{color:#8b919c;font-size:14.5px;line-height:1.65;margin:0 0 26px;max-width:94ch}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden}
+.step{background:#101217;padding:22px}
+.step .n{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.2em;color:#6b7280;font-weight:600}
+.step h4{margin:9px 0 8px;font-size:15px;font-weight:700;color:#fff;letter-spacing:-.015em}
+.step p{margin:0;font-size:13px;line-height:1.62;color:#8b919c}
+.step code{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#c8cdd5;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px}
+.callout{margin-top:22px;padding:18px 20px;border-radius:12px;background:rgba(255,120,60,.07);border:1px solid rgba(255,140,80,.22);font-size:13.5px;line-height:1.65;color:#d5b5a4}
+.callout b{color:#ffb894}
+.hint{text-align:center;color:#4d5259;font-size:12px;margin-top:38px}
+kbd{font-family:'IBM Plex Mono',monospace;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:2px 6px;font-size:11px;color:#9aa1ad}
+@media(max-width:1080px){.notes{grid-template-columns:1fr 1fr}.steps{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.notes,.steps{grid-template-columns:1fr}.wrap{padding:0 16px 70px}.controls{margin:0 -16px 26px;padding:12px 16px}}
+.fadein{animation:fade .45s cubic-bezier(.2,.8,.3,1) backwards}
+@keyframes fade{from{opacity:0;transform:translateY(9px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="mast-l">
+    <p class="eyebrow">Open Training · Estudo de direção visual · 21 set 2026</p>
+    <h1>Quatro caminhos<br>para a mesma tela.</h1>
+    <p>O mesmo conteúdo real do app — feed, perfil e sessão ao vivo — renderizado em quatro linguagens visuais, cada uma com <b>tema claro e escuro</b>. Alterne entre elas e veja o que muda: tipografia, densidade, raio, cor e hierarquia. Escolha uma (ou misture) antes de escrevermos código.</p>
+  </div>
+</header>
+
+<nav class="controls">
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-s="caderno" aria-selected="true"><i class="swatch" style="background:linear-gradient(135deg,#f4f2ee 50%,#15140f 50%)"></i>Caderno<span class="k">1</span></button>
+    <button class="tab" role="tab" data-s="terminal" aria-selected="false"><i class="swatch" style="background:linear-gradient(135deg,#d4ff3f 50%,#08090b 50%)"></i>Terminal<span class="k">2</span></button>
+    <button class="tab" role="tab" data-s="vitrine" aria-selected="false"><i class="swatch" style="background:linear-gradient(135deg,#ff4b17 50%,#0c0b0a 50%)"></i>Vitrine<span class="k">3</span></button>
+    <button class="tab" role="tab" data-s="anilha" aria-selected="false"><i class="swatch" style="background:linear-gradient(135deg,#d42027 50%,#1a4fa0 50%)"></i>Anilha<span class="k">4</span></button>
+  </div>
+  <div class="mode-switch">
+    <button data-m="light" aria-pressed="true">☀︎ Claro</button>
+    <button data-m="dark" aria-pressed="false">☾ Escuro</button>
+  </div>
+</nav>
+
+<section class="notes" id="notes"></section>
+
+<p class="stage-label">Telas</p>
+<div class="stage" id="stage">
+
+  <!-- ════════ FEED ════════ -->
+  <div class="phone-wrap">
+    <p class="phone-cap">Feed <em>app/(tabs)/index.tsx</em></p>
+    <div class="phone"><div class="screen">
+      <div class="notch"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+      <div class="scrollarea">
+        <div class="apphead">
+          <p class="kicker">Segunda-feira</p>
+          <div class="apphead-row">
+            <div style="flex:1;min-width:0">
+              <h1>Open Training</h1>
+              <p class="sub">184 sessões registradas</p>
+            </div>
+            <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c.9-4 3.9-6 7.5-6s6.6 2 7.5 6"/></svg></div>
+            <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M4.5 12H2M22 12h-2.5M6.4 6.4 4.6 4.6M19.4 19.4l-1.8-1.8M17.6 6.4l1.8-1.8M4.6 19.4l1.8-1.8"/></svg></div>
+            <div class="fab">+</div>
+          </div>
+        </div>
+        <hr class="rule" style="margin:0 16px 10px">
+
+        <article class="card session">
+          <div class="session-photo"><div class="ph"></div><span class="tagline">Treino A · Empurrar</span></div>
+          <div class="session-body">
+            <div class="daterail"><span class="dow">SEG</span><span class="dnum">21</span><span class="mon">SET</span></div>
+            <div class="session-main">
+              <p class="only-vitrine">SEG · 21 SET</p>
+              <div class="session-top">
+                <h3>Peito &amp; Tríceps</h3>
+                <span class="tag"><i class="dot"></i>MUSCULAÇÃO</span>
+              </div>
+              <p class="meta">6 exercícios · 58min</p>
+              <hr class="rule">
+              <div class="bignum"><span class="val">12.480</span><span class="unit">KG · VOLUME TOTAL</span></div>
+              <p class="exlist">Supino reto · Inclinado halter · Crucifixo · Tríceps corda +2</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="card session">
+          <div class="session-body">
+            <div class="daterail"><span class="dow">SÁB</span><span class="dnum">19</span><span class="mon">SET</span></div>
+            <div class="session-main">
+              <p class="only-vitrine">SÁB · 19 SET</p>
+              <div class="session-top">
+                <h3>Corrida longa</h3>
+                <span class="tag"><i class="dot" style="background:var(--warn)"></i>CORRIDA</span>
+              </div>
+              <p class="meta">1 atividade · 71min</p>
+              <hr class="rule">
+              <div class="bignum"><span class="val">14,2</span><span class="unit">KM · 5:02 /KM</span></div>
+              <p class="exlist">Parque Ibirapuera · ritmo confortável</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="card session">
+          <div class="session-body">
+            <div class="daterail"><span class="dow">SEX</span><span class="dnum">18</span><span class="mon">SET</span></div>
+            <div class="session-main">
+              <p class="only-vitrine">SEX · 18 SET</p>
+              <div class="session-top">
+                <h3>Pernas</h3>
+                <span class="tag"><i class="dot"></i>MUSCULAÇÃO</span>
+              </div>
+              <p class="meta">5 exercícios · 64min</p>
+              <hr class="rule">
+              <div class="bignum"><span class="val">18.950</span><span class="unit">KG · VOLUME TOTAL</span></div>
+              <p class="exlist">Agachamento livre · Leg press · Cadeira extensora +2</p>
+            </div>
+          </div>
+        </article>
+      </div>
+      <nav class="tabbar">
+        <div class="tabitem on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Feed</div>
+        <div class="tabitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>Perfil</div>
+        <div class="tabitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v3M16 3.5v3"/></svg>Rotina</div>
+      </nav>
+    </div></div>
+  </div>
+
+  <!-- ════════ PERFIL ════════ -->
+  <div class="phone-wrap">
+    <p class="phone-cap">Perfil <em>app/(tabs)/profile.tsx</em></p>
+    <div class="phone"><div class="screen">
+      <div class="notch"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+      <div class="scrollarea">
+        <div class="cover"><div class="ph"></div></div>
+        <div class="avatar">RO</div>
+        <div class="profile-id">
+          <h2>Rafael Ortiz</h2>
+          <p>2 anos e 4 meses de registros · 1,82 m · 84 kg</p>
+        </div>
+        <div class="pad">
+          <p class="section-t">Desempenho</p>
+          <div class="chips">
+            <span class="chip on">Musculação</span>
+            <span class="chip">Corrida</span>
+            <span class="chip">Ciclismo</span>
+          </div>
+          <div class="chips">
+            <span class="chip on">Semana</span>
+            <span class="chip">Mês</span>
+            <span class="chip">Ano</span>
+          </div>
+
+          <div class="streak">
+            <div class="flame">🔥</div>
+            <div>
+              <div class="n">23</div>
+              <div class="l">semanas seguidas</div>
+            </div>
+            <div class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i></i></div>
+          </div>
+
+          <div class="tiles">
+            <div class="tile"><div class="l">Volume</div><div class="v">48,7t</div><div class="d">↑ 12% vs. semana anterior</div></div>
+            <div class="tile"><div class="l">Séries</div><div class="v">112</div><div class="d">↑ 6% vs. semana anterior</div></div>
+            <div class="tile"><div class="l">Sessões</div><div class="v">5</div><div class="d down">↓ 1 vs. semana anterior</div></div>
+            <div class="tile"><div class="l">Tempo</div><div class="v">4h52</div><div class="d">↑ 9% vs. semana anterior</div></div>
+          </div>
+
+          <div class="chart">
+            <div class="ct"><b>Volume por dia</b><span>SEMANA</span></div>
+            <div class="bars">
+              <i style="height:46%;animation-delay:.04s"></i><i style="height:72%;animation-delay:.09s"></i>
+              <i style="height:30%;animation-delay:.14s" class="muted"></i><i style="height:88%;animation-delay:.19s"></i>
+              <i style="height:61%;animation-delay:.24s"></i><i style="height:100%;animation-delay:.29s"></i>
+              <i style="height:18%;animation-delay:.34s" class="muted"></i>
+            </div>
+            <div class="bars-x"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span></div>
+          </div>
+
+          <p class="section-t">Carga por grupo muscular</p>
+          <div class="chart" style="margin-top:0;padding:6px 13px">
+            <div class="loadrow"><span class="nm">Peito</span><span class="track"><i style="width:86%;animation-delay:.05s"></i></span><span class="n">19</span></div>
+            <div class="loadrow"><span class="nm">Costas</span><span class="track"><i style="width:72%;animation-delay:.1s"></i></span><span class="n">16</span></div>
+            <div class="loadrow"><span class="nm">Quadríceps</span><span class="track"><i style="width:59%;animation-delay:.15s"></i></span><span class="n">13</span></div>
+            <div class="loadrow"><span class="nm">Ombros</span><span class="track"><i style="width:41%;animation-delay:.2s"></i></span><span class="n">9</span></div>
+            <div class="loadrow"><span class="nm">Bíceps</span><span class="track"><i style="width:27%;animation-delay:.25s"></i></span><span class="n">6</span></div>
+          </div>
+
+          <p class="section-t">Recordes recentes</p>
+          <div class="medals">
+            <div class="medal"><div class="ic">🥇</div><div class="v">140kg</div><div class="l">Supino</div></div>
+            <div class="medal"><div class="ic">🥈</div><div class="v">180kg</div><div class="l">Agacho</div></div>
+            <div class="medal"><div class="ic">🥉</div><div class="v">210kg</div><div class="l">Terra</div></div>
+          </div>
+          <div style="height:22px"></div>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <div class="tabitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Feed</div>
+        <div class="tabitem on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>Perfil</div>
+        <div class="tabitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v3M16 3.5v3"/></svg>Rotina</div>
+      </nav>
+    </div></div>
+  </div>
+
+  <!-- ════════ SESSÃO AO VIVO ════════ -->
+  <div class="phone-wrap">
+    <p class="phone-cap">Sessão ao vivo <em>app/session/[id].tsx</em></p>
+    <div class="phone"><div class="screen">
+      <div class="notch"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+      <div class="scrollarea">
+        <div class="apphead">
+          <p class="kicker">Treino A · Empurrar</p>
+          <div class="apphead-row">
+            <div style="flex:1;min-width:0">
+              <h1>Peito &amp; Tríceps</h1>
+              <p class="sub">3 de 6 exercícios concluídos</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="livebar">
+          <span class="rec"></span>
+          <div>
+            <div class="t">42:18</div>
+            <div class="l">em andamento</div>
+          </div>
+          <span class="stop">Encerrar</span>
+        </div>
+
+        <div class="restchip">⏱ Descanso sugerido · 2:00<span class="rt">1:12</span></div>
+
+        <section class="exc">
+          <div class="exc-h"><span class="grip">⠿</span><span class="nm">Supino reto</span><span class="cfg">BARRA · PRONADA</span></div>
+          <div class="setrow">
+            <span class="idx">1</span>
+            <span class="fld"><b>100</b><span>KG</span></span>
+            <span class="fld"><b>8</b><span>REPS</span></span>
+            <span class="rpe">7.5</span>
+            <span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+          </div>
+          <div class="setrow">
+            <span class="idx">2</span>
+            <span class="fld"><b>105</b><span>KG</span></span>
+            <span class="fld"><b>6</b><span>REPS</span></span>
+            <span class="rpe">8.5</span>
+            <span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+          </div>
+          <div class="setrow pending">
+            <span class="idx">3</span>
+            <span class="fld"><b>105</b><span>KG</span></span>
+            <span class="fld"><b>—</b><span>REPS</span></span>
+            <span class="rpe">—</span>
+            <span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+          </div>
+          <div class="addset">+ adicionar série</div>
+        </section>
+
+        <section class="exc">
+          <div class="exc-h"><span class="grip">⠿</span><span class="nm">Crucifixo inclinado</span><span class="cfg">HALTER · 30°</span></div>
+          <div class="setrow">
+            <span class="idx">1</span>
+            <span class="fld"><b>22</b><span>KG</span></span>
+            <span class="fld"><b>12</b><span>REPS</span></span>
+            <span class="rpe">7.0</span>
+            <span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+          </div>
+          <div class="addset">+ adicionar série</div>
+        </section>
+
+        <div class="primary">Salvar sessão</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ════════ GALERIA ════════ -->
+  <div class="phone-wrap" style="flex:0 0 auto;width:470px">
+    <p class="phone-cap">Componentes <em>tokens compartilhados</em></p>
+    <div class="gallery" id="gallery">
+      <div class="gal-grid">
+        <div class="gal-cell">
+          <h4>Tipografia</h4>
+          <div class="typespec">
+            <div class="dsp">Peito &amp; Tríceps</div>
+            <div class="bdy">Corpo de texto em 12,5px — metadados, descrições e notas de sessão respiram nesta escala.</div>
+            <div class="dta">12.480 kg · 5:02 /km</div>
+          </div>
+        </div>
+        <div class="gal-cell">
+          <h4>Botões</h4>
+          <div class="btnrow">
+            <span class="btn">Salvar</span>
+            <span class="btn ghost">Cancelar</span>
+            <span class="btn quiet">Duplicar</span>
+          </div>
+          <div style="height:12px"></div>
+          <h4>Segmentado</h4>
+          <div class="seg"><span class="on">Semana</span><span>Mês</span><span>Ano</span></div>
+        </div>
+        <div class="gal-cell">
+          <h4>Campo numérico</h4>
+          <div class="inp"><span class="ph">Carga</span><span class="u">KG</span></div>
+          <div style="height:8px"></div>
+          <div class="inp"><span class="ph" style="color:var(--ink)">102,5</span><span class="u">KG</span></div>
+          <div style="height:12px"></div>
+          <h4>Chips</h4>
+          <div class="chips"><span class="chip on">Musculação</span><span class="chip">Corrida</span></div>
+        </div>
+        <div class="gal-cell">
+          <h4>Estado vazio</h4>
+          <div class="empty"><div class="ic">🏋️</div><b>Nenhuma sessão ainda</b><span>Toque em + para registrar</span></div>
+        </div>
+        <div class="gal-cell">
+          <h4>Tile de métrica</h4>
+          <div class="tile"><div class="l">Volume semanal</div><div class="v">48,7t</div><div class="d">↑ 12% vs. anterior</div></div>
+        </div>
+        <div class="gal-cell">
+          <h4>Feedback</h4>
+          <div class="restchip" style="margin:0">⏱ Descanso · 2:00<span class="rt">1:12</span></div>
+          <div style="height:8px"></div>
+          <div class="streak" style="margin:0"><div class="flame">🔥</div><div><div class="n">23</div><div class="l">semanas seguidas</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="plan">
+  <h2>O que precisa acontecer no código — em qualquer cenário</h2>
+  <p class="lede">O dark mode não é um <code style="font-family:'IBM Plex Mono',monospace">toggle</code>: hoje existem <b>730 cores hexadecimais escritas à mão em 81 arquivos</b>. Toda direção acima depende primeiro de uma camada de tokens. Essa é a mesma fundação para os quatro cenários — só o mapa de valores muda.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="n">ETAPA 01</div>
+      <h4>Camada de tokens semânticos</h4>
+      <p>Tema em <code>src/theme/</code>: <code>light</code> e <code>dark</code> com as mesmas chaves (<code>bg</code>, <code>card</code>, <code>border</code>, <code>ink</code>, <code>accent</code>…). Nenhum hex fora daí.</p>
+    </div>
+    <div class="step">
+      <div class="n">ETAPA 02</div>
+      <h4>Tailwind com <code>dark:</code></h4>
+      <p>NativeWind 4 já suporta <code>darkMode:"class"</code>. As classes <code>bg-surface</code> viram pares <code>bg-surface dark:bg-surface</code> resolvidos por variável CSS — sem duplicar markup.</p>
+    </div>
+    <div class="step">
+      <div class="n">ETAPA 03</div>
+      <h4>Migrar os 730 hex</h4>
+      <p>Codemod por lote: os 10 valores mais frequentes cobrem ~78% das ocorrências. O resto entra a mão, arquivo a arquivo, priorizando <code>SessionCard</code>, <code>profile</code> e <code>SetLogger</code>.</p>
+    </div>
+    <div class="step">
+      <div class="n">ETAPA 04</div>
+      <h4>Charts &amp; Skia</h4>
+      <p>Victory Native e Skia recebem cor por prop, não por classe. Precisam ler o tema via <code>useTheme()</code> — ponto de atenção em <code>VolumeChart</code> e <code>ResistanceCurveChart</code>.</p>
+    </div>
+    <div class="step">
+      <div class="n">ETAPA 05</div>
+      <h4>Preferência persistida</h4>
+      <p>Três estados: claro / escuro / sistema. Guardar em <code>user_meta</code> (já existe), ler antes do primeiro render para evitar flash branco na web.</p>
+    </div>
+    <div class="step">
+      <div class="n">ETAPA 06</div>
+      <h4>Chrome nativo</h4>
+      <p><code>StatusBar</code>, <code>tabBarStyle</code>, fundo dos modais e <code>::selection</code> na web precisam seguir o tema — são os pontos que denunciam um dark mode incompleto.</p>
+    </div>
+  </div>
+  <div class="callout"><b>Recomendação:</b> começar pelo <b>Caderno escuro</b>. Ele reaproveita a identidade atual (Fraunces + Hanken + JetBrains Mono), então a Etapa 01–03 já entrega valor visível sem rediscutir layout. Direções 2–4 podem entrar depois como refinamento por tela, sobre a mesma fundação de tokens.</div>
+</section>
+
+<p class="hint">Atalhos: <kbd>1</kbd>–<kbd>4</kbd> alternam cenários · <kbd>D</kbd> alterna claro/escuro</p>
+</div>
+
+<script>
+const SCENARIOS = {
+  caderno:{
+    name:'Caderno',
+    tagline:'A identidade atual, afiada.',
+    concept:'Evolução do que já existe: papel quente, tinta escura, régua fina. Ganha ritmo de caderno de treino — linhas guia sutis, números tabulares alinhados, divisórias hairline. No escuro vira <b>carvão</b>, não azul: o mesmo papel, à noite.',
+    type:'Display <span>Fraunces</span><br>Corpo <span>Hanken Grotesk</span><br>Dados <span>JetBrains Mono</span>',
+    typenote:'Nenhuma fonte nova. Zero custo de bundle.',
+    palette:['#f4f2ee','#ffffff','#ddd8ce','#26241f','#2f9e6e','#15140f','#1c1b15','#f0ece1'],
+    risk:1, riskLabel:'Risco baixo · ~2 dias · só tokens',
+    tradeoff:'<b>Ganha:</b> continuidade total, nada a reaprender.<br><b>Perde:</b> é o menos memorável dos quatro — refinamento, não reposicionamento.'
+  },
+  terminal:{
+    name:'Terminal',
+    tagline:'Instrumento, não aplicativo.',
+    concept:'Escuro por natureza. Grade técnica visível, cantos retos, rótulos em caixa-alta espaçada e um único acento <b>volt</b> que só aparece onde há ação ou recorde. Os números dominam: monoespaçado, grandes, alinhados em coluna como leitura de equipamento.',
+    type:'Display <span>IBM Plex Sans Condensed</span><br>Corpo <span>IBM Plex Sans Condensed</span><br>Dados <span>IBM Plex Mono</span>',
+    typenote:'Duas famílias novas via expo-font (~90 KB).',
+    palette:['#08090b','#101317','#242a31','#d4ff3f','#e9edf1','#e9ebee','#ffffff','#0b0d10'],
+    risk:2, riskLabel:'Risco médio · ~5 dias · tokens + densidade',
+    tradeoff:'<b>Ganha:</b> personalidade forte, ótimo para leitura rápida no meio da série.<br><b>Perde:</b> o tema claro fica claramente secundário; fotos de capa destoam da grade.'
+  },
+  vitrine:{
+    name:'Vitrine',
+    tagline:'Cada sessão vira uma capa.',
+    concept:'Editorial esportivo. Tipografia display enorme em caixa-alta, foto de capa full-bleed como protagonista, regra grossa separando matérias, acento <b>laranja elétrico</b> em tags e recordes. O feed deixa de ser lista e vira revista do seu próprio treino.',
+    type:'Display <span>Bricolage Grotesque</span><br>Corpo <span>Archivo</span><br>Dados <span>Archivo</span>',
+    typenote:'Duas famílias novas; Bricolage é variável (~110 KB).',
+    palette:['#faf7f2','#ffffff','#141312','#ff4b17','#0c0b0a','#161413','#f7f2e9','#ff5a22'],
+    risk:3, riskLabel:'Risco alto · ~8 dias · redesenho de layout',
+    tradeoff:'<b>Ganha:</b> o app mais memorável; valoriza as fotos que você já registra.<br><b>Perde:</b> menos sessões por tela; exige foto para brilhar; SessionCard reescrito.'
+  },
+  anilha:{
+    name:'Anilha',
+    tagline:'Cor que vem do equipamento.',
+    concept:'Paleta emprestada das anilhas de competição — vermelho 25, azul 20, amarelo 15, verde 10. Componentes gordos, cantos generosos, sombra suave e tab bar flutuante. Modalidades e grupos musculares ganham cor codificada que você já reconhece do rack.',
+    type:'Display <span>Syne</span><br>Corpo <span>Figtree</span><br>Dados <span>Figtree tabular</span>',
+    typenote:'Duas famílias novas (~75 KB). Sem mono.',
+    palette:['#eceef2','#ffffff','#d42027','#1a4fa0','#f2c200','#118c4f','#121419','#1e2229'],
+    risk:2, riskLabel:'Risco médio · ~6 dias · tokens + espaçamento',
+    tradeoff:'<b>Ganha:</b> mais acolhedor e tátil; cor com significado real, não decorativa.<br><b>Perde:</b> densidade cai (~20% menos conteúdo por tela); dados perdem o mono.'
+  }
+};
+
+const root = document.documentElement;
+const notes = document.getElementById('notes');
+
+function renderNotes(key){
+  const s = SCENARIOS[key];
+  const riskColors = ['#7dd3a0','#7dd3a0','#e5c05a','#f0876a'];
+  notes.innerHTML = `
+    <div class="note fadein">
+      <h3>Conceito</h3>
+      <p class="big">${s.tagline}</p>
+      <p>${s.concept}</p>
+    </div>
+    <div class="note fadein" style="animation-delay:.05s">
+      <h3>Tipografia</h3>
+      <p class="fontspec">${s.type}</p>
+      <p style="margin-top:12px;font-size:12.5px">${s.typenote}</p>
+    </div>
+    <div class="note fadein" style="animation-delay:.1s">
+      <h3>Paleta</h3>
+      <div class="palette">${s.palette.map(c=>`<i style="background:${c}"></i>`).join('')}</div>
+      <p style="margin-top:14px;font-size:12.5px">Claro à esquerda, escuro à direita. Cada valor vira um token semântico, nunca um hex solto.</p>
+    </div>
+    <div class="note fadein" style="animation-delay:.15s">
+      <h3>Custo &amp; troca</h3>
+      <p>${s.tradeoff}</p>
+      <div class="riskbar" style="--risk-color:${riskColors[s.risk]}">
+        ${[0,1,2,3].map(i=>`<i class="${i<=s.risk?'on':''}"></i>`).join('')}
+      </div>
+      <span class="risk-label">${s.riskLabel}</span>
+    </div>`;
+}
+
+function setScenario(key){
+  root.dataset.scenario = key;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', String(t.dataset.s===key)));
+  renderNotes(key);
+  // Terminal nasce escuro; os outros nascem claros — só na primeira troca.
+  if(!setScenario.touched){
+    setMode(key==='terminal' ? 'dark' : 'light', true);
+  }
+  document.querySelectorAll('.scrollarea').forEach(el=>{ el.scrollTop = 0; });
+  document.querySelectorAll('.bars i, .loadrow .track i').forEach(el=>{
+    const a = el.style.animation; el.style.animation='none'; void el.offsetWidth; el.style.animation=a||'';
+  });
+}
+function setMode(m, silent){
+  root.dataset.mode = m;
+  if(!silent) setScenario.touched = true;
+  document.querySelectorAll('.mode-switch button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.m===m)));
+}
+
+document.getElementById('tabs').addEventListener('click', e=>{
+  const t = e.target.closest('.tab'); if(t) setScenario(t.dataset.s);
+});
+document.querySelector('.mode-switch').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(b) setMode(b.dataset.m);
+});
+addEventListener('keydown', e=>{
+  const keys = ['caderno','terminal','vitrine','anilha'];
+  const i = ['1','2','3','4'].indexOf(e.key);
+  if(i>-1) setScenario(keys[i]);
+  if(e.key.toLowerCase()==='d') setMode(root.dataset.mode==='dark'?'light':'dark');
+});
+
+renderNotes('caderno');
+</script>
+</body>
+</html>
