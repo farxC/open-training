@@ -18,7 +18,7 @@ import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
-import { DistanceLogger } from "@/components/DistanceLogger";
+import { DistanceSessionForm } from "@/components/DistanceSessionForm";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { SessionTimer } from "@/components/SessionTimer";
 import { SessionFinishModal } from "@/components/SessionFinishModal";
@@ -110,7 +110,7 @@ export default function NewSessionScreen() {
   const [finishModalVisible, setFinishModalVisible] = useState(false);
   const [finishInitialDuration, setFinishInitialDuration] = useState(0);
 
-  // Sets are persisted straight to SQLite by SetLogger/DistanceLogger (not the
+  // Sets are persisted straight to SQLite by SetLogger/DistanceSessionForm (not the
   // recorder reducer), so this tick just forces a re-render to pick up the
   // latest getMuscleSeriesForSession() read after each mutation.
   const [, bumpSetsTick] = useReducer((c: number) => c + 1, 0);
@@ -119,9 +119,13 @@ export default function NewSessionScreen() {
 
   const split = splitId != null ? r.splits.find((s) => s.id === splitId) ?? null : null;
 
+  // Distance sessions carry exactly one auto-provisioned exercise (see goToDetails).
+  // Read it defensively — the details step must still render if seeding found nothing.
+  const distanceExercise = recorder.selectedExercises[0] ?? null;
+
   // The details step *is* the recording screen now — there's no separate page to hop
   // to just to add exercises. Reaching it lazily creates the live session (once) so
-  // SetLogger/DistanceLogger below can log real sets immediately, exactly like /session/record used to.
+  // SetLogger/DistanceSessionForm below can log real sets immediately, exactly like /session/record used to.
   const goToDetails = (params: {
     modality: Modality;
     splitId: number | null;
@@ -578,57 +582,55 @@ export default function NewSessionScreen() {
                   />
                 </View>
 
-                {!isDistanceModality(modality) && (
-                  <Text
-                    className="text-ink-mute"
-                    style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
-                  >
-                    EXERCÍCIOS{recorder.selectedExercises.length > 0 ? ` · ${recorder.selectedExercises.length}` : ""}
-                  </Text>
-                )}
+                {/* A distance session is the activity itself — one auto-provisioned
+                    exercise, nothing to pick, reorder or remove — so it gets a plain
+                    form instead of the strength exercise list. */}
+                {isDistanceModality(modality) ? (
+                  distanceExercise && (
+                    <DistanceSessionForm
+                      sessionId={recorder.sessionId!}
+                      exerciseId={distanceExercise.id}
+                      modality={modality}
+                      targets={recorder.targetsByExerciseId[distanceExercise.id]}
+                      onSetsChanged={bumpSetsTick}
+                    />
+                  )
+                ) : (
+                  <>
+                    <Text
+                      className="text-ink-mute"
+                      style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
+                    >
+                      EXERCÍCIOS{recorder.selectedExercises.length > 0 ? ` · ${recorder.selectedExercises.length}` : ""}
+                    </Text>
 
-                <SortableExerciseList
-                  data={recorder.selectedExercises}
-                  keyExtractor={(exercise) => String(exercise.id)}
-                  onReorder={(reordered) => recorder.reorderExercisesInSession(reordered.map((e) => e.id))}
-                  renderItem={({ item: exercise, index, dragHandleIcon, DragHandle }) =>
-                    isDistanceModality(exercise.modality) ? (
-                      <DistanceLogger
-                        exerciseId={exercise.id}
-                        exerciseName={exercise.name}
-                        sessionId={recorder.sessionId!}
-                        modality={exercise.modality}
-                        targets={recorder.targetsByExerciseId[exercise.id]}
-                        onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
-                        dragHandleIcon={dragHandleIcon}
-                        DragHandle={DragHandle}
-                        index={index}
-                        onSetsChanged={bumpSetsTick}
-                      />
-                    ) : (
-                      <SetLogger
-                        exerciseId={exercise.id}
-                        exerciseName={exercise.name}
-                        sessionId={recorder.sessionId!}
-                        targets={recorder.targetsByExerciseId[exercise.id]}
-                        onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
-                        dragHandleIcon={dragHandleIcon}
-                        DragHandle={DragHandle}
-                        index={index}
-                        onSetsChanged={bumpSetsTick}
-                      />
-                    )
-                  }
-                />
+                    <SortableExerciseList
+                      data={recorder.selectedExercises}
+                      keyExtractor={(exercise) => String(exercise.id)}
+                      onReorder={(reordered) => recorder.reorderExercisesInSession(reordered.map((e) => e.id))}
+                      renderItem={({ item: exercise, index, dragHandleIcon, DragHandle }) => (
+                        <SetLogger
+                          exerciseId={exercise.id}
+                          exerciseName={exercise.name}
+                          sessionId={recorder.sessionId!}
+                          targets={recorder.targetsByExerciseId[exercise.id]}
+                          onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
+                          dragHandleIcon={dragHandleIcon}
+                          DragHandle={DragHandle}
+                          index={index}
+                          onSetsChanged={bumpSetsTick}
+                        />
+                      )}
+                    />
 
-                {!isDistanceModality(modality) && (
-                  <TouchableOpacity
-                    className="py-3 rounded-xl items-center mb-6"
-                    style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
-                    onPress={() => setPickerVisible(true)}
-                  >
-                    <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      className="py-3 rounded-xl items-center mb-6"
+                      style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                      onPress={() => setPickerVisible(true)}
+                    >
+                      <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
 
                 <TextInput

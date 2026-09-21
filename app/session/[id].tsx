@@ -26,7 +26,7 @@ import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
-import { DistanceLogger } from "@/components/DistanceLogger";
+import { DistanceSessionForm } from "@/components/DistanceSessionForm";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { ExerciseSessionCard } from "@/components/ExerciseSessionCard";
 import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
@@ -311,52 +311,51 @@ export default function SessionDetailScreen() {
             />
 
             <View style={{ marginTop: 20 }}>
-              <SortableExerciseList
-                data={exerciseGroups}
-                keyExtractor={(group) => String(group.id)}
-                onReorder={(reordered) => {
-                  setExerciseGroups(reordered);
-                  reorderSessionExercises(session.id, reordered.map((g) => g.id));
-                }}
-                renderItem={({ item: group, index, dragHandleIcon, DragHandle }) =>
-                  isDistance ? (
-                    <DistanceLogger
-                      exerciseId={group.id}
-                      exerciseName={group.name}
-                      sessionId={session.id}
-                      modality={session.modality}
-                      onRemoveExercise={() => {
-                        removeSessionExercise(session.id, group.id);
-                        setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
-                      }}
-                      dragHandleIcon={dragHandleIcon}
-                      DragHandle={DragHandle}
-                      index={index}
-                    />
-                  ) : (
-                    <SetLogger
-                      exerciseId={group.id}
-                      exerciseName={group.name}
-                      sessionId={session.id}
-                      onRemoveExercise={() => {
-                        removeSessionExercise(session.id, group.id);
-                        setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
-                      }}
-                      dragHandleIcon={dragHandleIcon}
-                      DragHandle={DragHandle}
-                      index={index}
-                    />
-                  )
-                }
-              />
+              {/* Same split as the new-session wizard: a distance session is its own
+                  single activity, so editing it is a plain form — no list to reorder,
+                  nothing to add, and no way to remove the one thing being logged. */}
+              {isDistance ? (
+                exerciseGroups[0] && (
+                  <DistanceSessionForm
+                    sessionId={session.id}
+                    exerciseId={exerciseGroups[0].id}
+                    modality={session.modality}
+                  />
+                )
+              ) : (
+                <>
+                  <SortableExerciseList
+                    data={exerciseGroups}
+                    keyExtractor={(group) => String(group.id)}
+                    onReorder={(reordered) => {
+                      setExerciseGroups(reordered);
+                      reorderSessionExercises(session.id, reordered.map((g) => g.id));
+                    }}
+                    renderItem={({ item: group, index, dragHandleIcon, DragHandle }) => (
+                      <SetLogger
+                        exerciseId={group.id}
+                        exerciseName={group.name}
+                        sessionId={session.id}
+                        onRemoveExercise={() => {
+                          removeSessionExercise(session.id, group.id);
+                          setExerciseGroups((prev) => prev.filter((g) => g.id !== group.id));
+                        }}
+                        dragHandleIcon={dragHandleIcon}
+                        DragHandle={DragHandle}
+                        index={index}
+                      />
+                    )}
+                  />
 
-              <TouchableOpacity
-                className="py-3 rounded-xl items-center mb-6"
-                style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
-                onPress={() => setPickerVisible(true)}
-              >
-                <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    className="py-3 rounded-xl items-center mb-6"
+                    style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                    onPress={() => setPickerVisible(true)}
+                  >
+                    <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
 
             <View style={{ marginBottom: 12 }}>
