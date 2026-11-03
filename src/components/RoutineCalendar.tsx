@@ -1,119 +1,226 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/ActionButton";
+import colors from "@/theme/palette.json";
 import type { DayScheduleEntry } from "@/hooks/useRoutine";
-import type { OverrideStatus } from "@/types";
+import type { OverrideStatus, RoutineUnit } from "@/types";
 
 interface Props {
-  monthDate: Date; // any date within the displayed month
-  scheduleForDate: (iso: string) => { planned: DayScheduleEntry[]; override: OverrideStatus | null };
+  monthDate: Date;
+  selectedDate?: string;
+  scheduleForDate: (iso: string) => {
+    planned: DayScheduleEntry[];
+    override: OverrideStatus | null;
+  };
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onSelectDate: (iso: string) => void;
 }
-
-const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const WEEKDAYS = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
 const MONTHS = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
-
-function iso(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const iso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+function shortLabel(unit: RoutineUnit) {
+  return (
+    unit.label.match(/^([A-Z])(?:\b|\s*[·:–-])/i)?.[1].toUpperCase() ??
+    String(unit.ordinal + 1)
+  );
 }
 
-export function RoutineCalendar({ monthDate, scheduleForDate, onPrevMonth, onNextMonth, onSelectDate }: Props) {
+export function RoutineCalendar({
+  monthDate,
+  selectedDate,
+  scheduleForDate,
+  onPrevMonth,
+  onNextMonth,
+  onSelectDate,
+}: Props) {
+  const { width } = useWindowDimensions();
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
-  const firstOfMonth = new Date(year, month, 1);
-  const leading = (firstOfMonth.getDay() + 6) % 7; // Monday-based offset
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayISO = iso(new Date());
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < leading; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-
+  const leading = (new Date(year, month, 1).getDay() + 6) % 7;
+  const length = new Date(year, month + 1, 0).getDate();
+  const today = iso(new Date());
+  const cells = Array.from(
+    { length: Math.ceil((leading + length) / 7) * 7 },
+    (_, index) =>
+      index < leading || index >= leading + length ? null : index - leading + 1,
+  );
+  const legend = new Map<number, RoutineUnit>();
+  const days = new Map<number, ReturnType<Props["scheduleForDate"]>>();
+  for (let day = 1; day <= length; day++) {
+    const schedule = scheduleForDate(iso(new Date(year, month, day)));
+    days.set(day, schedule);
+    schedule.planned.forEach((entry) => {
+      if (entry.unit) legend.set(entry.unit.id, entry.unit);
+    });
+  }
   return (
-    <View className="mx-4">
-      <View className="flex-row items-center justify-between mb-3">
-        <TouchableOpacity onPress={onPrevMonth} className="px-2 py-1">
-          <Text className="text-ink-mute text-lg">‹</Text>
-        </TouchableOpacity>
-        <Text className="text-ink font-display font-semibold text-lg">
-          {MONTHS[month]} {year}
+    <View style={styles.panel}>
+      <View style={styles.heading}>
+        <Text
+          className="font-display"
+          style={[styles.month, width < 360 && { fontSize: 20 }]}
+        >
+          {MONTHS[month]}{" "}
+          <Text className="font-sans" style={{ color: colors.muted }}>
+            {year}
+          </Text>
         </Text>
-        <TouchableOpacity onPress={onNextMonth} className="px-2 py-1">
-          <Text className="text-ink-mute text-lg">›</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row" }}>
+          <IconButton
+            label="Mês anterior"
+            icon="chevron-left"
+            onPress={onPrevMonth}
+          />
+          <IconButton
+            label="Próximo mês"
+            icon="chevron-right"
+            onPress={onNextMonth}
+          />
+        </View>
       </View>
-
-      <View className="flex-row mb-1">
-        {WEEKDAYS.map((w) => (
-          <View key={w} className="flex-1 items-center">
-            <Text className="text-ink-faint text-xs">{w}</Text>
+      <View style={styles.grid}>
+        {WEEKDAYS.map((day) => (
+          <View key={day} style={styles.slot}>
+            <Text className="font-sans" style={styles.weekday}>
+              {day}
+            </Text>
           </View>
         ))}
-      </View>
-
-      <View className="flex-row flex-wrap">
-        {cells.map((day, i) => {
-          if (day == null) {
-            return <View key={i} style={{ width: `${100 / 7}%`, aspectRatio: 0.78 }} />;
-          }
-          const cellISO = iso(new Date(year, month, day));
-          const { planned, override } = scheduleForDate(cellISO);
-          const workouts = planned.filter((p) => p.status === "workout");
-          const isToday = cellISO === todayISO;
-          const hasPlan = workouts.length > 0;
+        {cells.map((day, index) => {
+          if (day == null)
+            return <View key={`empty${index}`} style={styles.slot} />;
+          const date = iso(new Date(year, month, day));
+          const schedule = days.get(day)!;
+          const workouts = schedule.planned.filter(
+            (entry) => entry.status === "workout" && entry.unit,
+          );
+          const selected = selectedDate === date;
+          const isToday = today === date;
+          const foreground = selected ? colors.white : colors.ink;
+          const labels =
+            workouts.map((entry) => entry.unit!.label).join(", ") || "Descanso";
           return (
-            <TouchableOpacity
-              key={i}
-              style={{ width: `${100 / 7}%`, aspectRatio: 0.78, padding: 2 }}
-              onPress={() => onSelectDate(cellISO)}
-            >
-              <View
-                style={{
-                  flex: 1,
-                  borderRadius: 10,
-                  paddingTop: 4,
-                  alignItems: "center",
-                  backgroundColor: hasPlan ? "#ffffff" : "transparent",
-                  borderWidth: isToday ? 1.5 : hasPlan ? 1 : 0,
-                  borderColor: isToday ? "#26241f" : "#ddd8ce",
-                }}
+            <View key={date} style={styles.slot}>
+              <Button
+                accessibilityLabel={`${day} de ${MONTHS[month]}: ${labels}${schedule.override === "trained" ? ", treino realizado" : ""}`}
+                accessibilityState={{ selected }}
+                onPress={() => onSelectDate(date)}
+                className="flex-col"
+                style={[
+                  styles.day,
+                  {
+                    backgroundColor: selected ? colors.primary : colors.paper,
+                    borderColor:
+                      isToday && !selected ? colors.primary : "transparent",
+                  },
+                ]}
               >
-                <View className="flex-row items-center" style={{ gap: 3 }}>
-                  <Text style={{ color: "#26241f", fontSize: 12, fontWeight: isToday ? "700" : "500" }}>
-                    {day}
+                <Text
+                  className="font-sans"
+                  style={{
+                    color: foreground,
+                    fontSize: 14,
+                    fontWeight: isToday ? "700" : "500",
+                  }}
+                >
+                  {day}
+                </Text>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 3 }}
+                >
+                  <Text
+                    className="font-sans"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "600",
+                      color: selected ? colors.white : colors.muted,
+                    }}
+                  >
+                    {workouts
+                      .slice(0, 2)
+                      .map((entry) => shortLabel(entry.unit!))
+                      .join("·") || "—"}
+                    {workouts.length > 2 ? "+" : ""}
                   </Text>
-                  {override && (
+                  {schedule.override === "trained" && (
+                    <MaterialCommunityIcons
+                      name="check-circle"
+                      size={10}
+                      color={selected ? colors.white : colors.success}
+                    />
+                  )}
+                  {schedule.override === "rest" && (
                     <View
                       style={{
-                        width: 5,
-                        height: 5,
-                        borderRadius: 3,
-                        backgroundColor: override === "trained" ? "#2f9e6e" : "#bf3b30",
+                        width: 4,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: selected
+                          ? colors.white
+                          : colors.secondary,
                       }}
                     />
                   )}
                 </View>
-                {workouts.slice(0, 2).map((p) => (
-                  <Text
-                    key={p.split.id}
-                    numberOfLines={1}
-                    style={{ color: "#928d80", fontSize: 8, fontWeight: "600", marginTop: 1, maxWidth: "100%" }}
-                  >
-                    {p.unit?.label || p.split.name}
-                  </Text>
-                ))}
-                {workouts.length > 2 && (
-                  <Text style={{ color: "#bdb8aa", fontSize: 8 }}>+{workouts.length - 2}</Text>
-                )}
-              </View>
-            </TouchableOpacity>
+              </Button>
+            </View>
           );
         })}
       </View>
+      {legend.size > 0 && (
+        <View style={styles.legend}>
+          {Array.from(legend.values()).map((unit) => (
+            <Text className="font-sans" key={unit.id} style={styles.legendText}>
+              {unit.label.startsWith(shortLabel(unit))
+                ? unit.label
+                : `${shortLabel(unit)} · ${unit.label}`}
+            </Text>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
+const styles = StyleSheet.create({
+  panel: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+  },
+  heading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  month: { fontSize: 24, color: colors.ink, letterSpacing: -0.6 },
+  grid: { flexDirection: "row", flexWrap: "wrap" },
+  slot: { width: "14.285714%", padding: 3 },
+  weekday: {
+    textAlign: "center",
+    fontSize: 10,
+    color: colors.muted,
+    paddingBottom: 12,
+  },
+  day: { minHeight: 62, borderRadius: 10, borderWidth: 1, gap: 6 },
+  legend: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 18 },
+  legendText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+});

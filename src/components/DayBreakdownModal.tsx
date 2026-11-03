@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { formatClock, formatDistanceValue, targetKindOf } from "@/data/modalities";
 import type { DayExerciseBreakdown, Modality } from "@/types";
@@ -69,14 +70,14 @@ export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
             width: "100%",
             maxWidth: 380,
             maxHeight: "80%",
-            backgroundColor: "#ffffff",
+            backgroundColor: uiColors.white,
             borderRadius: 24,
             paddingVertical: 20,
           }}
         >
           <View className="px-5 pb-3">
-            <Text
-              style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
+            <Text className="font-sans"
+              style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
             >
               DETALHE DO DIA
             </Text>
@@ -93,31 +94,31 @@ export function DayBreakdownModal({ dateISO, modality, rows, onClose }: Props) {
               <View
                 key={row.exercise_id}
                 className="px-5 py-3"
-                style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: "#f0ede6" }}
+                style={{ borderTopWidth: index > 0 ? 1 : 0, borderTopColor: uiColors.sidebar }}
               >
-                <Text className="text-ink text-sm" numberOfLines={2}>
+                <Text className="font-sans text-ink text-sm" numberOfLines={2}>
                   {row.exercise_name}
                 </Text>
-                <Text className="text-ink-mute text-xs mt-0.5">{describe(row)}</Text>
+                <Text className="font-sans text-ink-mute text-xs mt-0.5">{describe(row)}</Text>
               </View>
             ))}
           </ScrollView>
 
           <View
             className="px-5 pt-3 flex-row items-center justify-between"
-            style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}
+            style={{ borderTopWidth: 1, borderTopColor: uiColors.line }}
           >
-            <Text
-              style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
+            <Text className="font-sans"
+              style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1.5 }}
             >
               TOTAL
             </Text>
             <Text
               style={{
-                color: "#26241f",
+                color: uiColors.ink,
                 fontSize: 16,
                 fontWeight: "700",
-                fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
+                fontFamily: "JetBrains Mono",
               }}
             >
               {total}

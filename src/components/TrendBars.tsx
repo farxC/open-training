@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, TouchableOpacity, View } from "react-native";
 
 interface Props {
@@ -14,13 +15,13 @@ interface Props {
   onBarPress?: (index: number) => void;
 }
 
-const PLOT_HEIGHT = 128;
+const PLOT_HEIGHT = 190;
 // Each column is three fixed bands — value label, bar, axis label — so the
 // tallest bar can't push its own labels out of the plot. Sizing the bar as a
 // percentage of the whole plot (the earlier approach) overflowed exactly when the
 // highlighted bar was also the tallest one.
-const VALUE_STRIP = 13;
-const DAY_STRIP = 15;
+const VALUE_STRIP = 18;
+const DAY_STRIP = 20;
 const BAR_AREA = PLOT_HEIGHT - VALUE_STRIP - DAY_STRIP;
 
 export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPress }: Props) {
@@ -29,11 +30,11 @@ export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPre
   const highlight = highlightIndex ?? bars.length - 1;
 
   return (
-    <View className="bg-surface-card rounded-2xl p-3">
+    <View className="bg-surface-card rounded-xl p-4" style={{ borderWidth: 1, borderColor: uiColors.line }}>
       {caption ? (
         <Text
-          style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1 }}
-          className="mb-2"
+          style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1 }}
+          className="font-sans mb-2"
           numberOfLines={1}
         >
           {caption.toUpperCase()}
@@ -62,8 +63,8 @@ export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPre
               >
                 <View style={{ height: VALUE_STRIP, justifyContent: "flex-end" }}>
                   {isCurrent && formatValue ? (
-                    <Text
-                      style={{ color: "#5c594f", fontSize: 9, lineHeight: 11, fontWeight: "600" }}
+                    <Text className="font-sans"
+                      style={{ color: uiColors.muted, fontSize: 11, lineHeight: 14, fontWeight: "600" }}
                       numberOfLines={1}
                     >
                       {formatValue(bar.value)}
@@ -74,14 +75,14 @@ export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPre
                   style={{
                     width: "100%",
                     height,
-                    backgroundColor: isCurrent ? "#26241f" : "#ddd8ce",
+                    backgroundColor: isCurrent ? uiColors.primary : uiColors.secondaryLight,
                     borderTopLeftRadius: 3,
                     borderTopRightRadius: 3,
                   }}
                 />
                 <View style={{ height: DAY_STRIP, justifyContent: "center" }}>
-                  <Text
-                    style={{ color: "#928d80", fontSize: 9, lineHeight: 11 }}
+                  <Text className="font-sans"
+                    style={{ color: uiColors.muted, fontSize: 11, lineHeight: 14 }}
                     numberOfLines={1}
                   >
                     {bar.label}
@@ -93,7 +94,7 @@ export function TrendBars({ bars, caption, formatValue, highlightIndex, onBarPre
         </View>
       ) : (
         <View style={{ height: PLOT_HEIGHT }} className="items-center justify-center">
-          <Text className="text-ink-mute text-xs">Sem dados no período</Text>
+          <Text className="font-sans text-ink-mute text-xs">Sem dados no período</Text>
         </View>
       )}
     </View>

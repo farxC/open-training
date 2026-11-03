@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
@@ -24,10 +25,10 @@ import {
   type HistorySet,
 } from "@/utils/exerciseHistory";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
+const MONO = "JetBrains Mono";
 const HAIRLINE = "rgba(38, 36, 31, 0.07)";
-const INK = "#26241f";
-const MUTED = "#928d80";
+const INK = uiColors.ink;
+const MUTED = uiColors.muted;
 
 /** Opens on the current block of training — the rest is one tap away. */
 const INITIAL_MONTHS = 2;
@@ -74,15 +75,15 @@ export function ExerciseSetHistory({ history, modality, todayISO, onOpenSession 
         style={{
           paddingVertical: 26,
           borderWidth: 1,
-          borderColor: "#ddd8ce",
+          borderColor: uiColors.line,
           borderStyle: "dashed",
         }}
       >
-        <MaterialCommunityIcons name="notebook-outline" size={22} color="#cfcabf" />
-        <Text className="text-ink-mute text-xs" style={{ marginTop: 8 }}>
+        <MaterialCommunityIcons name="notebook-outline" size={22} color={uiColors.line} />
+        <Text className="font-sans text-ink-mute text-xs" style={{ marginTop: 8 }}>
           Nenhum set registrado ainda.
         </Text>
-        <Text className="text-ink-faint text-xs" style={{ marginTop: 2 }}>
+        <Text className="font-sans text-ink-faint text-xs" style={{ marginTop: 2 }}>
           Ele aparece aqui na primeira vez que você treinar.
         </Text>
       </View>
@@ -113,7 +114,7 @@ export function ExerciseSetHistory({ history, modality, todayISO, onOpenSession 
     // recessed drawer that opens under a line has something to be recessed from.
     <View
       className="bg-surface-card rounded-xl overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc" }}
+      style={{ borderWidth: 1, borderColor: uiColors.line }}
     >
       {shown.map((session, index) => {
         const month = session.date.slice(0, 7);
@@ -163,14 +164,14 @@ function MonthRule({ month, first }: { month: string; first: boolean }) {
       style={{
         paddingHorizontal: 11,
         paddingVertical: 5,
-        backgroundColor: "#f4f2ee",
+        backgroundColor: uiColors.paper,
         borderTopWidth: first ? 0 : 1,
-        borderTopColor: "#e7e4dc",
+        borderTopColor: uiColors.line,
         borderBottomWidth: 1,
-        borderBottomColor: "#e7e4dc",
+        borderBottomColor: uiColors.line,
       }}
     >
-      <Text style={{ color: "#928d80", fontSize: 8.5, fontWeight: "700", letterSpacing: 1.3 }}>
+      <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 8.5, fontWeight: "700", letterSpacing: 1.3 }}>
         {monthStamp(month)}
       </Text>
     </View>
@@ -227,14 +228,14 @@ function SessionLine({
           borderTopColor: HAIRLINE,
           // The open line is the head of its drawer, so it takes the drawer's
           // recess; closed lines keep the plate's white.
-          backgroundColor: expanded ? "#f4f2ee" : hovered ? "#faf9f5" : "#ffffff",
+          backgroundColor: expanded ? uiColors.paper : hovered ? "#faf9f5" : uiColors.white,
         }}
       >
         <View className="flex-row items-baseline" style={{ width: DATE_COL, gap: 4 }}>
-          <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>
+          <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>
             {stamp[0]}
           </Text>
-          <Text style={{ color: expanded ? INK : "#5c594f", fontSize: 11.5, fontFamily: MONO }}>
+          <Text style={{ color: expanded ? INK : uiColors.muted, fontSize: 11.5, fontFamily: MONO }}>
             {stamp[1]}
           </Text>
         </View>
@@ -244,7 +245,7 @@ function SessionLine({
             in full ink. */}
         <Text style={{ flex: 1, fontSize: 11.5, fontFamily: MONO, lineHeight: 17 }} numberOfLines={2}>
           {session.sets.map((item, index) => (
-            <Text
+            <Text className="font-sans"
               key={item.set.id}
               style={{
                 color: item.isTopSet ? INK : MUTED,
@@ -260,7 +261,7 @@ function SessionLine({
         </Text>
 
         {session.containsRecord ? (
-          <MaterialCommunityIcons name="crown" size={11} color="#b9791f" />
+          <MaterialCommunityIcons name="crown" size={11} color={uiColors.record} />
         ) : null}
 
         <View style={{ width: 38, alignItems: "flex-end" }}>
@@ -270,7 +271,7 @@ function SessionLine({
         <MaterialCommunityIcons
           name={expanded ? "chevron-up" : "chevron-down"}
           size={13}
-          color={expanded ? "#928d80" : "#d6d1c6"}
+          color={expanded ? uiColors.muted : "#d6d1c6"}
         />
       </Pressable>
 
@@ -334,7 +335,7 @@ function SessionDetail({
           borderTopColor: HAIRLINE,
         }}
       >
-        <Text style={{ color: MUTED, fontSize: 10, flex: 1 }} numberOfLines={1}>
+        <Text className="font-sans" style={{ color: MUTED, fontSize: 10, flex: 1 }} numberOfLines={1}>
           {totals}
         </Text>
         <SessionLink onPress={onOpenSession} />
@@ -367,7 +368,7 @@ function SetLine({
         gap: 8,
       }}
     >
-      <Text style={{ color: "#cfcabf", fontSize: 9.5, fontFamily: MONO, width: 9 }}>
+      <Text style={{ color: uiColors.line, fontSize: 9.5, fontFamily: MONO, width: 9 }}>
         {set.set_number}
       </Text>
 
@@ -376,7 +377,7 @@ function SetLine({
           <Text style={{ color: INK, fontSize: 12.5, fontWeight: "700", fontFamily: MONO }}>
             {formatDistanceValue(set.distance_km, modality) ?? "—"}
           </Text>
-          <Text style={{ color: MUTED, fontSize: 9.5 }} numberOfLines={1}>
+          <Text className="font-sans" style={{ color: MUTED, fontSize: 9.5 }} numberOfLines={1}>
             {formatEffort(set.pace_sec, modality) ?? ""}
           </Text>
         </View>
@@ -394,9 +395,9 @@ function SetLine({
           >
             {formatKg(set.weight_kg)}
           </Text>
-          <Text style={{ color: MUTED, fontSize: 9, marginLeft: 2 }}>kg</Text>
-          <Text style={{ color: "#cfcabf", fontSize: 9, marginLeft: 5 }}>×</Text>
-          <Text style={{ color: "#5c594f", fontSize: 11.5, fontFamily: MONO, marginLeft: 4 }}>
+          <Text className="font-sans" style={{ color: MUTED, fontSize: 9, marginLeft: 2 }}>kg</Text>
+          <Text className="font-sans" style={{ color: uiColors.line, fontSize: 9, marginLeft: 5 }}>×</Text>
+          <Text style={{ color: uiColors.muted, fontSize: 11.5, fontFamily: MONO, marginLeft: 4 }}>
             {set.reps}
           </Text>
         </View>
@@ -413,7 +414,7 @@ function SetLine({
       {set.failure ? <Tag label="FALHA" tone="danger" /> : null}
       {set.rpe != null ? <Tag label={`RPE ${formatKg(set.rpe)}`} tone="plain" /> : null}
       {set.rir != null ? <Tag label={`RIR ${set.rir}`} tone="plain" /> : null}
-      {isRecord ? <MaterialCommunityIcons name="crown" size={11} color="#b9791f" /> : null}
+      {isRecord ? <MaterialCommunityIcons name="crown" size={11} color={uiColors.record} /> : null}
     </View>
   );
 }
@@ -442,7 +443,7 @@ function IntensityBar({
   }, [target, delay, fill]);
 
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
-  const color = emphasis === "record" ? "#b9791f" : emphasis === "top" ? INK : "#c4bfb1";
+  const color = emphasis === "record" ? uiColors.record : emphasis === "top" ? INK : "#c4bfb1";
 
   return (
     <View style={{ height: 3, borderRadius: 2, backgroundColor: "#eeeae2", overflow: "hidden" }}>
@@ -460,13 +461,13 @@ function Tag({ label, tone }: { label: string; tone: "plain" | "danger" }) {
         paddingHorizontal: 4,
         paddingVertical: 1,
         borderWidth: 1,
-        borderColor: danger ? "#e8c9c5" : "#e7e4dc",
-        backgroundColor: danger ? "#fbf0ef" : "#ffffff",
+        borderColor: danger ? "#e8c9c5" : uiColors.line,
+        backgroundColor: danger ? "#fbf0ef" : uiColors.white,
       }}
     >
       <Text
         style={{
-          color: danger ? "#bf3b30" : MUTED,
+          color: danger ? uiColors.danger : MUTED,
           fontSize: 8.5,
           fontWeight: "700",
           fontFamily: MONO,
@@ -483,7 +484,7 @@ function Tag({ label, tone }: { label: string; tone: "plain" | "danger" }) {
  *  than a chip: at one per line, chips were most of what made the list loud. */
 function Delta({ kg }: { kg: number }) {
   const up = kg > 0;
-  const color = up ? "#227a54" : "#a8382d";
+  const color = up ? uiColors.success : "#a8382d";
 
   return (
     <View
@@ -513,9 +514,9 @@ function SessionLink({ onPress }: { onPress: () => void }) {
       className="flex-row items-center rounded"
       style={{ gap: 2, paddingVertical: 2, paddingHorizontal: 3 }}
     >
-      <Text
+      <Text className="font-sans"
         style={{
-          color: hovered ? INK : "#5c594f",
+          color: hovered ? INK : uiColors.muted,
           fontSize: 10,
           fontWeight: "600",
           textDecorationLine: hovered ? "underline" : "none",
@@ -523,7 +524,7 @@ function SessionLink({ onPress }: { onPress: () => void }) {
       >
         ver sessão
       </Text>
-      <MaterialCommunityIcons name="arrow-right" size={11} color={hovered ? INK : "#928d80"} />
+      <MaterialCommunityIcons name="arrow-right" size={11} color={hovered ? INK : uiColors.muted} />
     </Pressable>
   );
 }
@@ -603,8 +604,8 @@ function FoldRow({ children }: { children: ReactNode }) {
         paddingVertical: 6,
         gap: 4,
         borderTopWidth: 1,
-        borderTopColor: "#e7e4dc",
-        backgroundColor: "#fbfaf7",
+        borderTopColor: uiColors.line,
+        backgroundColor: uiColors.paper,
       }}
     >
       {children}
@@ -636,13 +637,13 @@ function FoldAction({
         paddingHorizontal: 8,
         paddingVertical: 5,
         gap: 4,
-        backgroundColor: hovered ? "#ebe7df" : "transparent",
+        backgroundColor: hovered ? uiColors.sidebar : "transparent",
       }}
     >
-      <MaterialCommunityIcons name={icon} size={13} color={strong ? "#5c594f" : "#a8a293"} />
-      <Text
+      <MaterialCommunityIcons name={icon} size={13} color={strong ? uiColors.muted : uiColors.faint} />
+      <Text className="font-sans"
         style={{
-          color: hovered ? INK : strong ? "#5c594f" : "#928d80",
+          color: hovered ? INK : strong ? uiColors.muted : uiColors.muted,
           fontSize: 11,
           fontWeight: strong ? "700" : "600",
         }}

@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -174,20 +175,20 @@ export function ExerciseEditSheet({
           <SectionHeader title="Identidade" />
           <View
             className="bg-surface-card rounded-2xl mb-4"
-            style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+            style={{ borderWidth: 1, borderColor: uiColors.line, padding: 12 }}
           >
-            <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
+            <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
             <TextInput
-              className="text-ink rounded-xl px-3 py-2.5"
+              className="font-sans text-ink rounded-xl px-3 py-2.5"
               style={{
                 marginTop: 7,
-                backgroundColor: "#f4f2ee",
+                backgroundColor: uiColors.paper,
                 borderWidth: 1,
-                borderColor: nameError ? "#e8c9c5" : "#e7e4dc",
+                borderColor: nameError ? "#e8c9c5" : uiColors.line,
                 fontSize: 14,
               }}
               placeholder="Nome do exercício"
-              placeholderTextColor="#bdb8aa"
+              placeholderTextColor={uiColors.faint}
               value={name}
               onChangeText={(t) => {
                 setName(t);
@@ -195,11 +196,11 @@ export function ExerciseEditSheet({
               }}
             />
             {nameError ? (
-              <Text style={{ color: "#bf3b30", fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
+              <Text className="font-sans" style={{ color: uiColors.danger, fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
             ) : null}
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>
+              <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>
                 Equipamento
               </Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
@@ -215,8 +216,8 @@ export function ExerciseEditSheet({
             </View>
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
-              <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 1 }}>
+              <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
+              <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 10, marginTop: 1 }}>
                 Composto move mais de uma articulação; isolado, uma só.
               </Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
@@ -237,7 +238,7 @@ export function ExerciseEditSheet({
               <SectionHeader title="Grupos musculares" />
               <View
                 className="bg-surface-card rounded-2xl mb-4"
-                style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12, paddingBottom: 0 }}
+                style={{ borderWidth: 1, borderColor: uiColors.line, padding: 12, paddingBottom: 0 }}
               >
                 <MuscleGroupEditor
                   value={muscles}
@@ -260,14 +261,14 @@ export function ExerciseEditSheet({
                 gap: 12,
                 backgroundColor: applyToHistory ? "#fbf5e9" : "#efece5",
                 borderWidth: 1,
-                borderColor: applyToHistory ? "#eadfbe" : "#e7e4dc",
+                borderColor: applyToHistory ? "#eadfbe" : uiColors.line,
               }}
             >
               <View className="flex-1">
-                <Text style={{ color: "#26241f", fontSize: 12, fontWeight: "600" }}>
+                <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 12, fontWeight: "600" }}>
                   Aplicar às sessões já registradas
                 </Text>
-                <Text style={{ color: "#928d80", fontSize: 10.5, marginTop: 3, lineHeight: 15 }}>
+                <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10.5, marginTop: 3, lineHeight: 15 }}>
                   Por padrão a configuração nova vale só das próximas sessões em diante — o
                   histórico guarda a configuração com que foi treinado.
                 </Text>
@@ -283,8 +284,8 @@ export function ExerciseEditSheet({
               className="rounded-2xl flex-row items-center justify-center"
               style={{ marginTop: 10, paddingVertical: 12, gap: 6 }}
             >
-              <MaterialCommunityIcons name="archive-outline" size={14} color="#bf3b30" />
-              <Text style={{ color: "#bf3b30", fontSize: 12, fontWeight: "600" }}>
+              <MaterialCommunityIcons name="archive-outline" size={14} color={uiColors.danger} />
+              <Text className="font-sans" style={{ color: uiColors.danger, fontSize: 12, fontWeight: "600" }}>
                 Arquivar exercício
               </Text>
             </Pressable>
@@ -299,8 +300,8 @@ export function ExerciseEditSheet({
             paddingTop: 10,
             paddingBottom: 10,
             borderTopWidth: 1,
-            borderTopColor: "#e7e4dc",
-            backgroundColor: "#f4f2ee",
+            borderTopColor: uiColors.line,
+            backgroundColor: uiColors.paper,
           }}
         >
           <SaveButton onPress={handleSave} />
@@ -321,10 +322,10 @@ function SaveButton({ onPress }: { onPress: () => void }) {
       className="rounded-xl items-center justify-center"
       style={{
         paddingVertical: 13,
-        backgroundColor: pressed ? "#1a1815" : "#26241f",
+        backgroundColor: pressed ? uiColors.ink : uiColors.ink,
       }}
     >
-      <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700", letterSpacing: 0.2 }}>
+      <Text className="font-sans" style={{ color: uiColors.white, fontSize: 13, fontWeight: "700", letterSpacing: 0.2 }}>
         Salvar
       </Text>
     </Pressable>
@@ -354,11 +355,11 @@ function IconButton({
         width: 32,
         height: 32,
         borderWidth: 1,
-        borderColor: "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: uiColors.line,
+        backgroundColor: hovered ? uiColors.sidebar : uiColors.white,
       }}
     >
-      <MaterialCommunityIcons name={icon} size={17} color="#5c594f" />
+      <MaterialCommunityIcons name={icon} size={17} color={uiColors.muted} />
     </Pressable>
   );
 }
@@ -383,11 +384,11 @@ function Chip({
       className="px-3 py-1.5 rounded-full"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? uiColors.ink : uiColors.line,
+        backgroundColor: active ? uiColors.ink : hovered ? uiColors.paper : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+      <Text className="font-sans" style={{ color: active ? uiColors.white : uiColors.muted, fontSize: 12, fontWeight: "600" }}>
         {label}
       </Text>
     </Pressable>

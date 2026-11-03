@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -29,7 +30,7 @@ export function VariationSwapModal({ visible, currentExerciseId, family, onSelec
             Trocar variação
           </Text>
           <TouchableOpacity onPress={onClose} hitSlop={10} style={{ padding: 4 }}>
-            <Text className="text-ink-soft text-base">Fechar</Text>
+            <Text className="font-sans text-ink-soft text-base">Fechar</Text>
           </TouchableOpacity>
         </View>
 
@@ -44,19 +45,19 @@ export function VariationSwapModal({ visible, currentExerciseId, family, onSelec
                 className="flex-row items-center rounded-2xl mb-2"
                 style={{
                   borderWidth: 1,
-                  borderColor: "#e7e4dc",
+                  borderColor: uiColors.line,
                   padding: 14,
                   gap: 10,
                   opacity: isCurrent ? 0.5 : 1,
                 }}
               >
-                <Text className="text-ink flex-1" style={{ fontSize: 14 }}>
+                <Text className="font-sans text-ink flex-1" style={{ fontSize: 14 }}>
                   {exercise.name}
                 </Text>
                 {isCurrent ? (
-                  <MaterialCommunityIcons name="check" size={16} color="#928d80" />
+                  <MaterialCommunityIcons name="check" size={16} color={uiColors.muted} />
                 ) : (
-                  <MaterialCommunityIcons name="chevron-right" size={16} color="#bdb8aa" />
+                  <MaterialCommunityIcons name="chevron-right" size={16} color={uiColors.faint} />
                 )}
               </Pressable>
             );

@@ -23,7 +23,7 @@ export function VolumeChart(props: Props) {
     <Suspense
       fallback={
         <View className="h-48 items-center justify-center bg-surface-card rounded-2xl">
-          <Text className="text-ink-mute text-sm">Loading chart…</Text>
+          <Text className="font-sans text-ink-mute text-sm">Loading chart…</Text>
         </View>
       }
     >

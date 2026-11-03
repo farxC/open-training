@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -26,10 +27,10 @@ import {
   type StampTone,
 } from "@/utils/recordsGamification";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
+const MONO = "JetBrains Mono";
 const BRASS = "#d9a441";
-const CREAM = "#f4f2ee";
-const INK = "#26241f";
+const CREAM = uiColors.paper;
+const INK = uiColors.ink;
 
 interface Props {
   groups: MuscleRecordGroup[];
@@ -148,7 +149,7 @@ function MuscleShelf({
   // Open shelves invert to ink — the case swings open and the group you are
   // reading is unmistakable against the paper around it.
   const titleColor = isOpen ? CREAM : INK;
-  const mutedColor = isOpen ? "#a8a293" : "#928d80";
+  const mutedColor = isOpen ? uiColors.faint : uiColors.muted;
 
   return (
     // A bubble opened on the last row hangs past this shelf and into the next
@@ -161,7 +162,7 @@ function MuscleShelf({
         accessibilityState={{ expanded: isOpen }}
         accessibilityLabel={`${groupLabel(group.muscle_group)}, ${group.records.length} records`}
         className="rounded-2xl px-3.5 py-3"
-        style={{ backgroundColor: isOpen ? INK : "#ffffff" }}
+        style={{ backgroundColor: isOpen ? INK : uiColors.white }}
       >
         <View className="flex-row items-center" style={{ gap: 10 }}>
           <View
@@ -172,12 +173,12 @@ function MuscleShelf({
               borderRadius: 9,
               backgroundColor: isOpen ? "rgba(255,255,255,0.08)" : CREAM,
               borderWidth: 1,
-              borderColor: isOpen ? "rgba(255,255,255,0.18)" : "#e7e4dc",
+              borderColor: isOpen ? "rgba(255,255,255,0.18)" : uiColors.line,
             }}
           >
             <Text
               style={{
-                color: isOpen ? CREAM : "#6f6b5f",
+                color: isOpen ? CREAM : uiColors.muted,
                 fontSize: 11,
                 fontWeight: "700",
                 fontFamily: MONO,
@@ -188,7 +189,7 @@ function MuscleShelf({
             </Text>
           </View>
 
-          <Text
+          <Text className="font-sans"
             style={{ color: titleColor, fontSize: 13, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
             numberOfLines={1}
           >
@@ -210,7 +211,7 @@ function MuscleShelf({
                 size={9}
                 color={isOpen ? "#f0cf8e" : "#8a5a12"}
               />
-              <Text
+              <Text className="font-sans"
                 style={{
                   color: isOpen ? "#f0cf8e" : "#8a5a12",
                   fontSize: 10,
@@ -230,7 +231,7 @@ function MuscleShelf({
               paddingVertical: 2,
             }}
           >
-            <Text style={{ color: mutedColor, fontSize: 10, fontWeight: "600" }}>
+            <Text className="font-sans" style={{ color: mutedColor, fontSize: 10, fontWeight: "600" }}>
               {group.records.length} {group.records.length === 1 ? "record" : "records"}
             </Text>
           </View>
@@ -239,7 +240,7 @@ function MuscleShelf({
             <MaterialCommunityIcons
               name="chevron-down"
               size={18}
-              color={isOpen ? "#a8a293" : "#bdb8aa"}
+              color={isOpen ? uiColors.faint : uiColors.faint}
             />
           </Animated.View>
         </View>
@@ -249,7 +250,7 @@ function MuscleShelf({
             {/* The shelf front: what's crowning this group right now. */}
             <View className="flex-row items-baseline mt-3" style={{ gap: 7 }}>
               <MaterialCommunityIcons name="trophy-variant" size={12} color={BRASS} />
-              <Text style={{ color: mutedColor, fontSize: 12, flex: 1 }} numberOfLines={1}>
+              <Text className="font-sans" style={{ color: mutedColor, fontSize: 12, flex: 1 }} numberOfLines={1}>
                 {crown.exercise_name}
               </Text>
               <Text
@@ -257,7 +258,7 @@ function MuscleShelf({
               >
                 {crown.max_weight_kg}
               </Text>
-              <Text style={{ color: mutedColor, fontSize: 10 }}>kg</Text>
+              <Text className="font-sans" style={{ color: mutedColor, fontSize: 10 }}>kg</Text>
             </View>
 
             {/* Climb to the next round plate. */}
@@ -267,7 +268,7 @@ function MuscleShelf({
                 height: 5,
                 borderRadius: 99,
                 marginTop: 9,
-                backgroundColor: isOpen ? "rgba(255,255,255,0.12)" : "#ebe7df",
+                backgroundColor: isOpen ? "rgba(255,255,255,0.12)" : uiColors.sidebar,
               }}
             >
               <Animated.View
@@ -280,13 +281,13 @@ function MuscleShelf({
                 {milestone.justHit ? (
                   <MaterialCommunityIcons name="star-four-points" size={9} color={BRASS} />
                 ) : null}
-                <Text style={{ color: mutedColor, fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>
+                <Text className="font-sans" style={{ color: mutedColor, fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>
                   {milestone.justHit
                     ? `${formatKg(milestone.previous)} KG BATIDOS · PRÓXIMA ${formatKg(milestone.next)}`
                     : `PRÓXIMA MARCA ${formatKg(milestone.next)} KG`}
                 </Text>
               </View>
-              <Text style={{ color: mutedColor, fontSize: 10 }}>
+              <Text className="font-sans" style={{ color: mutedColor, fontSize: 10 }}>
                 faltam {formatKg(milestone.next - crown.max_weight_kg)} kg
               </Text>
             </View>
@@ -301,7 +302,7 @@ function MuscleShelf({
             marginLeft: 15,
             paddingLeft: 11,
             borderLeftWidth: 1.5,
-            borderLeftColor: "#e7e4dc",
+            borderLeftColor: uiColors.line,
           }}
         >
           {group.records.map((record, index) => (
@@ -337,17 +338,17 @@ function EmptyCase() {
           height: 44,
           borderRadius: 22,
           borderWidth: 1.5,
-          borderColor: "#e7e4dc",
+          borderColor: uiColors.line,
           backgroundColor: CREAM,
           marginBottom: 10,
         }}
       >
-        <MaterialCommunityIcons name="trophy-outline" size={20} color="#bdb8aa" />
+        <MaterialCommunityIcons name="trophy-outline" size={20} color={uiColors.faint} />
       </View>
-      <Text style={{ color: INK, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
+      <Text className="font-sans" style={{ color: INK, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
         Vitrine vazia
       </Text>
-      <Text className="text-ink-mute text-xs text-center" style={{ marginTop: 4, lineHeight: 17 }}>
+      <Text className="font-sans text-ink-mute text-xs text-center" style={{ marginTop: 4, lineHeight: 17 }}>
         Registre uma série com carga e o primeiro record aparece aqui.
       </Text>
     </View>

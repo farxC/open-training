@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useRef } from "react";
 import { Image, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -31,8 +32,8 @@ export function AvatarPicker({ uri, onChange, size = 84, editable = false }: Pro
           height: size,
           borderRadius: size / 2,
           borderWidth: 3,
-          borderColor: "#f4f2ee",
-          backgroundColor: "#ebe7df",
+          borderColor: uiColors.paper,
+          backgroundColor: uiColors.sidebar,
           overflow: "hidden",
           alignItems: "center",
           justifyContent: "center",
@@ -41,7 +42,7 @@ export function AvatarPicker({ uri, onChange, size = 84, editable = false }: Pro
         {uri ? (
           <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
-          <MaterialCommunityIcons name="account" size={size * 0.55} color="#928d80" />
+          <MaterialCommunityIcons name="account" size={size * 0.55} color={uiColors.muted} />
         )}
       </View>
       {editable && (
@@ -57,10 +58,10 @@ export function AvatarPicker({ uri, onChange, size = 84, editable = false }: Pro
             alignItems: "center",
             justifyContent: "center",
             borderWidth: 2,
-            borderColor: "#f4f2ee",
+            borderColor: uiColors.paper,
           }}
         >
-          <MaterialCommunityIcons name="camera-plus-outline" size={size * 0.16} color="#ffffff" />
+          <MaterialCommunityIcons name="camera-plus-outline" size={size * 0.16} color={uiColors.white} />
         </View>
       )}
       <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleChange} />

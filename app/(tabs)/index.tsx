@@ -1,103 +1,303 @@
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react";
-import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { SessionCard } from "@/components/SessionCard";
+import {
+  ActionButton,
+  FilterChip,
+  IconButton,
+} from "@/components/ui/ActionButton";
+import { Button } from "@/components/ui/button";
 import { useSessions } from "@/hooks/useSessions";
-import { useUserProfile } from "@/hooks/useUserProfile";
-import type { SessionSummary } from "@/types";
+import { useRoutine } from "@/hooks/useRoutine";
+import { useRecorderContext } from "@/context/SessionRecorderContext";
+import { MODALITIES } from "@/data/modalities";
+import { todayISO } from "@/utils/cycle";
+import colors from "@/theme/palette.json";
+import type { Modality, SessionSummary } from "@/types";
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
 
 export default function FeedScreen() {
+  const { width } = useWindowDimensions();
   const { sessions, refresh } = useSessions();
-  const { profile, refresh: refreshProfile } = useUserProfile();
-
+  const routine = useRoutine();
+  const { refreshAll } = routine;
+  const { state: recorder } = useRecorderContext();
+  const [filter, setFilter] = useState<Modality | null>(null);
   useFocusEffect(
     useCallback(() => {
       refresh();
-      refreshProfile();
-    }, [refresh, refreshProfile])
+      refreshAll();
+    }, [refresh, refreshAll]),
   );
 
+  const visible = filter
+    ? sessions.filter((session) => session.modality === filter)
+    : sessions;
+  const available = MODALITIES.filter((modality) =>
+    sessions.some((session) => session.modality === modality.key),
+  );
+  const schedule = routine.scheduleForDate(todayISO());
+  const planned =
+    schedule.override === "rest"
+      ? []
+      : schedule.planned.filter(
+          (entry) => entry.status === "workout" && entry.unit,
+        );
+  const today = planned[0];
+  const recording = recorder.isRecording;
+  const start = () => router.push("/session/new");
+
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
-      {/* Header */}
-      <View className="px-4 pt-3 pb-4">
-        <Text style={{ color: '#928d80', fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 2 }}>
-          {DAY_NAMES[new Date().getDay()].toUpperCase()}
-        </Text>
-        <View className="flex-row items-center">
-          <View className="flex-1">
-            <Text className="text-ink font-display font-semibold text-3xl" style={{ letterSpacing: -0.6 }}>Open Training</Text>
-            <Text className="text-ink-mute text-xs mt-0.5">
-              {sessions.length > 0
-                ? `${sessions.length} session${sessions.length !== 1 ? "s" : ""} logged`
-                : "No sessions yet"}
-            </Text>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text
+            accessibilityRole="header"
+            className="font-display"
+            style={[styles.title, width < 360 && { fontSize: 28 }]}
+          >
+            Histórico
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+            <IconButton
+              label="Configurações"
+              icon="cog-outline"
+              onPress={() => router.push("/settings")}
+            />
+            <ActionButton
+              label={recording ? "Continuar" : "Registrar"}
+              icon={recording ? "play-outline" : "plus"}
+              onPress={start}
+            />
           </View>
-          <TouchableOpacity
-            className="w-10 h-10 rounded-full items-center justify-center overflow-hidden"
-            onPress={() => router.push("/(tabs)/profile")}
-            style={{ marginRight: 8, backgroundColor: "#ebe7df" }}
-            hitSlop={8}
-          >
-            {profile.photo_uri ? (
-              <Image source={{ uri: profile.photo_uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-            ) : (
-              <MaterialCommunityIcons name="account-circle-outline" size={26} color="#5c594f" />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="w-10 h-10 rounded-full items-center justify-center"
-            onPress={() => router.push("/settings")}
-            style={{ marginRight: 8 }}
-            hitSlop={8}
-          >
-            <MaterialCommunityIcons name="cog-outline" size={22} color="#5c594f" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="bg-ink w-11 h-11 rounded-full items-center justify-center"
-            onPress={() => router.push("/session/new")}
-            style={{
-              shadowColor: '#26241f',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 12,
-              elevation: 8,
-            }}
-          >
-            <Text style={{ color: '#ffffff', fontSize: 24, fontWeight: '300', lineHeight: 28, marginTop: -1 }}>+</Text>
-          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Divider */}
-      <View style={{ height: 1, backgroundColor: '#ddd8ce', marginHorizontal: 16, marginBottom: 8 }} />
-
-      <FlatList<SessionSummary>
-        data={sessions}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <SessionCard
-            session={item}
-            onPress={() => router.push(`/session/${item.id}`)}
-          />
-        )}
-        contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center" style={{ paddingTop: 80 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#ebe7df', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Text style={{ fontSize: 22 }}>🏋️</Text>
+        <FlatList<SessionSummary>
+          data={visible}
+          keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+          ListHeaderComponent={
+            <>
+              {(recording || today) && (
+                <Button
+                  accessibilityLabel={
+                    recording
+                      ? "Continuar treino em andamento"
+                      : `Iniciar treino de hoje: ${today.unit!.label}`
+                  }
+                  onPress={
+                    recording
+                      ? start
+                      : () =>
+                          router.push({
+                            pathname: "/session/new",
+                            params: { splitId: String(today.split.id) },
+                          })
+                  }
+                  className="justify-start"
+                  style={styles.today}
+                >
+                  <MaterialCommunityIcons
+                    name={recording ? "timer-outline" : "dumbbell"}
+                    size={22}
+                    color={colors.primary}
+                  />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      className="font-sans"
+                      style={styles.todayTitle}
+                      numberOfLines={1}
+                    >
+                      {recording
+                        ? "Treino em andamento"
+                        : `Hoje · ${today.unit!.label}`}
+                    </Text>
+                    <Text
+                      className="font-sans"
+                      style={styles.caption}
+                      numberOfLines={1}
+                    >
+                      {recording
+                        ? `${recorder.selectedExercises.length} exercícios`
+                        : `${(routine.exercisesByUnit[today.unit!.id] ?? []).length} exercícios · ${today.split.name}${planned.length > 1 ? ` · +${planned.length - 1} treinos hoje` : ""}`}
+                    </Text>
+                  </View>
+                  <Text className="font-sans" style={styles.todayAction}>
+                    {recording ? "Continuar" : "Iniciar"}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={18}
+                    color={colors.primary}
+                  />
+                </Button>
+              )}
+              {sessions.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.filters}
+                >
+                  <FilterChip
+                    label="Todos"
+                    active={filter === null}
+                    onPress={() => setFilter(null)}
+                  />
+                  {available.map((modality) => (
+                    <FilterChip
+                      key={modality.key}
+                      label={modality.label}
+                      active={filter === modality.key}
+                      onPress={() => setFilter(modality.key)}
+                    />
+                  ))}
+                </ScrollView>
+              )}
+            </>
+          }
+          renderItem={({ item, index }) => {
+            const month = item.date.slice(0, 7);
+            const newMonth =
+              index === 0 || visible[index - 1].date.slice(0, 7) !== month;
+            const unit =
+              item.split_id == null
+                ? undefined
+                : routine.unitsBySplit[item.split_id]?.find(
+                    (entry) => entry.id === item.unit_id,
+                  );
+            return (
+              <>
+                {newMonth && (
+                  <View style={styles.monthHeader}>
+                    <Text className="font-sans" style={styles.month}>
+                      {MONTHS[Number(item.date.slice(5, 7)) - 1].toUpperCase()}{" "}
+                      {item.date.slice(0, 4)}
+                    </Text>
+                    <Text className="font-sans" style={styles.caption}>
+                      {
+                        visible.filter((session) =>
+                          session.date.startsWith(month),
+                        ).length
+                      }{" "}
+                      sessões
+                    </Text>
+                  </View>
+                )}
+                <SessionCard
+                  session={item}
+                  title={unit?.label}
+                  onPress={() => router.push(`/session/${item.id}`)}
+                />
+              </>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <MaterialCommunityIcons
+                name="notebook-outline"
+                size={32}
+                color={colors.muted}
+              />
+              <Text
+                className="font-display"
+                style={{ color: colors.ink, fontSize: 24, marginTop: 16 }}
+              >
+                Nenhum treino registrado
+              </Text>
+              <Text
+                className="font-sans"
+                style={[styles.caption, { marginTop: 8, marginBottom: 20 }]}
+              >
+                Seu histórico aparece aqui depois do primeiro treino.
+              </Text>
+              <ActionButton
+                label="Registrar treino"
+                icon="plus"
+                onPress={start}
+              />
             </View>
-            <Text className="text-ink-soft text-base font-medium">No sessions yet</Text>
-            <Text className="text-ink-mute text-sm mt-1">Tap + to log your first workout</Text>
-          </View>
-        }
-      />
+          }
+        />
+      </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.paper },
+  content: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 920,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingTop: 14,
+    paddingBottom: 20,
+  },
+  title: { fontSize: 32, letterSpacing: -1, color: colors.ink },
+  today: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: colors.sidebar,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  todayTitle: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 3,
+  },
+  todayAction: { color: colors.primary, fontSize: 12, fontWeight: "600" },
+  caption: { fontSize: 12, color: colors.muted, lineHeight: 18 },
+  filters: { gap: 8, paddingBottom: 20 },
+  monthHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  month: {
+    fontSize: 10,
+    letterSpacing: 1.4,
+    fontWeight: "700",
+    color: colors.muted,
+  },
+  empty: { alignItems: "center", paddingTop: 70, paddingHorizontal: 12 },
+});

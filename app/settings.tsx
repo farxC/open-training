@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -44,36 +45,36 @@ export default function SettingsScreen() {
       <ScreenHeader title="Configurações" />
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Text
-          className="text-ink-mute"
+          className="font-sans text-ink-mute"
           style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
         >
           DADOS
         </Text>
 
         <TouchableOpacity
-          className="bg-white rounded-2xl p-4 mb-3"
-          style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+          className="bg-surface-card rounded-2xl p-4 mb-3"
+          style={{ borderWidth: 1, borderColor: uiColors.line }}
           onPress={handleExport}
           disabled={busy !== null}
         >
-          <Text className="text-ink font-semibold text-base">Exportar dados</Text>
-          <Text className="text-ink-mute text-xs mt-1">
+          <Text className="font-sans text-ink font-semibold text-base">Exportar dados</Text>
+          <Text className="font-sans text-ink-mute text-xs mt-1">
             Gera um arquivo com todo o seu histórico de treinos, exercícios e rotinas.
           </Text>
-          {busy === "export" && <ActivityIndicator style={{ marginTop: 8 }} color="#26241f" />}
+          {busy === "export" && <ActivityIndicator style={{ marginTop: 8 }} color={uiColors.ink} />}
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="bg-white rounded-2xl p-4"
-          style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+          className="bg-surface-card rounded-2xl p-4"
+          style={{ borderWidth: 1, borderColor: uiColors.line }}
           onPress={handleImport}
           disabled={busy !== null}
         >
-          <Text className="text-ink font-semibold text-base">Importar dados</Text>
-          <Text className="text-ink-mute text-xs mt-1">
+          <Text className="font-sans text-ink font-semibold text-base">Importar dados</Text>
+          <Text className="font-sans text-ink-mute text-xs mt-1">
             Sessões, exercícios e rotinas do arquivo serão adicionados aos seus dados atuais.
           </Text>
-          {busy === "import" && <ActivityIndicator style={{ marginTop: 8 }} color="#26241f" />}
+          {busy === "import" && <ActivityIndicator style={{ marginTop: 8 }} color={uiColors.ink} />}
         </TouchableOpacity>
       </ScrollView>
     </View>

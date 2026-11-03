@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useCallback, useEffect, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 import {
@@ -73,46 +74,46 @@ function DistanceFields({ set, modality, legNumber, onChange }: FieldsProps) {
   return (
     <View style={{ marginBottom: legNumber != null ? 18 : 0 }}>
       {legNumber != null && (
-        <Text className="text-ink-faint text-xs" style={{ marginBottom: 8 }}>
+        <Text className="font-sans text-ink-faint text-xs" style={{ marginBottom: 8 }}>
           Trecho {legNumber}
         </Text>
       )}
 
       <View className="flex-row items-center" style={{ gap: 12, marginBottom: 10 }}>
-        <Text className="text-ink-soft text-sm" style={{ width: 84 }}>Distância</Text>
+        <Text className="font-sans text-ink-soft text-sm" style={{ width: 84 }}>Distância</Text>
         <View className="flex-row items-center bg-surface-elevated rounded-lg px-3 py-2" style={{ width: 128 }}>
           <TextInput
-            className="text-ink flex-1 text-sm"
+            className="font-sans text-ink flex-1 text-sm"
             value={shownDistance ? String(Number(shownDistance.toFixed(3))) : ""}
             placeholder="0"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={uiColors.faint}
             keyboardType="decimal-pad"
             onChangeText={handleDistanceChange}
           />
-          <Text className="text-ink-mute text-xs">{display.distanceUnit}</Text>
+          <Text className="font-sans text-ink-mute text-xs">{display.distanceUnit}</Text>
         </View>
       </View>
 
       <View className="flex-row items-center" style={{ gap: 12, marginBottom: 10 }}>
-        <Text className="text-ink-soft text-sm" style={{ width: 84 }}>
+        <Text className="font-sans text-ink-soft text-sm" style={{ width: 84 }}>
           {display.effortMode === "speed" ? "Velocidade" : "Pace"}
         </Text>
         <View className="flex-row items-center bg-surface-elevated rounded-lg px-3 py-2" style={{ width: 128 }}>
           <TextInput
-            className="text-ink flex-1 text-sm"
+            className="font-sans text-ink flex-1 text-sm"
             value={effortText}
             placeholder={display.effortPlaceholder}
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={uiColors.faint}
             keyboardType={display.effortMode === "speed" ? "decimal-pad" : "default"}
             onChangeText={handleEffortChange}
           />
-          <Text className="text-ink-mute text-xs">{display.effortSuffix}</Text>
+          <Text className="font-sans text-ink-mute text-xs">{display.effortSuffix}</Text>
         </View>
       </View>
 
       <View className="flex-row items-center" style={{ gap: 12 }}>
-        <Text className="text-ink-soft text-sm" style={{ width: 84 }}>Duração</Text>
-        <Text className="text-ink text-sm font-medium">{duration || "—"}</Text>
+        <Text className="font-sans text-ink-soft text-sm" style={{ width: 84 }}>Duração</Text>
+        <Text className="font-sans text-ink text-sm font-medium">{duration || "—"}</Text>
       </View>
     </View>
   );
@@ -176,13 +177,13 @@ export function DistanceSessionForm({ sessionId, exerciseId, modality, targets, 
   return (
     <View className="mb-6">
       <Text
-        className="text-ink-mute"
+        className="font-sans text-ink-mute"
         style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: label ? 4 : 12 }}
       >
         {modalityLabel(modality).toUpperCase()}
       </Text>
       {label && (
-        <Text className="text-ink-faint text-xs" style={{ marginBottom: 12 }}>{label}</Text>
+        <Text className="font-sans text-ink-faint text-xs" style={{ marginBottom: 12 }}>{label}</Text>
       )}
 
       {sets.map((set, i) => (
@@ -198,12 +199,12 @@ export function DistanceSessionForm({ sessionId, exerciseId, modality, targets, 
       {multiLeg && (
         <View
           className="flex-row items-center"
-          style={{ gap: 12, marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#ddd8ce" }}
+          style={{ gap: 12, marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: uiColors.line }}
         >
-          <Text className="text-ink-mute text-xs" style={{ width: 84, fontWeight: "700", letterSpacing: 1.2 }}>
+          <Text className="font-sans text-ink-mute text-xs" style={{ width: 84, fontWeight: "700", letterSpacing: 1.2 }}>
             TOTAL
           </Text>
-          <Text className="text-ink text-sm font-medium">
+          <Text className="font-sans text-ink text-sm font-medium">
             {formatDistanceValue(totalDistance, modality)}
             {totalDuration > 0 ? ` · ${formatClock(totalDuration)}` : ""}
             {formatEffort(avgPace, modality) ? ` · ${formatEffort(avgPace, modality)}` : ""}

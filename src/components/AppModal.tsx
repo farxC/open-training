@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { Animated, Easing, Modal, Text, TouchableOpacity, View } from "react-native";
@@ -67,16 +68,16 @@ function handleAction(action: AppModalAction): void {
 
 const VARIANT_STYLES: Record<AppModalVariant, { container: ViewStyle; text: TextStyle }> = {
   cancel: {
-    container: { borderWidth: 1, borderColor: "#ddd8ce", backgroundColor: "transparent" },
-    text: { color: "#5c594f" },
+    container: { borderWidth: 1, borderColor: uiColors.line, backgroundColor: "transparent" },
+    text: { color: uiColors.muted },
   },
   destructive: {
-    container: { backgroundColor: "#bf3b30" },
-    text: { color: "#ffffff" },
+    container: { backgroundColor: uiColors.danger },
+    text: { color: uiColors.white },
   },
   neutral: {
-    container: { backgroundColor: "#26241f" },
-    text: { color: "#ffffff" },
+    container: { backgroundColor: uiColors.ink },
+    text: { color: uiColors.white },
   },
 };
 
@@ -121,7 +122,7 @@ export function AppModalHost() {
           style={{
             width: "100%",
             maxWidth: 340,
-            backgroundColor: "#ffffff",
+            backgroundColor: uiColors.white,
             borderRadius: 24,
             padding: 24,
             opacity,
@@ -139,7 +140,7 @@ export function AppModalHost() {
           >
             {request.title}
           </Text>
-          <Text className="text-ink-soft" style={{ fontSize: 14, lineHeight: 20, marginBottom: 20 }}>
+          <Text className="font-sans text-ink-soft" style={{ fontSize: 14, lineHeight: 20, marginBottom: 20 }}>
             {request.message}
           </Text>
           <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 12 }}>
@@ -153,7 +154,7 @@ export function AppModalHost() {
                   VARIANT_STYLES[action.variant].container,
                 ]}
               >
-                <Text style={[{ fontSize: 14, fontWeight: "600" }, VARIANT_STYLES[action.variant].text]}>
+                <Text className="font-sans" style={[{ fontSize: 14, fontWeight: "600" }, VARIANT_STYLES[action.variant].text]}>
                   {action.label}
                 </Text>
               </TouchableOpacity>

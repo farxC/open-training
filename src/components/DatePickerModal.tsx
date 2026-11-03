@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useState } from "react";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,7 +33,7 @@ export function DatePickerModal({ visible, title = "Escolher data", selectedDate
             {title}
           </Text>
           <TouchableOpacity onPress={onClose}>
-            <Text className="text-ink-soft text-base">Fechar</Text>
+            <Text className="font-sans text-ink-soft text-base">Fechar</Text>
           </TouchableOpacity>
         </View>
 
@@ -47,10 +48,10 @@ export function DatePickerModal({ visible, title = "Escolher data", selectedDate
 
         <TouchableOpacity
           className="mx-4 mt-6 py-2.5 rounded-xl items-center"
-          style={{ borderWidth: 1, borderColor: "#c9c3b6" }}
+          style={{ borderWidth: 1, borderColor: uiColors.line }}
           onPress={() => onSelect(todayISO())}
         >
-          <Text className="text-ink text-sm font-medium">Hoje</Text>
+          <Text className="font-sans text-ink text-sm font-medium">Hoje</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </Modal>

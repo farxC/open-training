@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -69,7 +70,7 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
             justifyContent: "center",
           }}
         >
-          <MaterialCommunityIcons name={editing ? "check" : "pencil-outline"} size={editing ? 18 : 16} color="#ffffff" />
+          <MaterialCommunityIcons name={editing ? "check" : "pencil-outline"} size={editing ? 18 : 16} color={uiColors.white} />
         </TouchableOpacity>
       </View>
 
@@ -79,22 +80,22 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
         <View style={{ marginTop: 10 }}>
           {editing ? (
             <>
-              <Text className="text-ink-mute" style={{ fontSize: 10.5, fontWeight: "600", marginBottom: 4 }}>
+              <Text className="font-sans text-ink-mute" style={{ fontSize: 10.5, fontWeight: "600", marginBottom: 4 }}>
                 Nome
               </Text>
               <TextInput
                 value={profile.name ?? ""}
                 onChangeText={(v) => onUpdate({ name: v })}
                 placeholder="Seu nome"
-                placeholderTextColor="#bdb8aa"
-                className="text-ink rounded-xl px-3 py-2"
-                style={{ backgroundColor: "#f4f2ee", borderWidth: 1, borderColor: "#e7e4dc", fontSize: 15 }}
+                placeholderTextColor={uiColors.faint}
+                className="font-sans text-ink rounded-xl px-3 py-2"
+                style={{ backgroundColor: uiColors.paper, borderWidth: 1, borderColor: uiColors.line, fontSize: 15 }}
               />
             </>
           ) : (
             <Text
               className="font-display font-semibold text-2xl"
-              style={{ letterSpacing: -0.6, color: profile.name ? "#26241f" : "#928d80" }}
+              style={{ letterSpacing: -0.6, color: profile.name ? uiColors.ink : uiColors.muted }}
             >
               {profile.name || "Sem nome definido"}
             </Text>
@@ -104,37 +105,37 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
         <View style={{ marginTop: editing ? 10 : 2 }}>
           {editing ? (
             <>
-              <Text className="text-ink-mute" style={{ fontSize: 10.5, fontWeight: "600", marginBottom: 4 }}>
+              <Text className="font-sans text-ink-mute" style={{ fontSize: 10.5, fontWeight: "600", marginBottom: 4 }}>
                 Usuário
               </Text>
               <View
                 className="flex-row items-center rounded-xl px-3"
-                style={{ backgroundColor: "#f4f2ee", borderWidth: 1, borderColor: "#e7e4dc" }}
+                style={{ backgroundColor: uiColors.paper, borderWidth: 1, borderColor: uiColors.line }}
               >
-                <Text className="text-ink-mute text-sm">@</Text>
+                <Text className="font-sans text-ink-mute text-sm">@</Text>
                 <TextInput
                   value={profile.username ?? ""}
                   onChangeText={(v) => onUpdate({ username: v })}
                   placeholder="usuario"
-                  placeholderTextColor="#bdb8aa"
+                  placeholderTextColor={uiColors.faint}
                   autoCapitalize="none"
-                  className="text-ink flex-1 py-2"
+                  className="font-sans text-ink flex-1 py-2"
                   style={{ fontSize: 14 }}
                 />
               </View>
             </>
           ) : profile.username ? (
-            <Text className="text-ink-mute text-sm">@{profile.username}</Text>
+            <Text className="font-sans text-ink-mute text-sm">@{profile.username}</Text>
           ) : null}
         </View>
 
         <View style={{ marginTop: 14, gap: 10 }}>
           <View className="flex-row items-center justify-between">
-            <Text className="text-ink-mute text-xs">Data de nascimento</Text>
+            <Text className="font-sans text-ink-mute text-xs">Data de nascimento</Text>
             {editing ? (
               <DateField value={profile.birthdate} onChange={(iso) => onUpdate({ birthdate: iso })} />
             ) : (
-              <Text className="text-ink-soft text-sm font-medium">
+              <Text className="font-sans text-ink-soft text-sm font-medium">
                 {profile.birthdate
                   ? `${formatShortDate(profile.birthdate)} · ${formatDurationSince(profile.birthdate)}`
                   : "Não informado"}
@@ -143,14 +144,14 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
           </View>
 
           <View className="flex-row items-center justify-between">
-            <Text className="text-ink-mute text-xs">Treinando desde</Text>
+            <Text className="font-sans text-ink-mute text-xs">Treinando desde</Text>
             {editing ? (
               <DateField
                 value={profile.training_start_date}
                 onChange={(iso) => onUpdate({ training_start_date: iso })}
               />
             ) : (
-              <Text className="text-ink-soft text-sm font-medium">
+              <Text className="font-sans text-ink-soft text-sm font-medium">
                 {profile.training_start_date
                   ? `${formatShortDate(profile.training_start_date)} · ${formatDurationSince(profile.training_start_date)}`
                   : "Não informado"}
@@ -159,13 +160,13 @@ export function ProfileHeader({ profile, onUpdate }: Props) {
           </View>
 
           <View className="flex-row items-center justify-between">
-            <Text className="text-ink-mute text-xs">Usando o app desde</Text>
-            <Text className="text-ink-soft text-sm">{formatLongDate(profile.created_at.slice(0, 10))}</Text>
+            <Text className="font-sans text-ink-mute text-xs">Usando o app desde</Text>
+            <Text className="font-sans text-ink-soft text-sm">{formatLongDate(profile.created_at.slice(0, 10))}</Text>
           </View>
         </View>
       </View>
 
-      <View style={{ height: 1, backgroundColor: "#ddd8ce", marginHorizontal: 16, marginTop: 16 }} />
+      <View style={{ height: 1, backgroundColor: uiColors.line, marginHorizontal: 16, marginTop: 16 }} />
     </View>
   );
 }

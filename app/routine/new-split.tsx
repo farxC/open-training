@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useRef, useState, type ComponentProps } from "react";
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,7 +21,7 @@ const STEP_ICON_CIRCLE = {
   width: 60,
   height: 60,
   borderRadius: 30,
-  backgroundColor: "#ebe7df",
+  backgroundColor: uiColors.sidebar,
   alignItems: "center" as const,
   justifyContent: "center" as const,
   marginBottom: 16,
@@ -164,19 +165,19 @@ export default function NewSplitScreen() {
               else if (step === "cyclicDays") setStep("cyclicStart");
             }}
           >
-            <Text className="text-ink-soft text-base">{step === "basics" ? "Cancelar" : "Voltar"}</Text>
+            <Text className="font-sans text-ink-soft text-base">{step === "basics" ? "Cancelar" : "Voltar"}</Text>
           </TouchableOpacity>
         </View>
 
         {(step === "days" || step === "plan") && (
           <View className="flex-row px-4 mb-1" style={{ gap: 6 }}>
-            <View style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "#26241f" }} />
+            <View style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: uiColors.ink }} />
             <View
               style={{
                 flex: 1,
                 height: 3,
                 borderRadius: 2,
-                backgroundColor: step === "plan" ? "#26241f" : "#ddd8ce",
+                backgroundColor: step === "plan" ? uiColors.ink : uiColors.line,
               }}
             />
           </View>
@@ -191,7 +192,7 @@ export default function NewSplitScreen() {
                   flex: 1,
                   height: 3,
                   borderRadius: 2,
-                  backgroundColor: i <= CYCLIC_STEPS.indexOf(step) ? "#26241f" : "#ddd8ce",
+                  backgroundColor: i <= CYCLIC_STEPS.indexOf(step) ? uiColors.ink : uiColors.line,
                 }}
               />
             ))}
@@ -201,23 +202,23 @@ export default function NewSplitScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
           {step === "basics" && (
             <>
-              <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+              <Text className="font-sans text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                 NOME
               </Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
                 placeholder="ex.: Musculação, Corrida"
-                placeholderTextColor="#bdb8aa"
-                className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-6"
+                placeholderTextColor={uiColors.faint}
+                className="font-sans bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-6"
               />
 
-              <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+              <Text className="font-sans text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                 MODALIDADE
               </Text>
               <ModalityCardGrid value={modality} onSelect={setModality} />
 
-              <Text className="text-ink-mute text-xs mb-2 mt-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+              <Text className="font-sans text-ink-mute text-xs mb-2 mt-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                 FORMATO
               </Text>
               <View style={{ gap: 10 }}>
@@ -240,19 +241,19 @@ export default function NewSplitScreen() {
           {step === "days" && (
             <View style={{ alignItems: "center" }}>
               <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="calendar-week" size={26} color="#26241f" />
+                <MaterialCommunityIcons name="calendar-week" size={26} color={uiColors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Quando você treina {modalityLabel(modality).toLowerCase()}?
               </Text>
               <Text
-                className="text-ink-mute text-sm mb-7"
+                className="font-sans text-ink-mute text-sm mb-7"
                 style={{ textAlign: "center", maxWidth: 280 }}
               >
                 Escolha os dias da semana. Você pode ajustar isso depois na tela do split.
               </Text>
               <WeekdayPicker selected={selectedDays} onToggle={toggleDay} size="large" />
-              <Text className="text-ink-faint text-xs mt-5">
+              <Text className="font-sans text-ink-faint text-xs mt-5">
                 {selectedDays.length === 0
                   ? "Nenhum dia selecionado"
                   : `${selectedDays.length} dia${selectedDays.length > 1 ? "s" : ""} por semana`}
@@ -263,7 +264,7 @@ export default function NewSplitScreen() {
                 disabled={selectedDays.length === 0}
                 onPress={() => setStep("plan")}
               >
-                <Text className="text-white text-sm font-semibold">Continuar</Text>
+                <Text className="font-sans text-white text-sm font-semibold">Continuar</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -271,13 +272,13 @@ export default function NewSplitScreen() {
           {step === "plan" && (
             <View style={{ alignItems: "center" }}>
               <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="notebook-outline" size={26} color="#26241f" />
+                <MaterialCommunityIcons name="notebook-outline" size={26} color={uiColors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Monte o plano
               </Text>
               <Text
-                className="text-ink-mute text-sm mb-7"
+                className="font-sans text-ink-mute text-sm mb-7"
                 style={{ textAlign: "center", maxWidth: 280 }}
               >
                 Um split de {modalityLabel(modality).toLowerCase()} precisa de um plano com pelo menos uma semana definida.
@@ -286,12 +287,12 @@ export default function NewSplitScreen() {
                 value={planName}
                 onChangeText={setPlanName}
                 placeholder={`Nome (ex.: Plano de ${modalityLabel(modality)})`}
-                placeholderTextColor="#bdb8aa"
-                className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
+                placeholderTextColor={uiColors.faint}
+                className="font-sans bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
                 style={{ width: "100%" }}
               />
               <View className="flex-row items-center justify-center mb-7" style={{ gap: 10 }}>
-                <Text className="text-ink-mute text-sm">Duração</Text>
+                <Text className="font-sans text-ink-mute text-sm">Duração</Text>
                 <NumField value={totalWeeks} onChange={setTotalWeeks} integer suffix="semanas" />
               </View>
               <TouchableOpacity
@@ -299,7 +300,7 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={createWeeklyDistanceSplit}
               >
-                <Text className="text-white text-sm font-semibold">Criar plano</Text>
+                <Text className="font-sans text-white text-sm font-semibold">Criar plano</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -307,12 +308,12 @@ export default function NewSplitScreen() {
           {step === "cyclicRest" && (
             <View style={{ alignItems: "center" }}>
               <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="weather-night" size={26} color="#26241f" />
+                <MaterialCommunityIcons name="weather-night" size={26} color={uiColors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Dias de descanso
               </Text>
-              <Text className="text-ink-mute text-sm mb-7" style={{ textAlign: "center", maxWidth: 280 }}>
+              <Text className="font-sans text-ink-mute text-sm mb-7" style={{ textAlign: "center", maxWidth: 280 }}>
                 Esses dias da semana não contam como treino no ciclo. Pode deixar em branco e ajustar depois.
               </Text>
               <WeekdayPicker selected={cyclicRestDays} onToggle={toggleCyclicRestDay} size="large" />
@@ -321,7 +322,7 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={() => setStep("cyclicStart")}
               >
-                <Text className="text-white text-sm font-semibold">Continuar</Text>
+                <Text className="font-sans text-white text-sm font-semibold">Continuar</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -329,12 +330,12 @@ export default function NewSplitScreen() {
           {step === "cyclicStart" && (
             <View style={{ alignItems: "center" }}>
               <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="calendar-blank-outline" size={26} color="#26241f" />
+                <MaterialCommunityIcons name="calendar-blank-outline" size={26} color={uiColors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Início do ciclo
               </Text>
-              <Text className="text-ink-mute text-sm mb-6" style={{ textAlign: "center", maxWidth: 280 }}>
+              <Text className="font-sans text-ink-mute text-sm mb-6" style={{ textAlign: "center", maxWidth: 280 }}>
                 Opcional. Se você já sabe quando o dia 1 do ciclo cai, escolha a data — dá pra definir isso depois também.
               </Text>
               <View style={{ width: "100%" }}>
@@ -350,7 +351,7 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={() => setStep("cyclicDays")}
               >
-                <Text className="text-white text-sm font-semibold">
+                <Text className="font-sans text-white text-sm font-semibold">
                   {cyclicAnchorDate ? "Continuar" : "Continuar sem definir"}
                 </Text>
               </TouchableOpacity>
@@ -360,12 +361,12 @@ export default function NewSplitScreen() {
           {step === "cyclicDays" && (
             <View style={{ alignItems: "center" }}>
               <View style={STEP_ICON_CIRCLE}>
-                <MaterialCommunityIcons name="repeat" size={26} color="#26241f" />
+                <MaterialCommunityIcons name="repeat" size={26} color={uiColors.ink} />
               </View>
               <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
                 Dias do ciclo
               </Text>
-              <Text className="text-ink-mute text-sm mb-6" style={{ textAlign: "center", maxWidth: 280 }}>
+              <Text className="font-sans text-ink-mute text-sm mb-6" style={{ textAlign: "center", maxWidth: 280 }}>
                 A sequência de treinos que se repete. Pode pular e adicionar (com os exercícios) depois, na tela do split.
               </Text>
 
@@ -375,9 +376,9 @@ export default function NewSplitScreen() {
                     <View
                       key={key}
                       className="flex-row items-center justify-between px-4 py-3 rounded-2xl"
-                      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                      style={{ borderWidth: 1, borderColor: uiColors.line }}
                     >
-                      <Text className="text-ink text-sm font-medium">Dia {i + 1}</Text>
+                      <Text className="font-sans text-ink text-sm font-medium">Dia {i + 1}</Text>
                       <TouchableOpacity onPress={() => setCyclicDayKeys((prev) => prev.filter((k) => k !== key))}>
                         <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
                       </TouchableOpacity>
@@ -388,10 +389,10 @@ export default function NewSplitScreen() {
 
               <TouchableOpacity
                 className="py-3 rounded-xl items-center mb-6"
-                style={{ width: "100%", borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                style={{ width: "100%", borderWidth: 1, borderColor: uiColors.line, borderStyle: "dashed" }}
                 onPress={() => setCyclicDayKeys((prev) => [...prev, nextCyclicDayKey.current++])}
               >
-                <Text className="text-ink text-sm font-medium">+ Adicionar dia</Text>
+                <Text className="font-sans text-ink text-sm font-medium">+ Adicionar dia</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -399,7 +400,7 @@ export default function NewSplitScreen() {
                 style={{ width: "100%" }}
                 onPress={createCyclicSplit}
               >
-                <Text className="text-white text-sm font-semibold">
+                <Text className="font-sans text-white text-sm font-semibold">
                   {cyclicDayKeys.length > 0 ? "Concluir" : "Concluir sem dias"}
                 </Text>
               </TouchableOpacity>
@@ -425,7 +426,7 @@ function FormatOption({
   return (
     <TouchableOpacity
       className="flex-row items-center rounded-2xl px-4 py-3.5 bg-surface-card"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce", gap: 14 }}
+      style={{ borderWidth: 1, borderColor: uiColors.line, gap: 14 }}
       onPress={onPress}
       activeOpacity={0.85}
     >
@@ -434,18 +435,18 @@ function FormatOption({
           width: 42,
           height: 42,
           borderRadius: 21,
-          backgroundColor: "#f4f2ee",
+          backgroundColor: uiColors.paper,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <MaterialCommunityIcons name={icon} size={20} color="#5c594f" />
+        <MaterialCommunityIcons name={icon} size={20} color={uiColors.muted} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text className="text-ink text-sm font-semibold">{label}</Text>
-        <Text className="text-ink-mute text-xs mt-0.5">{description}</Text>
+        <Text className="font-sans text-ink text-sm font-semibold">{label}</Text>
+        <Text className="font-sans text-ink-mute text-xs mt-0.5">{description}</Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color="#bdb8aa" />
+      <MaterialCommunityIcons name="chevron-right" size={20} color={uiColors.faint} />
     </TouchableOpacity>
   );
 }

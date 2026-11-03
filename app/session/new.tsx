@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useReducer, useState, type ComponentProps } from "react";
 import {
   KeyboardAvoidingView,
@@ -10,13 +11,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRoutine } from "@/hooks/useRoutine";
 import { useSessionRecorder } from "@/hooks/useSessionRecorder";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
+import { ActionButton } from "@/components/ui/ActionButton";
 import { SetLogger } from "@/components/SetLogger";
 import { DistanceSessionForm } from "@/components/DistanceSessionForm";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
@@ -44,7 +46,14 @@ import {
 import { confirmAction, notify } from "@/components/AppModal";
 import { dateToISO, todayISO } from "@/utils/cycle";
 import { toMuscleSeriesRows } from "@/utils/analyticsAgg";
-import type { Exercise, Modality, RoutineSplit, RoutineUnit, RoutineUnitExercise, SessionPhoto } from "@/types";
+import type {
+  Exercise,
+  Modality,
+  RoutineSplit,
+  RoutineUnit,
+  RoutineUnitExercise,
+  SessionPhoto,
+} from "@/types";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -52,13 +61,18 @@ const STEP_ICON_CIRCLE = {
   width: 60,
   height: 60,
   borderRadius: 30,
-  backgroundColor: "#ebe7df",
+  backgroundColor: uiColors.sidebar,
   alignItems: "center" as const,
   justifyContent: "center" as const,
   marginBottom: 16,
 };
 
-type Step = "modality" | "splitChoice" | "resolvedDay" | "changeUnit" | "details";
+type Step =
+  | "modality"
+  | "splitChoice"
+  | "resolvedDay"
+  | "changeUnit"
+  | "details";
 const SPLIT_STEPS: Step[] = ["splitChoice", "resolvedDay", "details"];
 
 function formatDatePill(dateISO: string): string {
@@ -73,7 +87,9 @@ function describeTarget(t: RoutineUnitExercise, modality: Modality): string {
     return `${formatDistanceValue(t.target_distance_km, modality)}${effort ? ` · ${effort}` : ""}`;
   }
   if (!t.target_sets) return "—";
-  const reps = t.target_reps_max ? `${t.target_reps}–${t.target_reps_max}` : `${t.target_reps}`;
+  const reps = t.target_reps_max
+    ? `${t.target_reps}–${t.target_reps_max}`
+    : `${t.target_reps}`;
   const weight = t.target_weight_kg ? ` @ ${t.target_weight_kg}kg` : "";
   return `${t.target_sets}×${reps} reps${weight}`;
 }
@@ -81,30 +97,66 @@ function describeTarget(t: RoutineUnitExercise, modality: Modality): string {
 export default function NewSessionScreen() {
   const r = useRoutine();
   const recorder = useSessionRecorder();
+  const params = useLocalSearchParams<{ splitId?: string }>();
+  const initialSplit =
+    recorder.sessionId == null
+      ? r.splits.find((entry) => String(entry.id) === params.splitId)
+      : undefined;
+  const initialEntry = initialSplit
+    ? r
+        .scheduleForDate(todayISO())
+        .planned.find((entry) => entry.split.id === initialSplit.id)
+    : undefined;
+  const initialTargets =
+    initialSplit && initialEntry?.unit
+      ? r.resolvedTargetsForUnit(initialEntry.unit, initialSplit, todayISO())
+      : undefined;
+  const [showSessionInfo, setShowSessionInfo] = useState(false);
 
   // A leftover session from a previous "New session" attempt that got dismissed
   // without hitting Cancelar/Descartar (e.g. modal swipe-down) stays alive in
   // SessionRecorderContext. Resume it directly instead of showing the modality
   // picker again and silently reusing its (possibly different) modality/data.
-  const resumedSession = recorder.sessionId != null ? getSessionById(recorder.sessionId) : null;
+  const resumedSession =
+    recorder.sessionId != null ? getSessionById(recorder.sessionId) : null;
 
-  const [step, setStep] = useState<Step>(() => (recorder.sessionId != null ? "details" : "modality"));
+  const [step, setStep] = useState<Step>(() =>
+    recorder.sessionId != null
+      ? "details"
+      : initialSplit
+        ? "resolvedDay"
+        : "modality",
+  );
   const [date, setDate] = useState(() => resumedSession?.date ?? todayISO());
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [dateModalMonth, setDateModalMonth] = useState(() => new Date());
 
-  const [modality, setModality] = useState<Modality>(() => recorder.modality ?? "musculacao");
-  const [splitId, setSplitId] = useState<number | null>(() => recorder.splitId ?? null);
-  const [resolvedUnit, setResolvedUnit] = useState<RoutineUnit | null>(null);
-  const [resolvedStatus, setResolvedStatus] = useState<"workout" | "rest">("rest");
-  const [programWeekId, setProgramWeekId] = useState<number | null>(() => recorder.programWeekId ?? null);
-  const [resolvedExercises, setResolvedExercises] = useState<RoutineUnitExercise[]>([]);
+  const [modality, setModality] = useState<Modality>(() =>
+    recorder.sessionId != null
+      ? recorder.modality
+      : (initialSplit?.modality ?? "musculacao"),
+  );
+  const [splitId, setSplitId] = useState<number | null>(
+    () => recorder.splitId ?? initialSplit?.id ?? null,
+  );
+  const [resolvedUnit, setResolvedUnit] = useState<RoutineUnit | null>(
+    initialEntry?.unit ?? null,
+  );
+  const [resolvedStatus, setResolvedStatus] = useState<"workout" | "rest">(
+    initialEntry?.status ?? "rest",
+  );
+  const [programWeekId, setProgramWeekId] = useState<number | null>(
+    () => recorder.programWeekId ?? initialTargets?.programWeekId ?? null,
+  );
+  const [resolvedExercises, setResolvedExercises] = useState<
+    RoutineUnitExercise[]
+  >(initialTargets?.exercises ?? []);
 
   const [name, setName] = useState(() => resumedSession?.name ?? "");
   const [nameFocused, setNameFocused] = useState(false);
   const [notes, setNotes] = useState(() => resumedSession?.notes ?? "");
   const [photos, setPhotos] = useState<SessionPhoto[]>(() =>
-    recorder.sessionId != null ? getSessionPhotos(recorder.sessionId) : []
+    recorder.sessionId != null ? getSessionPhotos(recorder.sessionId) : [],
   );
   const [pickerVisible, setPickerVisible] = useState(false);
   const [finishModalVisible, setFinishModalVisible] = useState(false);
@@ -115,9 +167,12 @@ export default function NewSessionScreen() {
   // latest getMuscleSeriesForSession() read after each mutation.
   const [, bumpSetsTick] = useReducer((c: number) => c + 1, 0);
   const muscleSeries =
-    recorder.sessionId != null ? toMuscleSeriesRows(getMuscleSeriesForSession(recorder.sessionId)) : [];
+    recorder.sessionId != null
+      ? toMuscleSeriesRows(getMuscleSeriesForSession(recorder.sessionId))
+      : [];
 
-  const split = splitId != null ? r.splits.find((s) => s.id === splitId) ?? null : null;
+  const split =
+    splitId != null ? (r.splits.find((s) => s.id === splitId) ?? null) : null;
 
   // Distance sessions carry exactly one auto-provisioned exercise (see goToDetails).
   // Read it defensively — the details step must still render if seeding found nothing.
@@ -135,21 +190,33 @@ export default function NewSessionScreen() {
   }) => {
     if (recorder.sessionId == null) {
       const modalityExercises = getExercises({ modality: params.modality });
-      const exerciseById = new Map<number, Exercise>(modalityExercises.map((e) => [e.id, e]));
-      const items: { exercise: Exercise; targets?: RoutineUnitExercise }[] = params.exercises
-        .map((t) => {
-          const exercise = exerciseById.get(t.exercise_id);
-          return exercise ? { exercise, targets: t } : null;
-        })
-        .filter((x): x is { exercise: Exercise; targets: RoutineUnitExercise } => x != null);
+      const exerciseById = new Map<number, Exercise>(
+        modalityExercises.map((e) => [e.id, e]),
+      );
+      const items: { exercise: Exercise; targets?: RoutineUnitExercise }[] =
+        params.exercises
+          .map((t) => {
+            const exercise = exerciseById.get(t.exercise_id);
+            return exercise ? { exercise, targets: t } : null;
+          })
+          .filter(
+            (x): x is { exercise: Exercise; targets: RoutineUnitExercise } =>
+              x != null,
+          );
 
       // Distance modalities have no exercise picker — the session just *is* the
       // activity — so seed it with the modality's auto-provisioned exercise when
       // the day didn't already resolve one. Matched by name so a modality with
       // extra custom exercises still lands on the canonical one.
-      if (isDistanceModality(params.modality) && items.length === 0 && modalityExercises.length > 0) {
+      if (
+        isDistanceModality(params.modality) &&
+        items.length === 0 &&
+        modalityExercises.length > 0
+      ) {
         const defaultName = modalityConfig(params.modality).defaultExerciseName;
-        const seeded = modalityExercises.find((e) => e.name === defaultName) ?? modalityExercises[0];
+        const seeded =
+          modalityExercises.find((e) => e.name === defaultName) ??
+          modalityExercises[0];
         items.push({ exercise: seeded });
       }
 
@@ -170,7 +237,8 @@ export default function NewSessionScreen() {
 
   const handleNameChange = (v: string) => {
     setName(v);
-    if (recorder.sessionId != null) updateSession(recorder.sessionId, { name: v.trim() || null });
+    if (recorder.sessionId != null)
+      updateSession(recorder.sessionId, { name: v.trim() || null });
   };
 
   const handleAddPhoto = (uri: string) => {
@@ -181,13 +249,21 @@ export default function NewSessionScreen() {
 
   const handleRemovePhoto = (id: number) => {
     removeSessionPhoto(id);
-    if (recorder.sessionId != null) setPhotos(getSessionPhotos(recorder.sessionId));
+    if (recorder.sessionId != null)
+      setPhotos(getSessionPhotos(recorder.sessionId));
   };
 
   const applyEntryForSplit = (targetSplit: RoutineSplit, forDate: string) => {
-    const entry = r.scheduleForDate(forDate).planned.find((p) => p.split.id === targetSplit.id) ?? null;
+    const entry =
+      r
+        .scheduleForDate(forDate)
+        .planned.find((p) => p.split.id === targetSplit.id) ?? null;
     if (entry?.unit) {
-      const { exercises, programWeekId: pwId } = r.resolvedTargetsForUnit(entry.unit, targetSplit, forDate);
+      const { exercises, programWeekId: pwId } = r.resolvedTargetsForUnit(
+        entry.unit,
+        targetSplit,
+        forDate,
+      );
       setResolvedUnit(entry.unit);
       setResolvedStatus("workout");
       setProgramWeekId(pwId);
@@ -209,7 +285,13 @@ export default function NewSessionScreen() {
       setResolvedStatus("rest");
       setProgramWeekId(null);
       setResolvedExercises([]);
-      goToDetails({ modality: m, splitId: null, unitId: null, programWeekId: null, exercises: [] });
+      goToDetails({
+        modality: m,
+        splitId: null,
+        unitId: null,
+        programWeekId: null,
+        exercises: [],
+      });
     } else {
       setStep("splitChoice");
     }
@@ -227,17 +309,33 @@ export default function NewSessionScreen() {
     setResolvedStatus("rest");
     setProgramWeekId(null);
     setResolvedExercises([]);
-    goToDetails({ modality, splitId: null, unitId: null, programWeekId: null, exercises: [] });
+    goToDetails({
+      modality,
+      splitId: null,
+      unitId: null,
+      programWeekId: null,
+      exercises: [],
+    });
   };
 
   const chooseUnitManually = (unit: RoutineUnit) => {
     if (!split) return;
-    const { exercises, programWeekId: pwId } = r.resolvedTargetsForUnit(unit, split, date);
+    const { exercises, programWeekId: pwId } = r.resolvedTargetsForUnit(
+      unit,
+      split,
+      date,
+    );
     setResolvedUnit(unit);
     setResolvedStatus("workout");
     setProgramWeekId(pwId);
     setResolvedExercises(exercises);
-    goToDetails({ modality, splitId, unitId: unit.id, programWeekId: pwId, exercises });
+    goToDetails({
+      modality,
+      splitId,
+      unitId: unit.id,
+      programWeekId: pwId,
+      exercises,
+    });
   };
 
   const skipUnit = () => {
@@ -245,7 +343,13 @@ export default function NewSessionScreen() {
     setResolvedStatus("rest");
     setProgramWeekId(null);
     setResolvedExercises([]);
-    goToDetails({ modality, splitId, unitId: null, programWeekId: null, exercises: [] });
+    goToDetails({
+      modality,
+      splitId,
+      unitId: null,
+      programWeekId: null,
+      exercises: [],
+    });
   };
 
   const confirmDate = (newDate: string) => {
@@ -257,11 +361,17 @@ export default function NewSessionScreen() {
 
   const handleFinish = () => {
     if (recorder.selectedExercises.length === 0) {
-      notify("Nenhum exercício", "Adicione ao menos um exercício antes de concluir.");
+      notify(
+        "Nenhum exercício",
+        "Adicione ao menos um exercício antes de concluir.",
+      );
       return;
     }
     const elapsed = recorder.startTime
-      ? Math.max(0, Math.round((Date.now() - recorder.startTime.getTime()) / 1000))
+      ? Math.max(
+          0,
+          Math.round((Date.now() - recorder.startTime.getTime()) / 1000),
+        )
       : 0;
     setFinishInitialDuration(elapsed);
     setFinishModalVisible(true);
@@ -284,10 +394,15 @@ export default function NewSessionScreen() {
       router.replace("/");
       return;
     }
-    confirmAction("Descartar sessão?", "Os dados serão perdidos.", "Descartar", () => {
-      recorder.discardSession();
-      router.replace("/");
-    });
+    confirmAction(
+      "Descartar sessão?",
+      "Os dados serão perdidos.",
+      "Descartar",
+      () => {
+        recorder.discardSession();
+        router.replace("/");
+      },
+    );
   };
 
   const goBack = () => {
@@ -302,32 +417,49 @@ export default function NewSessionScreen() {
     splitChoice: "Escolher split",
     resolvedDay: formatDatePill(date),
     changeUnit: "Trocar dia",
-    details: "Detalhes",
+    details: "Registrar treino",
   };
 
-  const showIndicator = step !== "modality";
+  const showIndicator = step !== "modality" && step !== "details";
   const indicatorPosition = step === "changeUnit" ? "resolvedDay" : step;
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <View style={{ flex: 1, width: "100%", maxWidth: 560, alignSelf: "center" }}>
+      <View
+        style={{ flex: 1, width: "100%", maxWidth: 880, alignSelf: "center" }}
+      >
         <View className="flex-row items-center px-4 py-3" style={{ gap: 8 }}>
-          <Text className="text-ink font-display font-semibold text-2xl flex-1" style={{ letterSpacing: -0.4 }}>
+          <Text
+            className="text-ink font-display font-semibold text-2xl flex-1"
+            style={{ letterSpacing: -0.4 }}
+          >
             {stepTitle[step]}
           </Text>
           {step !== "modality" && step !== "details" && (
             <TouchableOpacity
               className="px-2.5 py-1.5 rounded-full flex-row items-center"
-              style={{ backgroundColor: "#ebe7df", gap: 4 }}
+              style={{ backgroundColor: uiColors.sidebar, gap: 4 }}
               onPress={() => setDateModalVisible(true)}
             >
-              <MaterialCommunityIcons name="calendar-blank-outline" size={14} color="#5c594f" />
-              <Text className="text-ink-soft text-xs font-medium">{formatDatePill(date)}</Text>
+              <MaterialCommunityIcons
+                name="calendar-blank-outline"
+                size={14}
+                color={uiColors.muted}
+              />
+              <Text className="font-sans text-ink-soft text-xs font-medium">
+                {formatDatePill(date)}
+              </Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={step === "details" ? handleDiscard : goBack}>
-            <Text className="text-ink-soft text-base">
-              {step === "modality" ? "Cancelar" : step === "details" ? "Descartar" : "Voltar"}
+          <TouchableOpacity
+            onPress={step === "details" ? handleDiscard : goBack}
+          >
+            <Text className="font-sans text-ink-soft text-base">
+              {step === "modality"
+                ? "Cancelar"
+                : step === "details"
+                  ? "Descartar"
+                  : "Voltar"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -341,14 +473,20 @@ export default function NewSessionScreen() {
                   flex: 1,
                   height: 3,
                   borderRadius: 2,
-                  backgroundColor: i <= SPLIT_STEPS.indexOf(indicatorPosition) ? "#26241f" : "#ddd8ce",
+                  backgroundColor:
+                    i <= SPLIT_STEPS.indexOf(indicatorPosition)
+                      ? uiColors.ink
+                      : uiColors.line,
                 }}
               />
             ))}
           </View>
         )}
 
-        <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView
+          className="flex-1"
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <ScrollView
             contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
             keyboardShouldPersistTaps="handled"
@@ -356,7 +494,10 @@ export default function NewSessionScreen() {
           >
             {step === "modality" && (
               <>
-                <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+                <Text
+                  className="font-sans text-ink-mute text-xs mb-2"
+                  style={{ letterSpacing: 1, fontWeight: "700" }}
+                >
                   MODALIDADE
                 </Text>
                 <ModalityCardGrid onSelect={chooseModality} />
@@ -365,7 +506,10 @@ export default function NewSessionScreen() {
 
             {step === "splitChoice" && (
               <>
-                <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+                <Text
+                  className="font-sans text-ink-mute text-xs mb-2"
+                  style={{ letterSpacing: 1, fontWeight: "700" }}
+                >
                   SPLIT
                 </Text>
                 <View style={{ gap: 10 }}>
@@ -376,17 +520,25 @@ export default function NewSessionScreen() {
                         key={s.id}
                         icon={modalityConfig(s.modality).icon as MciName}
                         label={s.name}
-                        description={s.mode === "cyclic" ? "Cíclico" : "Semanal"}
+                        description={
+                          s.mode === "cyclic" ? "Cíclico" : "Semanal"
+                        }
                         onPress={() => chooseSplit(s)}
                       />
                     ))}
                 </View>
                 <TouchableOpacity
                   className="mt-4 py-3 rounded-xl items-center"
-                  style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: uiColors.line,
+                    borderStyle: "dashed",
+                  }}
                   onPress={skipSplit}
                 >
-                  <Text className="text-ink text-sm font-medium">Sessão livre, sem split</Text>
+                  <Text className="font-sans text-ink text-sm font-medium">
+                    Sessão livre, sem split
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -397,14 +549,33 @@ export default function NewSessionScreen() {
                   <>
                     <View
                       className="flex-row items-center self-center px-2.5 py-1 rounded-full mb-4"
-                      style={{ backgroundColor: "#e3efe8", gap: 5 }}
+                      style={{ backgroundColor: uiColors.successSoft, gap: 5 }}
                     >
-                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#2f9e6e" }} />
-                      <Text style={{ color: "#227a54", fontSize: 12, fontWeight: "700" }}>
-                        {formatDatePill(date) === "Hoje" ? "Hoje" : formatDatePill(date)}
+                      <View
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: uiColors.success,
+                        }}
+                      />
+                      <Text
+                        className="font-sans"
+                        style={{
+                          color: uiColors.success,
+                          fontSize: 12,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {formatDatePill(date) === "Hoje"
+                          ? "Hoje"
+                          : formatDatePill(date)}
                       </Text>
                     </View>
-                    <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
+                    <Text
+                      className="text-ink font-display font-semibold text-xl mb-2"
+                      style={{ textAlign: "center" }}
+                    >
                       {resolvedUnit.label}
                     </Text>
                     {resolvedExercises.length > 0 ? (
@@ -413,15 +584,25 @@ export default function NewSessionScreen() {
                           <View
                             key={ex.id}
                             className="flex-row items-center justify-between px-4 py-3 rounded-2xl"
-                            style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                            style={{
+                              borderWidth: 1,
+                              borderColor: uiColors.line,
+                            }}
                           >
-                            <Text className="text-ink text-sm font-medium">{ex.exercise_name}</Text>
-                            <Text className="text-ink-mute text-xs">{describeTarget(ex, modality)}</Text>
+                            <Text className="font-sans text-ink text-sm font-medium">
+                              {ex.exercise_name}
+                            </Text>
+                            <Text className="font-sans text-ink-mute text-xs">
+                              {describeTarget(ex, modality)}
+                            </Text>
                           </View>
                         ))}
                       </View>
                     ) : (
-                      <Text className="text-ink-mute text-sm mb-6" style={{ textAlign: "center", maxWidth: 280 }}>
+                      <Text
+                        className="font-sans text-ink-mute text-sm mb-6"
+                        style={{ textAlign: "center", maxWidth: 280 }}
+                      >
                         Nenhum exercício definido ainda — adicione ao registrar.
                       </Text>
                     )}
@@ -438,28 +619,53 @@ export default function NewSessionScreen() {
                         })
                       }
                     >
-                      <Text className="text-white text-sm font-semibold">Continuar com este treino</Text>
+                      <Text className="font-sans text-white text-sm font-semibold">
+                        Continuar com este treino
+                      </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity className="mt-4 py-2 items-center" onPress={() => setStep("changeUnit")}>
-                      <Text className="text-ink-soft text-sm">Trocar dia</Text>
+                    <TouchableOpacity
+                      className="mt-4 py-2 items-center"
+                      onPress={() => setStep("changeUnit")}
+                    >
+                      <Text className="font-sans text-ink-soft text-sm">
+                        Trocar dia
+                      </Text>
                     </TouchableOpacity>
                   </>
                 ) : (
                   <>
                     <View style={STEP_ICON_CIRCLE}>
-                      <MaterialCommunityIcons name="weather-night" size={26} color="#26241f" />
+                      <MaterialCommunityIcons
+                        name="weather-night"
+                        size={26}
+                        color={uiColors.ink}
+                      />
                     </View>
-                    <Text className="text-ink font-display font-semibold text-xl mb-2" style={{ textAlign: "center" }}>
-                      {formatDatePill(date) === "Hoje" ? "Hoje" : formatDatePill(date)} é descanso em {split.name}
+                    <Text
+                      className="text-ink font-display font-semibold text-xl mb-2"
+                      style={{ textAlign: "center" }}
+                    >
+                      {formatDatePill(date) === "Hoje"
+                        ? "Hoje"
+                        : formatDatePill(date)}{" "}
+                      é descanso em {split.name}
                     </Text>
-                    <Text className="text-ink-mute text-sm mb-7" style={{ textAlign: "center", maxWidth: 280 }}>
+                    <Text
+                      className="font-sans text-ink-mute text-sm mb-7"
+                      style={{ textAlign: "center", maxWidth: 280 }}
+                    >
                       {!split.anchor_date
                         ? "Este split ainda não tem uma data de início definida."
                         : "Não há treino previsto neste dia."}
                     </Text>
                     <TouchableOpacity
                       className="py-3 rounded-xl items-center mb-3"
-                      style={{ width: "100%", borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                      style={{
+                        width: "100%",
+                        borderWidth: 1,
+                        borderColor: uiColors.line,
+                        borderStyle: "dashed",
+                      }}
                       onPress={() =>
                         goToDetails({
                           modality,
@@ -470,10 +676,17 @@ export default function NewSessionScreen() {
                         })
                       }
                     >
-                      <Text className="text-ink text-sm font-medium">Registrar mesmo assim</Text>
+                      <Text className="font-sans text-ink text-sm font-medium">
+                        Registrar mesmo assim
+                      </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity className="py-2 items-center" onPress={() => setStep("changeUnit")}>
-                      <Text className="text-ink-soft text-sm">Trocar dia</Text>
+                    <TouchableOpacity
+                      className="py-2 items-center"
+                      onPress={() => setStep("changeUnit")}
+                    >
+                      <Text className="font-sans text-ink-soft text-sm">
+                        Trocar dia
+                      </Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -482,7 +695,10 @@ export default function NewSessionScreen() {
 
             {step === "changeUnit" && split && (
               <>
-                <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+                <Text
+                  className="font-sans text-ink-mute text-xs mb-2"
+                  style={{ letterSpacing: 1, fontWeight: "700" }}
+                >
                   DIAS DE {split.name.toUpperCase()}
                 </Text>
                 <View style={{ gap: 10 }}>
@@ -491,17 +707,27 @@ export default function NewSessionScreen() {
                       key={u.id}
                       icon="calendar-check-outline"
                       label={u.label}
-                      description={resolvedUnit?.id === u.id ? "Dia inferido" : "Trocar para este dia"}
+                      description={
+                        resolvedUnit?.id === u.id
+                          ? "Dia inferido"
+                          : "Trocar para este dia"
+                      }
                       onPress={() => chooseUnitManually(u)}
                     />
                   ))}
                 </View>
                 <TouchableOpacity
                   className="mt-4 py-3 rounded-xl items-center"
-                  style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: uiColors.line,
+                    borderStyle: "dashed",
+                  }}
                   onPress={skipUnit}
                 >
-                  <Text className="text-ink text-sm font-medium">Sessão livre, sem unidade específica</Text>
+                  <Text className="font-sans text-ink text-sm font-medium">
+                    Sessão livre, sem unidade específica
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -509,14 +735,11 @@ export default function NewSessionScreen() {
             {step === "details" && (
               <View>
                 <View style={{ marginBottom: 16 }}>
-                  <SessionTimer startTime={recorder.startTime} onStart={recorder.startTimer} />
+                  <SessionTimer
+                    startTime={recorder.startTime}
+                    onStart={recorder.startTimer}
+                  />
                 </View>
-
-                {isStrengthCategory(modality) && muscleSeries.length > 0 && (
-                  <View style={{ marginBottom: 16 }}>
-                    <MuscleSeriesSessionCard data={muscleSeries} />
-                  </View>
-                )}
 
                 {/* Compact modality context — was the big centered icon+badge, now tucked in the corner */}
                 <View className="flex-row items-center mb-6" style={{ gap: 8 }}>
@@ -525,61 +748,23 @@ export default function NewSessionScreen() {
                       width: 30,
                       height: 30,
                       borderRadius: 15,
-                      backgroundColor: "#ebe7df",
+                      backgroundColor: uiColors.sidebar,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <MaterialCommunityIcons name="notebook-outline" size={15} color="#26241f" />
+                    <MaterialCommunityIcons
+                      name="notebook-outline"
+                      size={15}
+                      color={uiColors.ink}
+                    />
                   </View>
-                  <Text className="text-ink-soft text-xs font-medium">
+                  <Text className="font-sans text-ink-soft text-xs font-medium">
                     {modalityLabel(modality)}
                     {split ? ` · ${split.name}` : " · livre"}
                     {resolvedUnit ? ` · ${resolvedUnit.label}` : ""}
                     {` · ${formatDatePill(date) === "Hoje" ? "hoje" : formatDatePill(date)}`}
                   </Text>
-                </View>
-
-                <View style={{ alignItems: "center" }}>
-                  <Text
-                    className="text-ink-mute text-center"
-                    style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 5 }}
-                  >
-                    NOME DA SESSÃO
-                  </Text>
-                  <TextInput
-                    value={name}
-                    onChangeText={handleNameChange}
-                    onFocus={() => setNameFocused(true)}
-                    onBlur={() => setNameFocused(false)}
-                    placeholder="Ex.: Treino de pernas pesado"
-                    placeholderTextColor="#bdb8aa"
-                    className="font-display text-ink text-center"
-                    style={{
-                      width: "100%",
-                      fontSize: 16,
-                      fontWeight: "600",
-                      letterSpacing: -0.1,
-                      paddingVertical: 5,
-                      marginBottom: 3,
-                      borderBottomWidth: 1.5,
-                      borderBottomColor: nameFocused ? "#26241f" : "#ddd8ce",
-                    }}
-                  />
-                  <Text
-                    className="text-ink-faint text-center italic"
-                    style={{ fontSize: 11, marginBottom: 20 }}
-                  >
-                    opcional
-                  </Text>
-                </View>
-
-                <View style={{ marginBottom: 16 }}>
-                  <PhotoAttachment
-                    photos={photos.map((p) => ({ id: p.id, uri: p.uri }))}
-                    onAdd={handleAddPhoto}
-                    onRemove={handleRemovePhoto}
-                  />
                 </View>
 
                 {/* A distance session is the activity itself — one auto-provisioned
@@ -591,30 +776,51 @@ export default function NewSessionScreen() {
                       sessionId={recorder.sessionId!}
                       exerciseId={distanceExercise.id}
                       modality={modality}
-                      targets={recorder.targetsByExerciseId[distanceExercise.id]}
+                      targets={
+                        recorder.targetsByExerciseId[distanceExercise.id]
+                      }
                       onSetsChanged={bumpSetsTick}
                     />
                   )
                 ) : (
                   <>
                     <Text
-                      className="text-ink-mute"
-                      style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
+                      className="font-sans text-ink-mute"
+                      style={{
+                        fontSize: 10,
+                        fontWeight: "700",
+                        letterSpacing: 1.2,
+                        marginBottom: 10,
+                      }}
                     >
-                      EXERCÍCIOS{recorder.selectedExercises.length > 0 ? ` · ${recorder.selectedExercises.length}` : ""}
+                      EXERCÍCIOS
+                      {recorder.selectedExercises.length > 0
+                        ? ` · ${recorder.selectedExercises.length}`
+                        : ""}
                     </Text>
 
                     <SortableExerciseList
                       data={recorder.selectedExercises}
                       keyExtractor={(exercise) => String(exercise.id)}
-                      onReorder={(reordered) => recorder.reorderExercisesInSession(reordered.map((e) => e.id))}
-                      renderItem={({ item: exercise, index, dragHandleIcon, DragHandle }) => (
+                      onReorder={(reordered) =>
+                        recorder.reorderExercisesInSession(
+                          reordered.map((e) => e.id),
+                        )
+                      }
+                      renderItem={({
+                        item: exercise,
+                        index,
+                        dragHandleIcon,
+                        DragHandle,
+                      }) => (
                         <SetLogger
                           exerciseId={exercise.id}
                           exerciseName={exercise.name}
                           sessionId={recorder.sessionId!}
                           targets={recorder.targetsByExerciseId[exercise.id]}
-                          onRemoveExercise={() => recorder.removeExerciseFromSession(exercise.id)}
+                          onRemoveExercise={() =>
+                            recorder.removeExerciseFromSession(exercise.id)
+                          }
                           dragHandleIcon={dragHandleIcon}
                           DragHandle={DragHandle}
                           index={index}
@@ -625,33 +831,105 @@ export default function NewSessionScreen() {
 
                     <TouchableOpacity
                       className="py-3 rounded-xl items-center mb-6"
-                      style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: uiColors.line,
+                        borderStyle: "dashed",
+                      }}
                       onPress={() => setPickerVisible(true)}
                     >
-                      <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
+                      <Text className="font-sans text-ink text-sm font-medium">
+                        + Adicionar exercícios
+                      </Text>
                     </TouchableOpacity>
                   </>
+                )}
+
+                {isStrengthCategory(modality) && muscleSeries.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <MuscleSeriesSessionCard data={muscleSeries} />
+                  </View>
+                )}
+                <ActionButton
+                  label={
+                    showSessionInfo
+                      ? "Ocultar informações da sessão"
+                      : "Nome e fotos da sessão"
+                  }
+                  icon="pencil-outline"
+                  variant="ghost"
+                  onPress={() => setShowSessionInfo((value) => !value)}
+                />
+                {showSessionInfo && (
+                  <View style={{ marginTop: 16 }}>
+                    <View style={{ alignItems: "center" }}>
+                      <Text
+                        className="font-sans text-ink-mute text-center"
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "700",
+                          letterSpacing: 1.2,
+                          marginBottom: 5,
+                        }}
+                      >
+                        NOME DA SESSÃO
+                      </Text>
+                      <TextInput
+                        value={name}
+                        onChangeText={handleNameChange}
+                        onFocus={() => setNameFocused(true)}
+                        onBlur={() => setNameFocused(false)}
+                        placeholder="Ex.: Treino de pernas pesado"
+                        placeholderTextColor={uiColors.faint}
+                        className="font-display text-ink text-center"
+                        style={{
+                          width: "100%",
+                          fontSize: 16,
+                          fontWeight: "600",
+                          letterSpacing: -0.1,
+                          paddingVertical: 5,
+                          marginBottom: 3,
+                          borderBottomWidth: 1.5,
+                          borderBottomColor: nameFocused
+                            ? uiColors.ink
+                            : uiColors.line,
+                        }}
+                      />
+                      <Text
+                        className="font-sans text-ink-faint text-center italic"
+                        style={{ fontSize: 11, marginBottom: 20 }}
+                      >
+                        opcional
+                      </Text>
+                    </View>
+
+                    <View style={{ marginBottom: 16 }}>
+                      <PhotoAttachment
+                        photos={photos.map((p) => ({ id: p.id, uri: p.uri }))}
+                        onAdd={handleAddPhoto}
+                        onRemove={handleRemovePhoto}
+                      />
+                    </View>
+                  </View>
                 )}
 
                 <TextInput
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Observações (opcional)"
-                  placeholderTextColor="#bdb8aa"
+                  placeholderTextColor={uiColors.faint}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
-                  className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-6"
-                  style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                  className="font-sans bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-6"
+                  style={{ borderWidth: 1, borderColor: uiColors.line }}
                 />
 
-                <TouchableOpacity
-                  className="py-3 rounded-xl items-center bg-brand-500"
+                <ActionButton
+                  label="Concluir treino"
+                  icon="check"
                   onPress={handleFinish}
-                  activeOpacity={0.55}
-                >
-                  <Text className="text-white text-sm font-semibold">Concluir</Text>
-                </TouchableOpacity>
+                />
               </View>
             )}
           </ScrollView>
@@ -672,14 +950,24 @@ export default function NewSessionScreen() {
         onConfirm={handleConfirmFinish}
       />
 
-      <Modal visible={dateModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setDateModalVisible(false)}>
+      <Modal
+        visible={dateModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setDateModalVisible(false)}
+      >
         <SafeAreaView className="flex-1 bg-surface">
           <View className="flex-row items-center px-4 py-3">
-            <Text className="text-ink font-display font-semibold text-2xl flex-1" style={{ letterSpacing: -0.4 }}>
+            <Text
+              className="text-ink font-display font-semibold text-2xl flex-1"
+              style={{ letterSpacing: -0.4 }}
+            >
               Data da sessão
             </Text>
             <TouchableOpacity onPress={() => setDateModalVisible(false)}>
-              <Text className="text-ink-soft text-base">Cancelar</Text>
+              <Text className="font-sans text-ink-soft text-base">
+                Cancelar
+              </Text>
             </TouchableOpacity>
           </View>
           <View className="px-4">
@@ -693,7 +981,9 @@ export default function NewSessionScreen() {
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={() => confirmDate(dateToISO(new Date()))}
             >
-              <Text className="text-white text-sm font-semibold">Usar hoje</Text>
+              <Text className="font-sans text-white text-sm font-semibold">
+                Usar hoje
+              </Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -716,7 +1006,7 @@ function SplitOption({
   return (
     <TouchableOpacity
       className="flex-row items-center rounded-2xl px-4 py-3.5 bg-surface-card"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce", gap: 14 }}
+      style={{ borderWidth: 1, borderColor: uiColors.line, gap: 14 }}
       onPress={onPress}
       activeOpacity={0.85}
     >
@@ -725,18 +1015,26 @@ function SplitOption({
           width: 42,
           height: 42,
           borderRadius: 21,
-          backgroundColor: "#f4f2ee",
+          backgroundColor: uiColors.paper,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <MaterialCommunityIcons name={icon} size={20} color="#5c594f" />
+        <MaterialCommunityIcons name={icon} size={20} color={uiColors.muted} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text className="text-ink text-sm font-semibold">{label}</Text>
-        <Text className="text-ink-mute text-xs mt-0.5">{description}</Text>
+        <Text className="font-sans text-ink text-sm font-semibold">
+          {label}
+        </Text>
+        <Text className="font-sans text-ink-mute text-xs mt-0.5">
+          {description}
+        </Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color="#bdb8aa" />
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={20}
+        color={uiColors.faint}
+      />
     </TouchableOpacity>
   );
 }

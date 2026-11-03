@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,11 +34,11 @@ function OverrideButton({ label, active, onPress }: { label: string; active: boo
       className="px-3 py-2 rounded-xl"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : "transparent",
+        borderColor: active ? uiColors.ink : uiColors.line,
+        backgroundColor: active ? uiColors.ink : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 13, fontWeight: "600" }}>{label}</Text>
+      <Text className="font-sans" style={{ color: active ? uiColors.white : uiColors.muted, fontSize: 13, fontWeight: "600" }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -69,14 +70,14 @@ export function DayDetailModal({
             {dateISO ? fmt(dateISO) : ""}
           </Text>
           <TouchableOpacity onPress={onClose}>
-            <Text className="text-ink-soft text-base">Fechar</Text>
+            <Text className="font-sans text-ink-soft text-base">Fechar</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
           {/* Execution override */}
-          <View className="bg-surface-card rounded-2xl p-4 mb-4" style={{ borderWidth: 1, borderColor: "#ddd8ce" }}>
-            <Text className="text-ink-mute text-xs" style={{ letterSpacing: 1, fontWeight: "700" }}>
+          <View className="bg-surface-card rounded-2xl p-4 mb-4" style={{ borderWidth: 1, borderColor: uiColors.line }}>
+            <Text className="font-sans text-ink-mute text-xs" style={{ letterSpacing: 1, fontWeight: "700" }}>
               O QUE ACONTECEU
             </Text>
             <View className="flex-row mt-3" style={{ gap: 8 }}>
@@ -97,7 +98,7 @@ export function DayDetailModal({
           </View>
 
           {/* Planned */}
-          <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+          <Text className="font-sans text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
             PLANEJADO
           </Text>
           {schedule?.planned.map((entry) => {
@@ -127,15 +128,15 @@ export function DayDetailModal({
               <View
                 key={entry.split.id}
                 className="bg-surface-card rounded-2xl mb-3 p-4 flex-row items-center justify-between"
-                style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                style={{ borderWidth: 1, borderColor: uiColors.line }}
               >
-                <Text className="text-ink text-sm font-medium">{entry.split.name}</Text>
-                <Text className="text-ink-mute text-sm">Descanso</Text>
+                <Text className="font-sans text-ink text-sm font-medium">{entry.split.name}</Text>
+                <Text className="font-sans text-ink-mute text-sm">Descanso</Text>
               </View>
             );
           })}
           {schedule && schedule.planned.length === 0 && (
-            <Text className="text-ink-mute text-sm">Nenhum split configurado.</Text>
+            <Text className="font-sans text-ink-mute text-sm">Nenhum split configurado.</Text>
           )}
         </ScrollView>
 

@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useRef, useState } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { View } from "react-native";
@@ -217,7 +218,7 @@ function Row<T>({
   const dragHandle = (
     <GestureDetector gesture={pan}>
       <View style={{ padding: 8 }}>
-        <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color="#928d80" />
+        <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color={uiColors.muted} />
       </View>
     </GestureDetector>
   );

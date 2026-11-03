@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 interface Props {
   value: string | null;
   onChange: (iso: string) => void;
@@ -14,8 +15,8 @@ export function DateField({ value, onChange }: Props) {
       style={{
         fontSize: 13,
         fontWeight: 500,
-        color: "#26241f",
-        backgroundColor: "#f4f2ee",
+        color: uiColors.ink,
+        backgroundColor: uiColors.paper,
         border: "1px solid #e7e4dc",
         borderRadius: 8,
         padding: "6px 10px",

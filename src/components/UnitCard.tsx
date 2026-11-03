@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { Modality, RoutineUnit, RoutineUnitExercise } from "@/types";
@@ -44,7 +45,7 @@ export function UnitCard({
   return (
     <View
       className="bg-surface-card rounded-2xl mb-3 overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+      style={{ borderWidth: 1, borderColor: uiColors.line }}
     >
       <View className="flex-row items-center p-4">
         {badge !== undefined && (
@@ -54,32 +55,32 @@ export function UnitCard({
               height: 34,
               paddingHorizontal: 8,
               borderRadius: 17,
-              backgroundColor: "#26241f",
+              backgroundColor: uiColors.ink,
               alignItems: "center",
               justifyContent: "center",
               marginRight: 12,
             }}
           >
-            <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>{badge}</Text>
+            <Text className="font-sans" style={{ color: uiColors.white, fontSize: 12, fontWeight: "700" }}>{badge}</Text>
           </View>
         )}
         <TextInput
           value={unit.label}
           onChangeText={onRename}
           placeholder="Nome do treino"
-          placeholderTextColor="#bdb8aa"
-          className="flex-1 text-ink font-semibold text-base"
+          placeholderTextColor={uiColors.faint}
+          className="font-sans flex-1 text-ink font-semibold text-base"
         />
         {onDelete && (
           <View className="flex-row items-center" style={{ gap: 10 }}>
             {onMoveUp && (
               <TouchableOpacity onPress={onMoveUp} className="px-1">
-                <Text className="text-ink-mute text-base">↑</Text>
+                <Text className="font-sans text-ink-mute text-base">↑</Text>
               </TouchableOpacity>
             )}
             {onMoveDown && (
               <TouchableOpacity onPress={onMoveDown} className="px-1">
-                <Text className="text-ink-mute text-base">↓</Text>
+                <Text className="font-sans text-ink-mute text-base">↓</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={onDelete} className="px-1">
@@ -102,7 +103,7 @@ export function UnitCard({
       ) : (
         <>
           <TouchableOpacity onPress={onToggleExpand} className="px-4 pb-3">
-            <Text className="text-ink-mute text-sm">
+            <Text className="font-sans text-ink-mute text-sm">
               {exercises.length} {exercises.length === 1 ? "exercício" : "exercícios"} {expanded ? "▲" : "▼"}
             </Text>
           </TouchableOpacity>
@@ -114,15 +115,15 @@ export function UnitCard({
                 keyExtractor={(re) => String(re.id)}
                 onReorder={(reordered) => onReorderExercises(reordered.map((re) => re.id))}
                 renderItem={({ item: re, index, dragHandleIcon, DragHandle }) => (
-                  <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: "#ddd8ce" }}>
+                  <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: uiColors.line }}>
                     <View className="flex-row items-center justify-between mb-2">
                       <DragHandle style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                         {dragHandleIcon}
-                        <Text className="text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
-                        <Text className="text-ink text-sm flex-1">{re.exercise_name}</Text>
+                        <Text className="font-sans text-ink-mute text-xs" style={{ width: 20 }}>{index + 1}.</Text>
+                        <Text className="font-sans text-ink text-sm flex-1">{re.exercise_name}</Text>
                       </DragHandle>
                       <TouchableOpacity onPress={() => onRemoveExercise(re.id)} className="px-2">
-                        <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
+                        <MaterialCommunityIcons name="trash-can-outline" size={16} color={uiColors.muted} />
                       </TouchableOpacity>
                     </View>
 
@@ -133,13 +134,13 @@ export function UnitCard({
                         suffix="séries"
                         integer
                       />
-                      <Text className="text-ink-faint text-sm">×</Text>
+                      <Text className="font-sans text-ink-faint text-sm">×</Text>
                       <NumField
                         value={re.target_reps}
                         onChange={(n) => onUpdateTargets(re.id, { target_reps: n ?? 0 })}
                         integer
                       />
-                      <Text className="text-ink-faint text-xs">–</Text>
+                      <Text className="font-sans text-ink-faint text-xs">–</Text>
                       <NumField
                         value={re.target_reps_max}
                         onChange={(n) => onUpdateTargets(re.id, { target_reps_max: n })}
@@ -157,10 +158,10 @@ export function UnitCard({
               />
               <TouchableOpacity
                 className="mt-3 py-2.5 rounded-xl items-center"
-                style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                style={{ borderWidth: 1, borderColor: uiColors.line, borderStyle: "dashed" }}
                 onPress={onAddExercise}
               >
-                <Text className="text-ink text-sm font-medium">+ Adicionar exercício</Text>
+                <Text className="font-sans text-ink text-sm font-medium">+ Adicionar exercício</Text>
               </TouchableOpacity>
             </View>
           )}

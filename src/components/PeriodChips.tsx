@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Pressable, Text, View } from "react-native";
 import { useInteractionState } from "@/hooks/useInteractionState";
 
@@ -36,16 +37,16 @@ function PeriodChip({
         paddingHorizontal: 15,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f0ede6" : "transparent",
+        borderColor: active ? uiColors.ink : uiColors.line,
+        backgroundColor: active ? uiColors.ink : hovered ? uiColors.sidebar : "transparent",
       }}
     >
-      <Text
+      <Text className="font-sans"
         numberOfLines={1}
         style={{
           fontSize: 13,
           fontWeight: active ? "700" : "500",
-          color: active ? "#ffffff" : hovered ? "#5c594f" : "#928d80",
+          color: active ? uiColors.white : hovered ? uiColors.muted : uiColors.muted,
           letterSpacing: -0.1,
         }}
       >

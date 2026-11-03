@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import * as ImagePicker from "expo-image-picker";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -32,7 +33,7 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
   return (
     <View>
       <Text
-        className="text-ink-mute text-center"
+        className="font-sans text-ink-mute text-center"
         style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 }}
       >
         FOTOS{photos.length > 0 ? ` · ${photos.length}` : ""}
@@ -42,7 +43,7 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
           <View
             key={photo.id}
             className="relative overflow-hidden"
-            style={{ width: TILE_SIZE, height: TILE_SIZE, borderRadius: 18, borderWidth: 1, borderColor: "#ddd8ce" }}
+            style={{ width: TILE_SIZE, height: TILE_SIZE, borderRadius: 18, borderWidth: 1, borderColor: uiColors.line }}
           >
             <Image
               source={{ uri: photo.uri }}
@@ -62,7 +63,7 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
               onPress={() => onRemove(photo.id)}
               hitSlop={6}
             >
-              <MaterialCommunityIcons name="close" size={13} color="#ffffff" />
+              <MaterialCommunityIcons name="close" size={13} color={uiColors.white} />
             </TouchableOpacity>
             {onMove && (
               <View
@@ -82,7 +83,7 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
                   disabled={index === 0}
                   hitSlop={6}
                 >
-                  <MaterialCommunityIcons name="chevron-left" size={16} color="#ffffff" />
+                  <MaterialCommunityIcons name="chevron-left" size={16} color={uiColors.white} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="items-center justify-center"
@@ -97,7 +98,7 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
                   disabled={index === photos.length - 1}
                   hitSlop={6}
                 >
-                  <MaterialCommunityIcons name="chevron-right" size={16} color="#ffffff" />
+                  <MaterialCommunityIcons name="chevron-right" size={16} color={uiColors.white} />
                 </TouchableOpacity>
               </View>
             )}
@@ -111,9 +112,9 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
             height: TILE_SIZE,
             borderRadius: 18,
             borderWidth: 1.5,
-            borderColor: "#c9c3b6",
+            borderColor: uiColors.line,
             borderStyle: "dashed",
-            backgroundColor: "#f4f2ee",
+            backgroundColor: uiColors.paper,
           }}
           onPress={handlePick}
           activeOpacity={0.7}
@@ -123,15 +124,15 @@ export function PhotoAttachment({ photos, onAdd, onRemove, onMove }: Props) {
               width: 34,
               height: 34,
               borderRadius: 17,
-              backgroundColor: "#ebe7df",
+              backgroundColor: uiColors.sidebar,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 6,
             }}
           >
-            <MaterialCommunityIcons name="camera-plus-outline" size={17} color="#5c594f" />
+            <MaterialCommunityIcons name="camera-plus-outline" size={17} color={uiColors.muted} />
           </View>
-          <Text className="text-ink-soft" style={{ fontSize: 11, fontWeight: "600" }}>
+          <Text className="font-sans text-ink-soft" style={{ fontSize: 11, fontWeight: "600" }}>
             Adicionar
           </Text>
         </TouchableOpacity>

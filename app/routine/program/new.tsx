@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -45,14 +46,14 @@ export default function NewProgramScreen() {
         </Text>
         {!isDistance && (
           <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-ink-soft text-base">Cancelar</Text>
+            <Text className="font-sans text-ink-soft text-base">Cancelar</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         {isDistance && (
-          <Text className="text-ink-mute text-sm mb-4">
+          <Text className="font-sans text-ink-mute text-sm mb-4">
             Um split de corrida precisa de um plano com pelo menos uma semana definida.
           </Text>
         )}
@@ -60,15 +61,15 @@ export default function NewProgramScreen() {
           value={name}
           onChangeText={setName}
           placeholder={isDistance ? "Nome (ex.: Plano de Corrida)" : "Nome (ex.: Bloco de força)"}
-          placeholderTextColor="#bdb8aa"
-          className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-3"
+          placeholderTextColor={uiColors.faint}
+          className="font-sans bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-3"
         />
         <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
-          <Text className="text-ink-mute text-sm">Semanas</Text>
+          <Text className="font-sans text-ink-mute text-sm">Semanas</Text>
           <NumField value={totalWeeks} onChange={setTotalWeeks} integer />
         </View>
         <TouchableOpacity className="py-2.5 rounded-xl items-center bg-brand-500" onPress={create}>
-          <Text className="text-white text-sm font-medium">Criar plano</Text>
+          <Text className="font-sans text-white text-sm font-medium">Criar plano</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

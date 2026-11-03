@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { DayBreakdownModal } from "@/components/DayBreakdownModal";
 import { SectionHeader } from "@/components/SectionHeader";
 import { TrendBars } from "@/components/TrendBars";
-import { formatDistanceValue, isStrengthCategory, targetKindOf } from "@/data/modalities";
+import { formatDistanceValue, targetKindOf } from "@/data/modalities";
 import type { DayBar, DayExerciseBreakdown, Granularity, Modality } from "@/types";
 import { formatVolume } from "@/utils/analyticsFormat";
 
@@ -17,7 +17,7 @@ const GRANULARITY_WORD: Record<Granularity, string> = {
 interface Props {
   modality: Modality;
   granularity: Granularity;
-  /** Bucketed totals — only rendered for endurance modalities in the long views. */
+  /** Calendar-bucket totals, shown for every modality in the long views. */
   trend: { label: string; value: number }[];
   /** Seven Mon–Sun bars; populated at week granularity only. */
   dayBars: DayBar[];
@@ -26,15 +26,7 @@ interface Props {
   todayISO: string;
 }
 
-/**
- * The chart slot, which asks a different question per granularity.
- *
- * At week granularity it's one bar per day of the current Mon–Sun week; pressing
- * a day opens its per-exercise breakdown. In the long views only endurance keeps
- * a chart (distance per bucket) — for strength, series per muscle group per week
- * says more than a tonnage-per-month bar, so this renders nothing and the muscle
- * sections below carry the period.
- */
+/** Daily drill-down in week view; calendar-bucket totals in longer views. */
 export function AnalyticsTrend({
   modality,
   granularity,
@@ -70,9 +62,7 @@ export function AnalyticsTrend({
     );
   }
 
-  // Gated on the CATEGORY, not the metric: the chart steps aside only where the
-  // muscle-group sections take over the long view.
-  if (isStrengthCategory(modality)) return null;
+
 
   return (
     <View>

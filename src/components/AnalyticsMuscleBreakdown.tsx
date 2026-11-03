@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -32,9 +33,9 @@ import {
 } from "@/utils/muscleLoad";
 import { monogramFor } from "@/utils/recordsGamification";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const CREAM = "#f4f2ee";
+const MONO = "JetBrains Mono";
+const INK = uiColors.ink;
+const CREAM = uiColors.paper;
 const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Fixed width for the frequency cluster, so the bar track is exactly as wide
@@ -93,7 +94,7 @@ export function AnalyticsMuscleBreakdown({ series, frequency, caption, breakdown
   return (
     <View>
       <SectionHeader title="Carga por grupo muscular" />
-      <Text className="text-ink-mute text-xs mb-3">{caption}</Text>
+      <Text className="font-sans text-ink-mute text-xs mb-3">{caption}</Text>
 
       <LoadStrip summary={summary} isAverage={isAverage} />
 
@@ -220,14 +221,14 @@ function LoadRow({
         style={{
           paddingHorizontal: 14,
           paddingVertical: 11,
-          backgroundColor: open ? "#fbfaf7" : hovered ? "#fbfaf7" : "transparent",
+          backgroundColor: open ? uiColors.paper : hovered ? uiColors.paper : "transparent",
         }}
       >
         <View className="flex-row items-center" style={{ gap: 9 }}>
           <Text
             style={{
               width: 11,
-              color: leading ? INK : "#bdb8aa",
+              color: leading ? INK : uiColors.faint,
               fontSize: 9,
               fontWeight: "700",
               fontFamily: MONO,
@@ -246,12 +247,12 @@ function LoadRow({
               borderRadius: 8,
               backgroundColor: leading ? INK : CREAM,
               borderWidth: 1,
-              borderColor: leading ? INK : "#e7e4dc",
+              borderColor: leading ? INK : uiColors.line,
             }}
           >
             <Text
               style={{
-                color: leading ? CREAM : "#6f6b5f",
+                color: leading ? CREAM : uiColors.muted,
                 fontSize: 10,
                 fontWeight: "700",
                 fontFamily: MONO,
@@ -262,7 +263,7 @@ function LoadRow({
             </Text>
           </View>
 
-          <Text
+          <Text className="font-sans"
             style={{ color: INK, fontSize: 12, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
             numberOfLines={1}
           >
@@ -273,7 +274,7 @@ function LoadRow({
               times down the panel. */}
           <Text
             style={{
-              color: seriesLed ? INK : "#5c594f",
+              color: seriesLed ? INK : uiColors.muted,
               fontSize: 17,
               fontWeight: "700",
               fontFamily: MONO,
@@ -286,7 +287,7 @@ function LoadRow({
             <MaterialCommunityIcons
               name="chevron-down"
               size={16}
-              color={open ? "#6f6b5f" : "#c9c4b6"}
+              color={open ? uiColors.muted : uiColors.line}
             />
           </Animated.View>
         </View>
@@ -299,7 +300,7 @@ function LoadRow({
               slots={slots}
               // The drawer's paper shows through the grooves once it's open —
               // the plates have to stay cut against whatever is behind them.
-              grooveColor={open ? "#fbfaf7" : "#ffffff"}
+              grooveColor={open ? uiColors.paper : uiColors.white}
               delay={180 + index * STEP}
               cycle={cycle}
             />
@@ -317,7 +318,7 @@ function LoadRow({
             />
             <Text
               style={{
-                color: seriesLed ? "#5c594f" : INK,
+                color: seriesLed ? uiColors.muted : INK,
                 fontSize: 11,
                 fontWeight: seriesLed ? "500" : "700",
                 fontFamily: MONO,
@@ -357,7 +358,7 @@ function LoadStrip({
           <Text style={{ color: INK, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
             {formatSeriesNumber(totalSeries, isAverage)}
           </Text>
-          <Text className="text-ink-mute" style={{ fontSize: 9 }}>
+          <Text className="font-sans text-ink-mute" style={{ fontSize: 9 }}>
             {isAverage ? "sér/sem" : "sér"}
           </Text>
         </View>
@@ -380,22 +381,22 @@ function LoadStrip({
               <MaterialCommunityIcons
                 name="repeat-variant"
                 size={13}
-                color="#928d80"
+                color={uiColors.muted}
                 style={{ marginRight: 3 }}
               />
               <Text style={{ color: INK, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
                 {formatFrequencyNumber(topFrequency.frequency, isAverage)}
               </Text>
-              <Text className="text-ink-mute" style={{ fontSize: 9 }}>
+              <Text className="font-sans text-ink-mute" style={{ fontSize: 9 }}>
                 {isAverage ? "×/sem" : "×"}
               </Text>
             </View>
-            <Text className="text-ink-faint" style={{ fontSize: 9, marginTop: 1 }} numberOfLines={1}>
+            <Text className="font-sans text-ink-faint" style={{ fontSize: 9, marginTop: 1 }} numberOfLines={1}>
               {muscleGroupLabel(topFrequency.muscle_group)}
             </Text>
           </>
         ) : (
-          <Text style={{ color: "#bdb8aa", fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+          <Text style={{ color: uiColors.faint, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
             —
           </Text>
         )}
@@ -407,8 +408,8 @@ function LoadStrip({
 function Cell({ label, flex, children }: { label: string; flex: number; children: ReactNode }) {
   return (
     <View style={{ flex }} className="items-center px-2">
-      <Text
-        style={{ color: "#928d80", fontSize: 9, fontWeight: "700", letterSpacing: 1.2, marginBottom: 3 }}
+      <Text className="font-sans"
+        style={{ color: uiColors.muted, fontSize: 9, fontWeight: "700", letterSpacing: 1.2, marginBottom: 3 }}
       >
         {label}
       </Text>
@@ -437,7 +438,7 @@ function SortChips({
 }) {
   return (
     <View className="flex-row items-center mb-2.5" style={{ gap: 6 }}>
-      <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
+      <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
         ORDENAR
       </Text>
       {SORT_OPTIONS.map((opt) => (
@@ -476,15 +477,15 @@ function SortChip({
         paddingHorizontal: 11,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: active ? INK : "#ddd8ce",
-        backgroundColor: active ? INK : hovered ? "#f0ede6" : "transparent",
+        borderColor: active ? INK : uiColors.line,
+        backgroundColor: active ? INK : hovered ? uiColors.sidebar : "transparent",
       }}
     >
-      <Text
+      <Text className="font-sans"
         style={{
           fontSize: 11,
           fontWeight: active ? "700" : "500",
-          color: active ? "#ffffff" : hovered ? "#5c594f" : "#928d80",
+          color: active ? uiColors.white : hovered ? uiColors.muted : uiColors.muted,
         }}
       >
         {label}
@@ -508,10 +509,10 @@ function ColumnHeader({ isAverage }: { isAverage: boolean }) {
         backgroundColor: "#fdfcfa",
       }}
     >
-      <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
+      <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
         GRUPO
       </Text>
-      <Text style={{ color: "#bdb8aa", fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
+      <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 9, fontWeight: "700", letterSpacing: 1.1 }}>
         {isAverage ? "SÉRIES/SEM" : "SÉRIES"}
       </Text>
     </View>
@@ -545,14 +546,14 @@ function Legend({
       {slots != null ? (
         <>
           <View style={{ width: 6, height: 9, borderRadius: 1.5, backgroundColor: INK }} />
-          <Text className="text-ink-faint" style={{ fontSize: 9, letterSpacing: 0.3 }}>
+          <Text className="font-sans text-ink-faint" style={{ fontSize: 9, letterSpacing: 0.3 }}>
             1 série
           </Text>
         </>
       ) : null}
 
       {slots != null && pips != null ? (
-        <Text className="text-ink-faint" style={{ fontSize: 9 }}>
+        <Text className="font-sans text-ink-faint" style={{ fontSize: 9 }}>
           ·
         </Text>
       ) : null}
@@ -560,7 +561,7 @@ function Legend({
       {pips != null ? (
         <>
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: INK }} />
-          <Text className="text-ink-faint" style={{ fontSize: 9, letterSpacing: 0.3 }}>
+          <Text className="font-sans text-ink-faint" style={{ fontSize: 9, letterSpacing: 0.3 }}>
             {isAverage ? "1 sessão/semana" : "1 sessão"}
           </Text>
         </>
@@ -583,17 +584,17 @@ function EmptyPanel() {
           height: 44,
           borderRadius: 22,
           borderWidth: 1.5,
-          borderColor: "#e7e4dc",
+          borderColor: uiColors.line,
           backgroundColor: CREAM,
           marginBottom: 10,
         }}
       >
-        <MaterialCommunityIcons name="chart-timeline-variant" size={20} color="#bdb8aa" />
+        <MaterialCommunityIcons name="chart-timeline-variant" size={20} color={uiColors.faint} />
       </View>
-      <Text style={{ color: INK, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
+      <Text className="font-sans" style={{ color: INK, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>
         Nada no período
       </Text>
-      <Text className="text-ink-mute text-xs text-center" style={{ marginTop: 4, lineHeight: 17 }}>
+      <Text className="font-sans text-ink-mute text-xs text-center" style={{ marginTop: 4, lineHeight: 17 }}>
         Registre uma sessão de musculação e a carga por grupo aparece aqui.
       </Text>
     </View>

@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
@@ -16,9 +17,9 @@ import { formatKg } from "@/utils/recordsGamification";
 import { monthlyTotals, type ExerciseHistory } from "@/utils/exerciseHistory";
 import { dayStamp, monthStamp } from "@/utils/dateLabels";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const AMBER = "#b9791f";
+const MONO = "JetBrains Mono";
+const INK = uiColors.ink;
+const AMBER = uiColors.record;
 
 const PLOT_HEIGHT = 92;
 /** More columns than this on a phone and the bars stop being bars. */
@@ -101,7 +102,7 @@ export function ExerciseProgressChart({ history, modality }: Props) {
   return (
     <View
       className="bg-surface-card rounded-xl"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+      style={{ borderWidth: 1, borderColor: uiColors.line, padding: 12 }}
     >
       <View className="flex-row items-center" style={{ gap: 6 }}>
         <LensChip
@@ -118,15 +119,15 @@ export function ExerciseProgressChart({ history, modality }: Props) {
 
       {series.length === 0 || !active ? (
         <View style={{ height: PLOT_HEIGHT }} className="items-center justify-center">
-          <Text className="text-ink-mute text-xs">Sem dados para desenhar ainda.</Text>
+          <Text className="font-sans text-ink-mute text-xs">Sem dados para desenhar ainda.</Text>
         </View>
       ) : (
         <>
           {/* The readout: whatever the cursor is on, spelled out. */}
           <View style={{ marginTop: 12, marginBottom: 9 }}>
             <View className="flex-row items-center" style={{ gap: 5 }}>
-              <Text
-                style={{ color: "#a8a293", fontSize: 9, fontWeight: "700", letterSpacing: 1 }}
+              <Text className="font-sans"
+                style={{ color: uiColors.faint, fontSize: 9, fontWeight: "700", letterSpacing: 1 }}
                 numberOfLines={1}
               >
                 {active.full.toUpperCase()}
@@ -144,11 +145,11 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                   <MaterialCommunityIcons
                     name={change > 0 ? "arrow-up" : "arrow-down"}
                     size={10}
-                    color={change > 0 ? "#227a54" : "#a8382d"}
+                    color={change > 0 ? uiColors.success : "#a8382d"}
                   />
                   <Text
                     style={{
-                      color: change > 0 ? "#227a54" : "#a8382d",
+                      color: change > 0 ? uiColors.success : "#a8382d",
                       fontSize: 10.5,
                       fontWeight: "700",
                       fontFamily: MONO,
@@ -156,12 +157,12 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                   >
                     {format(Math.abs(change))}
                   </Text>
-                  <Text style={{ color: "#bdb8aa", fontSize: 9.5, marginLeft: 3 }}>
+                  <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 9.5, marginLeft: 3 }}>
                     {lens === "top" ? "vs. sessão anterior" : "vs. mês anterior"}
                   </Text>
                 </View>
               ) : (
-                <Text style={{ color: "#bdb8aa", fontSize: 9.5 }}>
+                <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 9.5 }}>
                   {previous == null ? "primeiro registro" : "sem mudança"}
                 </Text>
               )}
@@ -179,12 +180,12 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                 right: 0,
                 top: 0,
                 borderTopWidth: 1,
-                borderTopColor: "#ddd8ce",
+                borderTopColor: uiColors.line,
                 borderStyle: "dashed",
               }}
             />
             <View pointerEvents="none" style={{ position: "absolute", right: 0, top: -11 }}>
-              <Text style={{ color: "#bdb8aa", fontSize: 8.5, fontFamily: MONO }}>
+              <Text style={{ color: uiColors.faint, fontSize: 8.5, fontFamily: MONO }}>
                 {format(max)}
               </Text>
             </View>
@@ -233,7 +234,7 @@ export function ExerciseProgressChart({ history, modality }: Props) {
                   {show ? (
                     <Text
                       style={{
-                        color: index === activeIndex ? "#5c594f" : "#c4bfb1",
+                        color: index === activeIndex ? uiColors.muted : "#c4bfb1",
                         fontSize: 8,
                         fontFamily: MONO,
                       }}
@@ -248,7 +249,7 @@ export function ExerciseProgressChart({ history, modality }: Props) {
           </View>
 
           {!touched ? (
-            <Text style={{ color: "#c4bfb1", fontSize: 9, marginTop: 7 }}>
+            <Text className="font-sans" style={{ color: "#c4bfb1", fontSize: 9, marginTop: 7 }}>
               toque numa barra para ler a sessão
             </Text>
           ) : null}
@@ -288,7 +289,7 @@ function Column({
     height: Math.max(grow.value * ratio * PLOT_HEIGHT, ratio > 0 ? 3 : 0),
   }));
 
-  const color = best ? AMBER : selected ? INK : hovered ? "#b8b3a5" : "#ddd8ce";
+  const color = best ? AMBER : selected ? INK : hovered ? "#b8b3a5" : uiColors.line;
 
   return (
     <Pressable
@@ -345,11 +346,11 @@ function LensChip({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderWidth: 1,
-        borderColor: active ? INK : "#e7e4dc",
-        backgroundColor: active ? INK : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? INK : uiColors.line,
+        backgroundColor: active ? INK : hovered ? uiColors.paper : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 10.5, fontWeight: "700" }}>
+      <Text className="font-sans" style={{ color: active ? uiColors.white : uiColors.muted, fontSize: 10.5, fontWeight: "700" }}>
         {label}
       </Text>
     </Pressable>

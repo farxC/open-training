@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useState } from "react";
 import { AppState, Text, TouchableOpacity, View } from "react-native";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
@@ -51,7 +52,7 @@ export function SessionTimer({ startTime, onStart }: SessionTimerProps) {
         onPress={onStart}
         activeOpacity={0.85}
       >
-        <Text className="text-white text-sm font-semibold">Iniciar sessão</Text>
+        <Text className="font-sans text-white text-sm font-semibold">Iniciar sessão</Text>
       </TouchableOpacity>
     );
   }
@@ -59,9 +60,9 @@ export function SessionTimer({ startTime, onStart }: SessionTimerProps) {
   return (
     <View
       className="flex-row items-center justify-center py-3 rounded-xl"
-      style={{ gap: 8, borderWidth: 1, borderColor: "#ddd8ce" }}
+      style={{ gap: 8, borderWidth: 1, borderColor: uiColors.line }}
     >
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#d94f4f" }} />
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: uiColors.primary }} />
       <Text
         className="text-ink font-display font-semibold"
         style={{ fontSize: 18, fontVariant: ["tabular-nums"] }}

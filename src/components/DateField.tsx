@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Platform, Pressable, Text } from "react-native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { dateToISO } from "@/utils/cycle";
@@ -25,15 +26,15 @@ export function DateField({ value, onChange }: Props) {
           })
         }
         style={{
-          backgroundColor: "#f4f2ee",
+          backgroundColor: uiColors.paper,
           borderWidth: 1,
-          borderColor: "#e7e4dc",
+          borderColor: uiColors.line,
           borderRadius: 8,
           paddingVertical: 6,
           paddingHorizontal: 10,
         }}
       >
-        <Text style={{ color: "#26241f", fontSize: 13, fontWeight: "500" }}>
+        <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 13, fontWeight: "500" }}>
           {value ?? "Selecionar"}
         </Text>
       </Pressable>

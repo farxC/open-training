@@ -1,11 +1,17 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Button } from "@/components/ui/button";
 import type { WorkoutSet } from "@/types";
 
 interface Props {
   set: WorkoutSet;
-  onChange: (patch: Partial<Pick<WorkoutSet, "reps" | "weight_kg" | "rpe" | "rir" | "failure">>) => void;
+  onChange: (
+    patch: Partial<
+      Pick<WorkoutSet, "reps" | "weight_kg" | "rpe" | "rir" | "failure">
+    >,
+  ) => void;
   onDelete: () => void;
 }
 
@@ -28,9 +34,15 @@ function sanitizeDecimalInput(raw: string, maxDecimals: number | null): string {
 }
 
 export function SetRow({ set, onChange, onDelete }: Props) {
-  const [weightText, setWeightText] = useState(set.weight_kg > 0 ? String(set.weight_kg) : "");
-  const [repsText, setRepsText] = useState(set.reps > 0 ? String(set.reps) : "");
-  const [rpeText, setRpeText] = useState(set.rpe != null ? String(set.rpe) : "");
+  const [weightText, setWeightText] = useState(
+    set.weight_kg > 0 ? String(set.weight_kg) : "",
+  );
+  const [repsText, setRepsText] = useState(
+    set.reps > 0 ? String(set.reps) : "",
+  );
+  const [rpeText, setRpeText] = useState(
+    set.rpe != null ? String(set.rpe) : "",
+  );
 
   const handleWeightChange = (raw: string) => {
     const cleaned = sanitizeDecimalInput(raw, null);
@@ -58,137 +70,198 @@ export function SetRow({ set, onChange, onDelete }: Props) {
     if (!isNaN(n)) onChange({ rpe: n });
   };
 
+  const [showEffort, setShowEffort] = useState(
+    set.rpe != null || set.rir != null || Boolean(set.failure),
+  );
   return (
-    <View style={{ borderBottomWidth: 1, borderBottomColor: '#ddd8ce', paddingVertical: 10 }}>
-      {/* Primary row: set# | weight | × | reps | delete */}
-      <View className="flex-row items-center" style={{ gap: 8 }}>
+    <View
+      style={{
+        borderBottomWidth: 1,
+        borderBottomColor: uiColors.line,
+        paddingVertical: 10,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <Text
-          className="text-ink-mute text-sm text-center"
-          style={{ width: 20 }}
+          className="font-sans"
+          style={{
+            width: 34,
+            textAlign: "center",
+            color: uiColors.muted,
+            fontSize: 14,
+          }}
         >
-          {set.set_number}
+          {String(set.set_number).padStart(2, "0")}
         </Text>
-
-        <View
-          className="flex-1 flex-row items-center justify-center bg-surface-elevated rounded-lg"
-          style={{ paddingVertical: 11, gap: 5 }}
+        <TextInput
+          className="font-sans"
+          accessibilityLabel={`Peso da série ${set.set_number}`}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 48,
+            padding: 10,
+            textAlign: "center",
+            backgroundColor: uiColors.paper,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: uiColors.line,
+            fontSize: 20,
+            color: uiColors.ink,
+          }}
+          value={weightText}
+          placeholder="0"
+          placeholderTextColor={uiColors.faint}
+          keyboardType="decimal-pad"
+          onChangeText={handleWeightChange}
+        />
+        <TextInput
+          className="font-sans"
+          accessibilityLabel={`Repetições da série ${set.set_number}`}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 48,
+            padding: 10,
+            textAlign: "center",
+            backgroundColor: uiColors.paper,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: uiColors.line,
+            fontSize: 20,
+            color: uiColors.ink,
+          }}
+          value={repsText}
+          placeholder="0"
+          placeholderTextColor={uiColors.faint}
+          keyboardType="decimal-pad"
+          onChangeText={handleRepsChange}
+        />
+        <Button
+          accessibilityLabel={`Excluir série ${set.set_number}`}
+          onPress={onDelete}
+          style={{ width: 36, height: 44, borderRadius: 18 }}
         >
-          <TextInput
-            className="text-ink text-sm"
-            style={{ textAlign: 'right', minWidth: 26, padding: 0 }}
-            value={weightText}
-            placeholder="0"
-            placeholderTextColor="#bdb8aa"
-            keyboardType="decimal-pad"
-            onChangeText={handleWeightChange}
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={18}
+            color={uiColors.muted}
           />
-          <Text className="text-ink-mute text-xs">kg</Text>
-        </View>
-
-        <Text className="text-ink-faint text-sm">×</Text>
-
-        <View
-          className="flex-1 flex-row items-center justify-center bg-surface-elevated rounded-lg"
-          style={{ paddingVertical: 11, gap: 5 }}
-        >
-          <TextInput
-            className="text-ink text-sm"
-            style={{ textAlign: 'right', minWidth: 22, padding: 0 }}
-            value={repsText}
-            placeholder="0"
-            placeholderTextColor="#bdb8aa"
-            keyboardType="decimal-pad"
-            onChangeText={handleRepsChange}
-          />
-          <Text className="text-ink-mute text-xs">reps</Text>
-        </View>
-
-        <TouchableOpacity onPress={onDelete} hitSlop={8} style={{ padding: 6 }}>
-          <MaterialCommunityIcons name="trash-can-outline" size={16} color="#928d80" />
-        </TouchableOpacity>
+        </Button>
       </View>
-
-      {/* Secondary row: RPE + RIR */}
-      <View className="flex-row items-center mt-2.5" style={{ gap: 16, paddingLeft: 28 }}>
-        {/* RPE */}
-        <View className="flex-row items-center" style={{ gap: 8 }}>
-          <Text style={{ color: '#928d80', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>
-            RPE
-          </Text>
-          <TextInput
-            style={{
-              color: '#26241f',
-              fontSize: 13,
-              width: 44,
-              textAlign: 'center',
-              backgroundColor: '#ebe7df',
-              borderRadius: 8,
-              paddingVertical: 8,
-            }}
-            value={rpeText}
-            placeholder="—"
-            placeholderTextColor="#bdb8aa"
-            keyboardType="decimal-pad"
-            onChangeText={handleRpeChange}
-          />
-        </View>
-
-        {/* RIR */}
-        <View className="flex-row items-center" style={{ gap: 8 }}>
-          <Text style={{ color: '#928d80', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>
-            RIR
-          </Text>
-          <TextInput
-            style={{
-              color: '#26241f',
-              fontSize: 13,
-              width: 44,
-              textAlign: 'center',
-              backgroundColor: '#ebe7df',
-              borderRadius: 8,
-              paddingVertical: 8,
-            }}
-            value={set.rir != null ? String(set.rir) : ""}
-            placeholder="—"
-            placeholderTextColor="#bdb8aa"
-            keyboardType="number-pad"
-            onChangeText={(v) => {
-              if (v === "") { onChange({ rir: null }); return; }
-              const n = parseInt(v, 10);
-              if (!isNaN(n)) onChange({ rir: Math.max(0, n) });
-            }}
-          />
-        </View>
-
-        {/* Falha: a real failed rep, distinct from RIR 0 (which is just "maybe") */}
-        <TouchableOpacity
-          onPress={() => onChange({ failure: set.failure ? 0 : 1 })}
+      <Button
+        accessibilityLabel={`Esforço da série ${set.set_number}`}
+        accessibilityState={{ expanded: showEffort }}
+        onPress={() => setShowEffort((value) => !value)}
+        className="justify-start"
+        style={{ marginLeft: 44, minHeight: 36, gap: 5 }}
+      >
+        <Text
+          className="font-sans"
+          style={{ color: uiColors.muted, fontSize: 12 }}
+        >
+          Esforço{set.rpe != null ? ` · RPE ${set.rpe}` : ""}
+          {set.rir != null ? ` · RIR ${set.rir}` : ""}
+          {set.failure ? " · Falha" : ""}
+        </Text>
+        <MaterialCommunityIcons
+          name={showEffort ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={uiColors.muted}
+        />
+      </Button>
+      {showEffort && (
+        <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 5,
-            paddingVertical: 8,
-            paddingHorizontal: 10,
-            borderRadius: 8,
-            backgroundColor: set.failure ? "#bf3b30" : "#ebe7df",
+            flexWrap: "wrap",
+            gap: 10,
+            marginLeft: 44,
+            paddingBottom: 4,
           }}
         >
-          <MaterialCommunityIcons
-            name="close-octagon-outline"
-            size={13}
-            color={set.failure ? "#ffffff" : "#928d80"}
+          <Text
+            className="font-sans"
+            style={{ fontSize: 12, color: uiColors.muted }}
+          >
+            RPE
+          </Text>
+          <TextInput
+            className="font-sans"
+            accessibilityLabel={`RPE da série ${set.set_number}`}
+            style={{
+              color: uiColors.ink,
+              fontSize: 14,
+              width: 44,
+              minHeight: 44,
+              textAlign: "center",
+              backgroundColor: uiColors.paper,
+              borderRadius: 8,
+            }}
+            value={rpeText}
+            placeholder="—"
+            placeholderTextColor={uiColors.faint}
+            keyboardType="decimal-pad"
+            onChangeText={handleRpeChange}
           />
           <Text
+            className="font-sans"
+            style={{ fontSize: 12, color: uiColors.muted }}
+          >
+            RIR
+          </Text>
+          <TextInput
+            className="font-sans"
+            accessibilityLabel={`RIR da série ${set.set_number}`}
             style={{
-              fontSize: 11,
-              fontWeight: "700",
-              color: set.failure ? "#ffffff" : "#928d80",
+              color: uiColors.ink,
+              fontSize: 14,
+              width: 44,
+              minHeight: 44,
+              textAlign: "center",
+              backgroundColor: uiColors.paper,
+              borderRadius: 8,
+            }}
+            value={set.rir != null ? String(set.rir) : ""}
+            placeholder="—"
+            placeholderTextColor={uiColors.faint}
+            keyboardType="number-pad"
+            onChangeText={(value) => {
+              if (value === "") {
+                onChange({ rir: null });
+                return;
+              }
+              const number = parseInt(value, 10);
+              if (!isNaN(number)) onChange({ rir: Math.max(0, number) });
+            }}
+          />
+          <Button
+            accessibilityLabel={`Falha na série ${set.set_number}`}
+            accessibilityState={{ checked: Boolean(set.failure) }}
+            onPress={() => onChange({ failure: set.failure ? 0 : 1 })}
+            style={{
+              minHeight: 44,
+              paddingHorizontal: 10,
+              borderRadius: 8,
+              backgroundColor: set.failure
+                ? uiColors.dangerSoft
+                : uiColors.paper,
             }}
           >
-            Falha
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              className="font-sans"
+              style={{
+                color: set.failure ? uiColors.danger : uiColors.muted,
+                fontSize: 12,
+                fontWeight: "600",
+              }}
+            >
+              Falha
+            </Text>
+          </Button>
+        </View>
+      )}
     </View>
   );
 }

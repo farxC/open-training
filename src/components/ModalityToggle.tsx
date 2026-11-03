@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import type { ComponentProps } from "react";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -76,7 +77,7 @@ export function ModalityToggle<T extends string>({
       style={{
         flexDirection: "row",
         alignSelf: stretch ? "stretch" : "flex-start",
-        backgroundColor: "#ebe7df",
+        backgroundColor: uiColors.sidebar,
         borderRadius: compact ? 10 : 14,
         padding: pad,
         position: "relative",
@@ -92,8 +93,8 @@ export function ModalityToggle<T extends string>({
               bottom: pad,
               left: 0,
               borderRadius: compact ? 7 : 10,
-              backgroundColor: "#ffffff",
-              shadowColor: "#26241f",
+              backgroundColor: uiColors.white,
+              shadowColor: uiColors.ink,
               shadowOpacity: 0.1,
               shadowRadius: 8,
               shadowOffset: { width: 0, height: 2 },
@@ -106,7 +107,7 @@ export function ModalityToggle<T extends string>({
 
       {options.map((opt) => {
         const active = opt.key === value;
-        const color = active ? "#26241f" : "#928d80";
+        const color = active ? uiColors.ink : uiColors.muted;
         return (
           <Pressable
             key={opt.key}
@@ -128,7 +129,7 @@ export function ModalityToggle<T extends string>({
                 style={{ marginRight: 7 }}
               />
             ) : null}
-            <Text
+            <Text className="font-sans"
               numberOfLines={1}
               style={{
                 fontSize: compact ? 11 : 14,

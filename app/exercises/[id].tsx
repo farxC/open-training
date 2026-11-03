@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -57,7 +58,7 @@ export default function ExerciseDetailScreen() {
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader title="Exercício" fallbackHref="/" />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-ink-mute">Exercício não encontrado.</Text>
+          <Text className="font-sans text-ink-mute">Exercício não encontrado.</Text>
         </View>
       </SafeAreaView>
     );
@@ -112,11 +113,11 @@ export default function ExerciseDetailScreen() {
                 paddingHorizontal: 8,
                 paddingVertical: 3,
                 borderWidth: 1,
-                borderColor: "#e7e4dc",
-                backgroundColor: "#ffffff",
+                borderColor: uiColors.line,
+                backgroundColor: uiColors.white,
               }}
             >
-              <Text style={{ color: "#5c594f", fontSize: 10.5, fontWeight: "600" }}>
+              <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10.5, fontWeight: "600" }}>
                 {MUSCLE_LABELS[group.muscle_group]}
                 {group.counting_factor !== 1 ? " ½×" : ""}
               </Text>
@@ -131,11 +132,11 @@ export default function ExerciseDetailScreen() {
                 gap: 4,
                 backgroundColor: "#efece5",
                 borderWidth: 1,
-                borderColor: "#ddd8ce",
+                borderColor: uiColors.line,
               }}
             >
-              <MaterialCommunityIcons name="archive-outline" size={10} color="#928d80" />
-              <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 0.6 }}>
+              <MaterialCommunityIcons name="archive-outline" size={10} color={uiColors.muted} />
+              <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.6 }}>
                 ARQUIVADO
               </Text>
             </View>
@@ -213,12 +214,12 @@ function GhostButton({ label, onPress }: { label: string; onPress: () => void })
         paddingVertical: 3,
         gap: 4,
         borderWidth: 1,
-        borderColor: hovered ? "#cfcabf" : "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: hovered ? uiColors.line : uiColors.line,
+        backgroundColor: hovered ? uiColors.sidebar : uiColors.white,
       }}
     >
-      <MaterialCommunityIcons name="pencil-outline" size={11} color="#5c594f" />
-      <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>
+      <MaterialCommunityIcons name="pencil-outline" size={11} color={uiColors.muted} />
+      <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>
         {label}
       </Text>
     </Pressable>
@@ -243,12 +244,12 @@ function VariationLink({ label, onPress }: { label: string; onPress: () => void 
         paddingVertical: 3,
         gap: 4,
         borderWidth: 1,
-        borderColor: hovered ? "#cfcabf" : "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: hovered ? uiColors.line : uiColors.line,
+        backgroundColor: hovered ? uiColors.sidebar : uiColors.white,
       }}
     >
-      <MaterialCommunityIcons name="source-branch" size={11} color="#5c594f" />
-      <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>{label}</Text>
+      <MaterialCommunityIcons name="source-branch" size={11} color={uiColors.muted} />
+      <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.4 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -270,11 +271,11 @@ function EditButton({ onPress }: { onPress: () => void }) {
         width: 34,
         height: 34,
         borderWidth: 1,
-        borderColor: hovered ? "#cfcabf" : "#e7e4dc",
-        backgroundColor: hovered ? "#ebe7df" : "#ffffff",
+        borderColor: hovered ? uiColors.line : uiColors.line,
+        backgroundColor: hovered ? uiColors.sidebar : uiColors.white,
       }}
     >
-      <MaterialCommunityIcons name="pencil-outline" size={16} color="#5c594f" />
+      <MaterialCommunityIcons name="pencil-outline" size={16} color={uiColors.muted} />
     </Pressable>
   );
 }

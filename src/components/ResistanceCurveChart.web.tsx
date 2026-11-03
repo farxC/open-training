@@ -21,7 +21,7 @@ export function ResistanceCurveChart(props: Props) {
     <Suspense
       fallback={
         <View className="h-40 items-center justify-center bg-surface-card rounded-2xl">
-          <Text className="text-ink-mute text-sm">Carregando gráfico…</Text>
+          <Text className="font-sans text-ink-mute text-sm">Carregando gráfico…</Text>
         </View>
       }
     >

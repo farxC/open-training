@@ -24,6 +24,10 @@ Planilha de treino é ruim de preencher na academia e pior de analisar depois. A
 
 ---
 
+## Interface
+
+A interface usa uma paleta de carmim suave, areia e marfim, com azul ardósia nos gráficos, dourado nos recordes e verde no progresso. No desktop, a navegação lateral é compacta e recolhível; no celular, a barra inferior dá acesso ao histórico, treino, rotina e evolução. As fontes são incluídas no app e carregadas localmente.
+
 ## Funcionalidades
 
 ### Feed de sessões

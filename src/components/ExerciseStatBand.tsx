@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect } from "react";
 import { Text, View } from "react-native";
 import Animated, {
@@ -8,7 +9,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
+const MONO = "JetBrains Mono";
 
 export interface Stat {
   label: string;
@@ -33,7 +34,7 @@ export function ExerciseStatBand({ stats }: Props) {
   return (
     <View
       className="bg-surface-card rounded-xl flex-row overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc" }}
+      style={{ borderWidth: 1, borderColor: uiColors.line }}
     >
       {stats.map((stat, index) => (
         <StatCell key={stat.label} stat={stat} index={index} first={index === 0} />
@@ -73,7 +74,7 @@ function StatCell({ stat, index, first }: { stat: Stat; index: number; first: bo
       <View className="flex-row items-baseline" style={{ gap: 2 }}>
         <Text
           style={{
-            color: stat.strong ? "#26241f" : "#5c594f",
+            color: stat.strong ? uiColors.ink : uiColors.muted,
             fontSize: 17,
             fontWeight: "700",
             fontFamily: MONO,
@@ -83,13 +84,13 @@ function StatCell({ stat, index, first }: { stat: Stat; index: number; first: bo
           {stat.value}
         </Text>
         {stat.unit ? (
-          <Text style={{ color: "#928d80", fontSize: 9.5 }} numberOfLines={1}>
+          <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 9.5 }} numberOfLines={1}>
             {stat.unit}
           </Text>
         ) : null}
       </View>
-      <Text
-        style={{ color: "#a8a293", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.7, marginTop: 3 }}
+      <Text className="font-sans"
+        style={{ color: uiColors.faint, fontSize: 8.5, fontWeight: "700", letterSpacing: 0.7, marginTop: 3 }}
         numberOfLines={1}
       >
         {stat.label}

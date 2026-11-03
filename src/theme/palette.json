@@ -1,0 +1,21 @@
+{
+  "paper": "#f6f2eb",
+  "white": "#fffdf8",
+  "ink": "#302b2b",
+  "muted": "#706963",
+  "faint": "#91877e",
+  "line": "#e3dcd1",
+  "primary": "#aa4a56",
+  "primaryHover": "#943e49",
+  "pale": "#f4e8e7",
+  "sidebar": "#ede6dc",
+  "secondary": "#486576",
+  "secondarySoft": "#dfe8ed",
+  "secondaryLight": "#8da4b1",
+  "success": "#3e6b54",
+  "successSoft": "#e6eee7",
+  "record": "#876319",
+  "recordSoft": "#f4ebd2",
+  "danger": "#b33e36",
+  "dangerSoft": "#f8e7e4"
+}

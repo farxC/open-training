@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
@@ -8,7 +9,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-const INK = "#26241f";
+const INK = uiColors.ink;
 const EMPTY = "#d6d0c3";
 
 interface Props {

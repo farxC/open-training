@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Pressable, Text, View } from "react-native";
 import {
@@ -15,22 +16,22 @@ import {
  *  chip barely 50px wide, and a paragraph there reads as a panel, not a hint. */
 const STAMPS = {
   new: {
-    bg: "#2f9e6e",
-    ink: "#ffffff",
+    bg: uiColors.recordSoft,
+    ink: uiColors.record,
     icon: "star-four-points",
     text: "NOVO",
     meaning: "Batido no período selecionado.",
   },
   hot: {
-    bg: "#fbe8cf",
-    ink: "#a25c12",
+    bg: uiColors.recordSoft,
+    ink: uiColors.record,
     icon: "fire",
     text: "QUENTE",
     meaning: `Carga subiu ${HOT_MIN_GAINS}+ vezes em ${HOT_WINDOW_DAYS} dias.`,
   },
   cold: {
-    bg: "#e9edf0",
-    ink: "#6f7b85",
+    bg: uiColors.secondarySoft,
+    ink: uiColors.secondary,
     icon: "snowflake",
     text: "FRIO",
     meaning: `Sem record novo há ${STALE_AFTER_DAYS}+ dias.`,
@@ -71,7 +72,7 @@ export function Stamp({ tone, isActive, onActivate }: StampProps) {
         }}
       >
         <MaterialCommunityIcons name={icon} size={8} color={ink} />
-        <Text style={{ color: ink, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>
+        <Text className="font-sans" style={{ color: ink, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>
           {text}
         </Text>
       </Pressable>
@@ -96,7 +97,7 @@ function StampTooltip({ tone }: { tone: StampTone }) {
         // sentence into a three-word column. Wide enough to hold each meaning in
         // a line or two, and still inside the card on a 340px phone.
         width: 236,
-        backgroundColor: "#26241f",
+        backgroundColor: uiColors.ink,
         borderRadius: 9,
         paddingVertical: 8,
         paddingHorizontal: 11,
@@ -116,11 +117,11 @@ function StampTooltip({ tone }: { tone: StampTone }) {
           right: 12,
           width: 7,
           height: 7,
-          backgroundColor: "#26241f",
+          backgroundColor: uiColors.ink,
           transform: [{ rotate: "45deg" }],
         }}
       />
-      <Text style={{ color: "#e7e4dc", fontSize: 11, lineHeight: 15 }}>
+      <Text className="font-sans" style={{ color: uiColors.line, fontSize: 11, lineHeight: 15 }}>
         {STAMPS[tone].meaning}
       </Text>
     </View>

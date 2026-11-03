@@ -1,42 +1,44 @@
+const palette = require("./src/theme/palette.json");
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     "./app/**/*.{js,jsx,ts,tsx}",
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
+  darkMode: "class",
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
       colors: {
-        // brand = dark-ink fills (buttons, badges) on the light theme
+        // Carmine actions, neutral surfaces and semantic status colors.
         brand: {
-          100: "#e7e4dc",
-          200: "#cfcabf",
-          300: "#a8a293",
-          400: "#6f6b5f",
-          500: "#26241f",
-          600: "#1a1815",
+          100: palette.pale,
+          200: palette.line,
+          300: palette.faint,
+          400: palette.muted,
+          500: palette.primary,
+          600: palette.primaryHover,
           700: "#141210",
           800: "#0e0d0b",
           900: "#000000",
         },
         surface: {
-          DEFAULT: "#f4f2ee",
-          card: "#ffffff",
-          elevated: "#ebe7df",
-          border: "#ddd8ce",
+          DEFAULT: palette.paper,
+          card: palette.white,
+          elevated: palette.sidebar,
+          border: palette.line,
         },
         // ink = text scale (warm near-black → faint)
         ink: {
-          DEFAULT: "#26241f",
-          soft: "#5c594f",
-          mute: "#928d80",
-          faint: "#bdb8aa",
+          DEFAULT: palette.ink,
+          soft: palette.muted,
+          mute: palette.muted,
+          faint: palette.faint,
         },
         accent: {
-          green: "#2f9e6e",
-          amber: "#b9791f",
-          red: "#bf3b30",
+          green: palette.success,
+          amber: palette.record,
+          red: palette.danger,
         },
       },
       fontFamily: {

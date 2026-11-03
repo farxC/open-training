@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -113,7 +114,7 @@ export default function SessionDetailScreen() {
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader title="Sessão" fallbackHref="/" />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-ink-mute">Sessão não encontrada.</Text>
+          <Text className="font-sans text-ink-mute">Sessão não encontrada.</Text>
         </View>
       </SafeAreaView>
     );
@@ -211,10 +212,10 @@ export default function SessionDetailScreen() {
         right={
           <View className="flex-row items-center" style={{ gap: 14 }}>
             <TouchableOpacity onPress={editing ? exitEdit : enterEdit} className="p-1">
-              <Text className="text-ink-soft text-sm font-medium">{editing ? "Concluir" : "Editar"}</Text>
+              <Text className="font-sans text-ink-soft text-sm font-medium">{editing ? "Concluir" : "Editar"}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleDelete} className="p-1">
-              <MaterialCommunityIcons name="trash-can-outline" size={20} color="#bf3b30" />
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color={uiColors.danger} />
             </TouchableOpacity>
           </View>
         }
@@ -232,7 +233,7 @@ export default function SessionDetailScreen() {
                 }}
               />
               <Text
-                className="text-ink-soft"
+                className="font-sans text-ink-soft"
                 style={{ fontSize: 11, fontWeight: "700", letterSpacing: 1.2 }}
               >
                 {modalityLabel(session.modality).toUpperCase()}
@@ -242,7 +243,7 @@ export default function SessionDetailScreen() {
 
             <View style={{ marginTop: 16 }}>
               <Text
-                className="text-ink-mute text-center"
+                className="font-sans text-ink-mute text-center"
                 style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 5 }}
               >
                 NOME DA SESSÃO
@@ -252,14 +253,14 @@ export default function SessionDetailScreen() {
                 onChangeText={setNameText}
                 onBlur={() => updateSession(session.id, { name: nameText.trim() || null })}
                 placeholder="Ex.: Treino de pernas pesado"
-                placeholderTextColor="#bdb8aa"
+                placeholderTextColor={uiColors.faint}
                 className="font-display text-ink text-center"
                 style={{
                   fontSize: 16,
                   fontWeight: "600",
                   paddingVertical: 5,
                   borderBottomWidth: 1.5,
-                  borderBottomColor: "#ddd8ce",
+                  borderBottomColor: uiColors.line,
                 }}
               />
             </View>
@@ -270,28 +271,28 @@ export default function SessionDetailScreen() {
             >
               <TouchableOpacity onPress={() => setDateModalVisible(true)}>
                 <Text
-                  className="text-ink-soft"
+                  className="font-sans text-ink-soft"
                   style={{ fontSize: 13, textDecorationLine: "underline" }}
                 >
                   {formatDate(session.date)}
                 </Text>
               </TouchableOpacity>
               <View className="flex-row items-center" style={{ gap: 6 }}>
-                <Text className="text-ink-mute" style={{ fontSize: 11 }}>Duração</Text>
-                <TextInput
+                <Text className="font-sans text-ink-mute" style={{ fontSize: 11 }}>Duração</Text>
+                <TextInput className="font-sans"
                   value={durationText}
                   onChangeText={setDurationText}
                   onBlur={() =>
                     updateSession(session.id, { duration_seconds: parseClock(durationText) ?? 0 })
                   }
                   placeholder="m:ss"
-                  placeholderTextColor="#bdb8aa"
+                  placeholderTextColor={uiColors.faint}
                   style={{
                     fontSize: 13,
                     minWidth: 44,
                     textAlign: "center",
                     borderBottomWidth: 1,
-                    borderBottomColor: "#ddd8ce",
+                    borderBottomColor: uiColors.line,
                   }}
                 />
               </View>
@@ -302,12 +303,12 @@ export default function SessionDetailScreen() {
               onChangeText={setNotesText}
               onBlur={() => updateSession(session.id, { notes: notesText.trim() || null })}
               placeholder="Observações (opcional)"
-              placeholderTextColor="#bdb8aa"
+              placeholderTextColor={uiColors.faint}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
-              className="bg-surface-elevated text-ink rounded-xl px-4 py-3"
-              style={{ borderWidth: 1, borderColor: "#ddd8ce", marginTop: 20 }}
+              className="font-sans bg-surface-elevated text-ink rounded-xl px-4 py-3"
+              style={{ borderWidth: 1, borderColor: uiColors.line, marginTop: 20 }}
             />
 
             <View style={{ marginTop: 20 }}>
@@ -349,10 +350,10 @@ export default function SessionDetailScreen() {
 
                   <TouchableOpacity
                     className="py-3 rounded-xl items-center mb-6"
-                    style={{ borderWidth: 1, borderColor: "#c9c3b6", borderStyle: "dashed" }}
+                    style={{ borderWidth: 1, borderColor: uiColors.line, borderStyle: "dashed" }}
                     onPress={() => setPickerVisible(true)}
                   >
-                    <Text className="text-ink text-sm font-medium">+ Adicionar exercícios</Text>
+                    <Text className="font-sans text-ink text-sm font-medium">+ Adicionar exercícios</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -407,7 +408,7 @@ export default function SessionDetailScreen() {
                   }}
                 />
                 <Text
-                  className="text-ink-soft"
+                  className="font-sans text-ink-soft"
                   style={{ fontSize: 11, fontWeight: "700", letterSpacing: 1.2 }}
                 >
                   {modalityLabel(session.modality).toUpperCase()}
@@ -415,7 +416,7 @@ export default function SessionDetailScreen() {
                 </Text>
               </View>
 
-              <Text className="text-ink-mute" style={{ fontSize: 13, marginTop: 4 }}>
+              <Text className="font-sans text-ink-mute" style={{ fontSize: 13, marginTop: 4 }}>
                 {formatDate(session.date)}
               </Text>
 
@@ -425,7 +426,7 @@ export default function SessionDetailScreen() {
                 style={{
                   borderTopWidth: 1,
                   borderBottomWidth: 1,
-                  borderColor: "#ddd8ce",
+                  borderColor: uiColors.line,
                   paddingVertical: 12,
                   marginTop: 16,
                 }}
@@ -433,48 +434,48 @@ export default function SessionDetailScreen() {
                 <View className="flex-1">
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: uiColors.ink,
                       fontSize: 18,
-                      fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
+                      fontFamily: "JetBrains Mono",
                     }}
                   >
                     {isDistance
                       ? formatDistanceNumber(totalDistance, session.modality)
                       : formatThousands(totalVolume)}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
+                  <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
                     {isDistance
                       ? distanceDisplay(session.modality).distanceUnit.toUpperCase()
                       : "KG · VOLUME"}
                   </Text>
                 </View>
-                <View style={{ width: 1, backgroundColor: "#ddd8ce" }} />
+                <View style={{ width: 1, backgroundColor: uiColors.line }} />
                 <View className="flex-1 items-center">
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: uiColors.ink,
                       fontSize: 18,
-                      fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
+                      fontFamily: "JetBrains Mono",
                     }}
                   >
                     {formatDuration(session.duration_seconds)}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
+                  <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
                     DURAÇÃO
                   </Text>
                 </View>
-                <View style={{ width: 1, backgroundColor: "#ddd8ce" }} />
+                <View style={{ width: 1, backgroundColor: uiColors.line }} />
                 <View className="flex-1 items-end">
                   <Text
                     style={{
-                      color: "#26241f",
+                      color: uiColors.ink,
                       fontSize: 18,
-                      fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
+                      fontFamily: "JetBrains Mono",
                     }}
                   >
                     {exerciseCount}
                   </Text>
-                  <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
+                  <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
                     EXERCÍCIOS
                   </Text>
                 </View>
@@ -482,10 +483,10 @@ export default function SessionDetailScreen() {
 
               {session.notes && (
                 <View
-                  style={{ borderLeftWidth: 2, borderLeftColor: "#bdb8aa", marginTop: 16 }}
+                  style={{ borderLeftWidth: 2, borderLeftColor: uiColors.faint, marginTop: 16 }}
                   className="pl-3"
                 >
-                  <Text className="text-ink-soft italic" style={{ fontSize: 14, lineHeight: 20 }}>
+                  <Text className="font-sans text-ink-soft italic" style={{ fontSize: 14, lineHeight: 20 }}>
                     {session.notes}
                   </Text>
                 </View>
@@ -522,7 +523,7 @@ export default function SessionDetailScreen() {
                 })}
 
                 {session.sets.length === 0 && (
-                  <Text className="text-ink-mute text-center mt-8">
+                  <Text className="font-sans text-ink-mute text-center mt-8">
                     Nenhum set registrado.
                   </Text>
                 )}
@@ -566,7 +567,7 @@ export default function SessionDetailScreen() {
               Data da sessão
             </Text>
             <TouchableOpacity onPress={() => setDateModalVisible(false)}>
-              <Text className="text-ink-soft text-base">Cancelar</Text>
+              <Text className="font-sans text-ink-soft text-base">Cancelar</Text>
             </TouchableOpacity>
           </View>
           <View className="px-4">
@@ -580,7 +581,7 @@ export default function SessionDetailScreen() {
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={() => confirmDate(dateToISO(new Date()))}
             >
-              <Text className="text-white text-sm font-semibold">Usar hoje</Text>
+              <Text className="font-sans text-white text-sm font-semibold">Usar hoje</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

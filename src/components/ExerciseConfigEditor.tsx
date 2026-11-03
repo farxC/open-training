@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
@@ -56,11 +57,11 @@ function Chip({
       className="px-3 py-1.5 rounded-full"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? uiColors.ink : uiColors.line,
+        backgroundColor: active ? uiColors.ink : hovered ? uiColors.paper : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+      <Text className="font-sans" style={{ color: active ? uiColors.white : uiColors.muted, fontSize: 12, fontWeight: "600" }}>
         {label}
       </Text>
     </Pressable>
@@ -82,11 +83,11 @@ function Section({
   return (
     <View
       className="bg-surface-card rounded-2xl mb-2"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+      style={{ borderWidth: 1, borderColor: uiColors.line, padding: 12 }}
     >
       <View className="flex-row items-center mb-3" style={{ gap: 6 }}>
-        <MaterialCommunityIcons name={icon as MciName} size={13} color="#928d80" />
-        <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "700", letterSpacing: 1.2 }}>
+        <MaterialCommunityIcons name={icon as MciName} size={13} color={uiColors.muted} />
+        <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1.2 }}>
           {title.toUpperCase()}
         </Text>
       </View>
@@ -121,9 +122,9 @@ function DimensionGroup<T extends string>({
 }) {
   return (
     <View style={{ marginBottom: last ? 0 : 14 }}>
-      <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
+      <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
       {hint ? (
-        <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 1 }}>{hint}</Text>
+        <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 10, marginTop: 1 }}>{hint}</Text>
       ) : null}
       <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
         {onSelectNone && (
@@ -159,8 +160,8 @@ function ToggleGroup({
 }) {
   return (
     <View style={{ marginBottom: last ? 0 : 14 }}>
-      <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
-      {hint ? <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 1 }}>{hint}</Text> : null}
+      <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>{title}</Text>
+      {hint ? <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 10, marginTop: 1 }}>{hint}</Text> : null}
       <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
         <Chip label={offLabel} active={!on} onPress={() => onSet(0)} />
         <Chip label={onLabel} active={on} onPress={() => onSet(1)} />
@@ -208,10 +209,10 @@ function BenchAngles({
       {customOpen && (
         <View className="flex-row items-center" style={{ gap: 8, marginTop: 8 }}>
           <TextInput
-            className="text-ink rounded-xl px-3 py-2"
-            style={{ width: 100, backgroundColor: "#f4f2ee", borderWidth: 1, borderColor: "#e7e4dc" }}
+            className="font-sans text-ink rounded-xl px-3 py-2"
+            style={{ width: 100, backgroundColor: uiColors.paper, borderWidth: 1, borderColor: uiColors.line }}
             placeholder="Graus"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={uiColors.faint}
             keyboardType="numbers-and-punctuation"
             value={customText}
             onChangeText={setCustomText}
@@ -219,7 +220,7 @@ function BenchAngles({
             onSubmitEditing={commitCustom}
             autoFocus
           />
-          <Text className="text-ink-faint text-xs">graus (negativo = declinado)</Text>
+          <Text className="font-sans text-ink-faint text-xs">graus (negativo = declinado)</Text>
         </View>
       )}
     </View>
@@ -259,10 +260,10 @@ export function ExerciseConfigEditor({ value, onChange }: Props) {
         className="rounded-2xl mb-2"
         style={{ backgroundColor: "#efece5", padding: 11 }}
       >
-        <Text style={{ color: "#a8a293", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8 }}>
+        <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8 }}>
           RESUMO
         </Text>
-        <Text style={{ color: "#26241f", fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+        <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
           {exerciseConfigSummary(value)}
         </Text>
       </View>
@@ -340,7 +341,7 @@ export function ExerciseConfigEditor({ value, onChange }: Props) {
                 />
               ))}
             </View>
-            <Text style={{ color: "#a8a293", fontSize: 10, marginTop: 7, lineHeight: 14 }}>
+            <Text className="font-sans" style={{ color: uiColors.faint, fontSize: 10, marginTop: 7, lineHeight: 14 }}>
               Como ler a carga registrada: o peso total movido, o peso extra somado ao corpo, ou a
               assistência subtraída dele.
             </Text>

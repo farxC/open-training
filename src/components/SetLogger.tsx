@@ -1,8 +1,10 @@
+import uiColors from "@/theme/palette.json";
 import { useCallback, useEffect, useState } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { ActionButton, IconButton } from "@/components/ui/ActionButton";
 import { SetRow } from "./SetRow";
 import { ExerciseConfigEditor } from "./ExerciseConfigEditor";
 import {
@@ -15,7 +17,12 @@ import {
   updateSet,
 } from "@/db/queries";
 import { exerciseConfigSummary } from "@/data/exerciseConfig";
-import type { ExerciseConfig, RoutineUnitExercise, SessionExercise, WorkoutSet } from "@/types";
+import type {
+  ExerciseConfig,
+  RoutineUnitExercise,
+  SessionExercise,
+  WorkoutSet,
+} from "@/types";
 
 interface Props {
   exerciseId: number;
@@ -24,7 +31,10 @@ interface Props {
   onRemoveExercise: () => void;
   targets?: RoutineUnitExercise;
   dragHandleIcon?: React.ReactNode;
-  DragHandle?: React.ComponentType<{ style?: StyleProp<ViewStyle>; children?: React.ReactNode }>;
+  DragHandle?: React.ComponentType<{
+    style?: StyleProp<ViewStyle>;
+    children?: React.ReactNode;
+  }>;
   index?: number;
   onSetsChanged?: () => void;
 }
@@ -34,20 +44,33 @@ function targetLabel(targets: RoutineUnitExercise): string | null {
   const reps = targets.target_reps_max
     ? `${targets.target_reps}–${targets.target_reps_max}`
     : `${targets.target_reps}`;
-  const weight = targets.target_weight_kg ? ` @ ${targets.target_weight_kg}kg` : "";
+  const weight = targets.target_weight_kg
+    ? ` @ ${targets.target_weight_kg}kg`
+    : "";
   return `Meta: ${targets.target_sets}×${reps} reps${weight}`;
 }
 
-export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercise, targets, dragHandleIcon, DragHandle, index, onSetsChanged }: Props) {
+export function SetLogger({
+  exerciseId,
+  exerciseName,
+  sessionId,
+  onRemoveExercise,
+  targets,
+  dragHandleIcon,
+  DragHandle,
+  index,
+  onSetsChanged,
+}: Props) {
   const [sets, setSets] = useState<WorkoutSet[]>([]);
-  const [sessionExercise, setSessionExercise] = useState<SessionExercise | null>(null);
+  const [sessionExercise, setSessionExercise] =
+    useState<SessionExercise | null>(null);
   const [configModalVisible, setConfigModalVisible] = useState(false);
   const [draftConfig, setDraftConfig] = useState<ExerciseConfig | null>(null);
   const HandleWrapper = DragHandle ?? View;
 
   const refreshSets = useCallback(() => {
     setSets(
-      getSetsBySession(sessionId).filter((s) => s.exercise_id === exerciseId)
+      getSetsBySession(sessionId).filter((s) => s.exercise_id === exerciseId),
     );
   }, [sessionId, exerciseId]);
 
@@ -59,7 +82,9 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
   // making the user tap "+ Add Set" for what's always their first one. Runs once
   // per mount, so deleting the only set afterward doesn't bring it back.
   useEffect(() => {
-    const existing = getSetsBySession(sessionId).filter((s) => s.exercise_id === exerciseId);
+    const existing = getSetsBySession(sessionId).filter(
+      (s) => s.exercise_id === exerciseId,
+    );
     if (existing.length === 0) {
       addSet({
         session_id: sessionId,
@@ -98,7 +123,8 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
 
   // The snapshot is a copy, so "restore" means re-reading the exercise's current
   // default into the draft — it only reaches the database on save.
-  const restoreExerciseDefault = () => setDraftConfig(getExerciseConfig(exerciseId));
+  const restoreExerciseDefault = () =>
+    setDraftConfig(getExerciseConfig(exerciseId));
 
   const handleAdd = () => {
     const last = sets[sets.length - 1];
@@ -133,22 +159,47 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
   };
 
   return (
-    <View className="mb-5">
+    <View
+      className="mb-5"
+      style={{
+        backgroundColor: uiColors.white,
+        borderWidth: 1,
+        borderColor: uiColors.line,
+        borderRadius: 12,
+        padding: 18,
+      }}
+    >
       {/* Exercise header */}
       <View className="flex-row justify-between items-center mb-2">
-        <HandleWrapper style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+        <HandleWrapper
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            flex: 1,
+          }}
+        >
           {dragHandleIcon}
           {index != null && (
-            <Text className="text-ink-mute text-xs" style={{ width: 16 }}>{index + 1}.</Text>
+            <Text
+              className="font-sans text-ink-mute text-xs"
+              style={{ width: 16 }}
+            >
+              {index + 1}.
+            </Text>
           )}
-          <View style={{ width: 2, height: 14, backgroundColor: '#26241f', borderRadius: 1 }} />
-          <View>
-            <Text className="text-ink font-semibold text-base">{exerciseName}</Text>
+
+          <View style={{ flex: 1 }}>
+            <Text className="font-sans text-ink font-semibold text-base">
+              {exerciseName}
+            </Text>
             {targets && targetLabel(targets) && (
-              <Text className="text-ink-faint text-xs mt-0.5">{targetLabel(targets)}</Text>
+              <Text className="font-sans text-ink-mute text-xs mt-0.5">
+                {targetLabel(targets)}
+              </Text>
             )}
             {sessionExercise && (
-              <Text className="text-ink-faint text-xs mt-0.5">
+              <Text className="font-sans text-ink-mute text-xs mt-0.5">
                 {exerciseConfigSummary(sessionExercise.config)}
               </Text>
             )}
@@ -157,23 +208,61 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
         <View className="flex-row items-center" style={{ gap: 14 }}>
           {sessionExercise && (
             <TouchableOpacity onPress={openConfigEditor} hitSlop={10}>
-              <MaterialCommunityIcons name="tune-variant" size={18} color="#928d80" />
+              <MaterialCommunityIcons
+                name="tune-variant"
+                size={18}
+                color={uiColors.muted}
+              />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={onRemoveExercise}>
-            <Text className="text-ink-mute text-sm">Remove</Text>
-          </TouchableOpacity>
+          <IconButton
+            label={`Remover ${exerciseName}`}
+            icon="close"
+            onPress={onRemoveExercise}
+          />
         </View>
       </View>
 
-      {/* Column headers */}
       {sets.length > 0 && (
-        <View className="flex-row mb-1" style={{ gap: 8, paddingLeft: 0 }}>
-          <Text className="text-ink-mute text-xs text-center" style={{ width: 20 }}>#</Text>
-          <Text className="text-ink-mute text-xs flex-1 text-center">Weight</Text>
-          <Text className="text-ink-mute text-xs" style={{ width: 12 }} />
-          <Text className="text-ink-mute text-xs flex-1 text-center">Reps</Text>
-          <Text style={{ width: 20 }} />
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 10,
+            marginTop: 14,
+            marginBottom: 2,
+          }}
+        >
+          <Text
+            className="font-sans"
+            style={{ width: 34, fontSize: 10, color: uiColors.muted }}
+          >
+            SÉRIE
+          </Text>
+          <Text
+            className="font-sans"
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: 10,
+              color: uiColors.muted,
+              letterSpacing: 1,
+            }}
+          >
+            PESO · KG
+          </Text>
+          <Text
+            className="font-sans"
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: 10,
+              color: uiColors.muted,
+              letterSpacing: 1,
+            }}
+          >
+            REPS
+          </Text>
+          <View style={{ width: 36 }} />
         </View>
       )}
 
@@ -186,13 +275,14 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
         />
       ))}
 
-      <TouchableOpacity
-        className="mt-2 py-2.5 rounded-lg items-center"
-        style={{ borderWidth: 1, borderColor: '#c9c3b6', borderStyle: 'dashed' }}
-        onPress={handleAdd}
-      >
-        <Text className="text-ink text-sm">+ Add Set</Text>
-      </TouchableOpacity>
+      <View style={{ marginTop: 8 }}>
+        <ActionButton
+          label="Adicionar série"
+          icon="plus"
+          variant="ghost"
+          onPress={handleAdd}
+        />
+      </View>
 
       <Modal
         visible={configModalVisible}
@@ -209,22 +299,38 @@ export function SetLogger({ exerciseId, exerciseName, sessionId, onRemoveExercis
               {exerciseName}
             </Text>
             <TouchableOpacity onPress={() => setConfigModalVisible(false)}>
-              <Text className="text-ink-soft text-base">Cancelar</Text>
+              <Text className="font-sans text-ink-soft text-base">
+                Cancelar
+              </Text>
             </TouchableOpacity>
           </View>
           {/* Scrollable: the config editor is taller than a phone screen, and in a
               plain View its last sections (and the save button under them) were
               simply cut off. */}
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-            {draftConfig && <ExerciseConfigEditor value={draftConfig} onChange={setDraftConfig} />}
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          >
+            {draftConfig && (
+              <ExerciseConfigEditor
+                value={draftConfig}
+                onChange={setDraftConfig}
+              />
+            )}
             <TouchableOpacity
               className="mt-4 py-3 rounded-xl items-center bg-brand-500"
               onPress={saveConfig}
             >
-              <Text className="text-white font-semibold text-sm">Salvar para esta sessão</Text>
+              <Text className="font-sans text-white font-semibold text-sm">
+                Salvar para esta sessão
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity className="mt-2 py-3 items-center" onPress={restoreExerciseDefault}>
-              <Text className="text-ink-soft text-sm">Restaurar padrão do exercício</Text>
+            <TouchableOpacity
+              className="mt-2 py-3 items-center"
+              onPress={restoreExerciseDefault}
+            >
+              <Text className="font-sans text-ink-soft text-sm">
+                Restaurar padrão do exercício
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>

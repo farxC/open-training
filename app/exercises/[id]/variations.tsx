@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -38,7 +39,7 @@ export default function ExerciseVariationsScreen() {
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader title="Variações" fallbackHref="/" />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-ink-mute">Exercício não encontrado.</Text>
+          <Text className="font-sans text-ink-mute">Exercício não encontrado.</Text>
         </View>
       </SafeAreaView>
     );
@@ -79,20 +80,20 @@ export default function ExerciseVariationsScreen() {
         {creating ? (
           <View
             className="bg-surface-card rounded-2xl mb-4"
-            style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12 }}
+            style={{ borderWidth: 1, borderColor: uiColors.line, padding: 12 }}
           >
-            <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
+            <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>Nome</Text>
             <TextInput
-              className="text-ink rounded-xl px-3 py-2.5"
+              className="font-sans text-ink rounded-xl px-3 py-2.5"
               style={{
                 marginTop: 7,
-                backgroundColor: "#f4f2ee",
+                backgroundColor: uiColors.paper,
                 borderWidth: 1,
-                borderColor: nameError ? "#e8c9c5" : "#e7e4dc",
+                borderColor: nameError ? "#e8c9c5" : uiColors.line,
                 fontSize: 14,
               }}
               placeholder="Nome da variação"
-              placeholderTextColor="#bdb8aa"
+              placeholderTextColor={uiColors.faint}
               value={name}
               onChangeText={(t) => {
                 setName(t);
@@ -101,11 +102,11 @@ export default function ExerciseVariationsScreen() {
               autoFocus
             />
             {nameError ? (
-              <Text style={{ color: "#bf3b30", fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
+              <Text className="font-sans" style={{ color: uiColors.danger, fontSize: 10.5, marginTop: 5 }}>{nameError}</Text>
             ) : null}
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Equipamento</Text>
+              <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>Equipamento</Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
                 {EQUIPMENT_OPTIONS.map((eq) => (
                   <Chip key={eq} label={EQUIPMENT_LABELS[eq]} active={equipment === eq} onPress={() => setEquipment(eq)} />
@@ -114,7 +115,7 @@ export default function ExerciseVariationsScreen() {
             </View>
 
             <View style={{ marginTop: 14 }}>
-              <Text style={{ color: "#26241f", fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
+              <Text className="font-sans" style={{ color: uiColors.ink, fontSize: 11.5, fontWeight: "600" }}>Padrão</Text>
               <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 7 }}>
                 {TYPE_OPTIONS.map((t) => (
                   <Chip key={t} label={TYPE_LABELS[t]} active={type === t} onPress={() => setType(t)} />
@@ -122,7 +123,7 @@ export default function ExerciseVariationsScreen() {
               </View>
             </View>
 
-            <Text style={{ color: "#928d80", fontSize: 10.5, marginTop: 14, lineHeight: 15 }}>
+            <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10.5, marginTop: 14, lineHeight: 15 }}>
               Grupos musculares e ficha técnica são clonados de "{parent.name}" e podem ser
               ajustados depois, na própria tela da variação.
             </Text>
@@ -131,12 +132,12 @@ export default function ExerciseVariationsScreen() {
               <Pressable
                 onPress={() => setCreating(false)}
                 className="flex-1 py-3 rounded-xl items-center"
-                style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+                style={{ borderWidth: 1, borderColor: uiColors.line }}
               >
-                <Text style={{ color: "#5c594f", fontSize: 13, fontWeight: "600" }}>Cancelar</Text>
+                <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 13, fontWeight: "600" }}>Cancelar</Text>
               </Pressable>
               <Pressable onPress={handleCreate} className="flex-1 py-3 rounded-xl items-center bg-brand-500">
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>Criar</Text>
+                <Text className="font-sans" style={{ color: uiColors.white, fontSize: 13, fontWeight: "700" }}>Criar</Text>
               </Pressable>
             </View>
           </View>
@@ -144,15 +145,15 @@ export default function ExerciseVariationsScreen() {
           <Pressable
             onPress={startCreating}
             className="flex-row items-center justify-center rounded-2xl mb-4"
-            style={{ borderWidth: 1, borderColor: "#ddd8ce", borderStyle: "dashed", paddingVertical: 14, gap: 6 }}
+            style={{ borderWidth: 1, borderColor: uiColors.line, borderStyle: "dashed", paddingVertical: 14, gap: 6 }}
           >
-            <MaterialCommunityIcons name="plus" size={16} color="#5c594f" />
-            <Text style={{ color: "#5c594f", fontSize: 13, fontWeight: "600" }}>Nova variação</Text>
+            <MaterialCommunityIcons name="plus" size={16} color={uiColors.muted} />
+            <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 13, fontWeight: "600" }}>Nova variação</Text>
           </Pressable>
         )}
 
         {variations.length === 0 && !creating ? (
-          <Text className="text-ink-mute text-sm" style={{ textAlign: "center", marginTop: 20 }}>
+          <Text className="font-sans text-ink-mute text-sm" style={{ textAlign: "center", marginTop: 20 }}>
             "{parent.name}" ainda não tem variações.
           </Text>
         ) : (
@@ -161,27 +162,27 @@ export default function ExerciseVariationsScreen() {
               key={v.id}
               onPress={() => (v.is_default_variation ? router.push(`/exercises/${v.id}`) : setDefaultVariationOf(v.id))}
               className="flex-row items-center rounded-2xl mb-2"
-              style={{ borderWidth: 1, borderColor: "#e7e4dc", padding: 12, gap: 10 }}
+              style={{ borderWidth: 1, borderColor: uiColors.line, padding: 12, gap: 10 }}
             >
               <View className="flex-1">
-                <Text className="text-ink text-sm" style={v.is_archived ? { textDecorationLine: "line-through" } : undefined}>
+                <Text className="font-sans text-ink text-sm" style={v.is_archived ? { textDecorationLine: "line-through" } : undefined}>
                   {v.name}
                 </Text>
-                <Text className="text-ink-mute text-xs capitalize">
+                <Text className="font-sans text-ink-mute text-xs capitalize">
                   {[EQUIPMENT_LABELS[v.equipment], TYPE_LABELS[v.type]].join(" · ")}
                 </Text>
               </View>
               {v.is_default_variation ? (
                 <View
                   className="rounded-full"
-                  style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: "#26241f" }}
+                  style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: uiColors.ink }}
                 >
-                  <Text style={{ color: "#ffffff", fontSize: 9.5, fontWeight: "700", letterSpacing: 0.4 }}>
+                  <Text className="font-sans" style={{ color: uiColors.white, fontSize: 9.5, fontWeight: "700", letterSpacing: 0.4 }}>
                     PADRÃO
                   </Text>
                 </View>
               ) : (
-                <MaterialCommunityIcons name="chevron-right" size={18} color="#c9c3b6" />
+                <MaterialCommunityIcons name="chevron-right" size={18} color={uiColors.line} />
               )}
             </Pressable>
           ))
@@ -203,11 +204,11 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
       className="px-3 py-1.5 rounded-full"
       style={{
         borderWidth: 1,
-        borderColor: active ? "#26241f" : "#ddd8ce",
-        backgroundColor: active ? "#26241f" : hovered ? "#f4f2ee" : "transparent",
+        borderColor: active ? uiColors.ink : uiColors.line,
+        backgroundColor: active ? uiColors.ink : hovered ? uiColors.paper : "transparent",
       }}
     >
-      <Text style={{ color: active ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>{label}</Text>
+      <Text className="font-sans" style={{ color: active ? uiColors.white : uiColors.muted, fontSize: 12, fontWeight: "600" }}>{label}</Text>
     </Pressable>
   );
 }

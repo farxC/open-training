@@ -1,10 +1,11 @@
+import uiColors from "@/theme/palette.json";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 import type { TrophyCase } from "@/utils/recordsGamification";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const BRASS = "#8a5a12";
+const MONO = "JetBrains Mono";
+const BRASS = uiColors.record;
 
 interface Props {
   summary: TrophyCase;
@@ -21,8 +22,8 @@ export function TrophyCaseStrip({ summary }: Props) {
       className="bg-surface-card rounded-2xl flex-row items-stretch mb-3 overflow-hidden"
       style={{ paddingVertical: 12 }}
     >
-      <Cell label="RECORDS" flex={1}>
-        <Text style={{ color: "#26241f", fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+      <Cell label="RECORDES" flex={1}>
+        <Text style={{ color: uiColors.ink, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
           {total}
         </Text>
       </Cell>
@@ -32,11 +33,11 @@ export function TrophyCaseStrip({ summary }: Props) {
       <Cell label="NOVOS" flex={1}>
         <View className="flex-row items-center" style={{ gap: 3 }}>
           {fresh > 0 ? (
-            <MaterialCommunityIcons name="star-four-points" size={11} color="#2f9e6e" />
+            <MaterialCommunityIcons name="star-four-points" size={11} color={uiColors.record} />
           ) : null}
           <Text
             style={{
-              color: fresh > 0 ? "#2f9e6e" : "#bdb8aa",
+              color: fresh > 0 ? uiColors.record : uiColors.faint,
               fontSize: 20,
               fontWeight: "700",
               fontFamily: MONO,
@@ -59,19 +60,19 @@ export function TrophyCaseStrip({ summary }: Props) {
                 color={BRASS}
                 style={{ marginRight: 3 }}
               />
-              <Text style={{ color: "#26241f", fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+              <Text style={{ color: uiColors.ink, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
                 {best.max_weight_kg}
               </Text>
-              <Text className="text-ink-mute" style={{ fontSize: 10 }}>
+              <Text className="font-sans text-ink-mute" style={{ fontSize: 10 }}>
                 kg
               </Text>
             </View>
-            <Text className="text-ink-faint" style={{ fontSize: 9, marginTop: 1 }} numberOfLines={1}>
+            <Text className="font-sans text-ink-faint" style={{ fontSize: 9, marginTop: 1 }} numberOfLines={1}>
               {best.exercise_name}
             </Text>
           </>
         ) : (
-          <Text style={{ color: "#bdb8aa", fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
+          <Text style={{ color: uiColors.faint, fontSize: 20, fontWeight: "700", fontFamily: MONO }}>
             —
           </Text>
         )}
@@ -83,8 +84,8 @@ export function TrophyCaseStrip({ summary }: Props) {
 function Cell({ label, flex, children }: { label: string; flex: number; children: ReactNode }) {
   return (
     <View style={{ flex }} className="items-center px-2">
-      <Text
-        style={{ color: "#928d80", fontSize: 9, fontWeight: "700", letterSpacing: 1.2, marginBottom: 3 }}
+      <Text className="font-sans"
+        style={{ color: uiColors.muted, fontSize: 9, fontWeight: "700", letterSpacing: 1.2, marginBottom: 3 }}
       >
         {label}
       </Text>

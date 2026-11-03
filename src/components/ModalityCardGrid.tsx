@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import type { ComponentProps } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -27,7 +28,7 @@ export function ModalityCardGrid({ value, onSelect }: Props) {
       {MODALITY_CATEGORIES.map((cat) => (
         <View key={cat.key} className="mb-4">
           <Text
-            className="text-ink-faint mb-2"
+            className="font-sans text-ink-faint mb-2"
             style={{ fontSize: 10, letterSpacing: 1, fontWeight: "700" }}
           >
             {cat.label.toUpperCase()}
@@ -44,8 +45,8 @@ export function ModalityCardGrid({ value, onSelect }: Props) {
                     paddingVertical: 18,
                     gap: 8,
                     borderWidth: 1,
-                    borderColor: on ? "#26241f" : "#ddd8ce",
-                    backgroundColor: on ? "#26241f" : "#ffffff",
+                    borderColor: on ? uiColors.ink : uiColors.line,
+                    backgroundColor: on ? uiColors.ink : uiColors.white,
                   }}
                   onPress={() => onSelect(m.key)}
                   activeOpacity={0.85}
@@ -57,16 +58,16 @@ export function ModalityCardGrid({ value, onSelect }: Props) {
                       borderRadius: 22,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: on ? "rgba(255,255,255,0.14)" : "#f4f2ee",
+                      backgroundColor: on ? "rgba(255,255,255,0.14)" : uiColors.paper,
                     }}
                   >
                     <MaterialCommunityIcons
                       name={m.icon as MciName}
                       size={24}
-                      color={on ? "#ffffff" : "#5c594f"}
+                      color={on ? uiColors.white : uiColors.muted}
                     />
                   </View>
-                  <Text style={{ color: on ? "#ffffff" : "#5c594f", fontSize: 13, fontWeight: "600" }}>
+                  <Text className="font-sans" style={{ color: on ? uiColors.white : uiColors.muted, fontSize: 13, fontWeight: "600" }}>
                     {m.label}
                   </Text>
                 </TouchableOpacity>

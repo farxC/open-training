@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { router } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -27,9 +28,9 @@ function formatThousands(n: number): string {
 }
 
 function intensityColor(rpe: number | null, rir: number | null, failure: 0 | 1): string {
-  if (failure || (rpe != null && rpe >= 9)) return "#bf3b30";
-  if ((rir != null && rir <= 1) || (rpe != null && rpe >= 8)) return "#b9791f";
-  return "#928d80";
+  if (failure || (rpe != null && rpe >= 9)) return uiColors.danger;
+  if ((rir != null && rir <= 1) || (rpe != null && rpe >= 8)) return uiColors.record;
+  return uiColors.muted;
 }
 
 export function ExerciseSessionCard({
@@ -58,7 +59,7 @@ export function ExerciseSessionCard({
         borderWidth: 1,
         borderColor: "rgba(38, 36, 31, 0.07)",
         overflow: "hidden",
-        shadowColor: "#26241f",
+        shadowColor: uiColors.ink,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.05,
         shadowRadius: 14,
@@ -73,14 +74,14 @@ export function ExerciseSessionCard({
       >
         <View
           className="items-center justify-center"
-          style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#26241f" }}
+          style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: uiColors.ink }}
         >
           <Text
             style={{
-              color: "#ffffff",
+              color: uiColors.white,
               fontSize: 10,
               fontWeight: "700",
-              fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
+              fontFamily: "JetBrains Mono",
             }}
           >
             {ordinal}
@@ -89,7 +90,7 @@ export function ExerciseSessionCard({
 
         <Text
           className="font-display flex-1"
-          style={{ color: "#26241f", fontSize: 16, fontWeight: "600" }}
+          style={{ color: uiColors.ink, fontSize: 16, fontWeight: "600" }}
           numberOfLines={1}
         >
           {exerciseName}
@@ -97,7 +98,7 @@ export function ExerciseSessionCard({
 
         <Text
           className="text-ink-soft"
-          style={{ fontSize: 12, fontFamily: "JetBrains Mono, Menlo, Courier New, monospace" }}
+          style={{ fontSize: 12, fontFamily: "JetBrains Mono" }}
         >
           {isRunGroup
             ? dist > 0
@@ -118,10 +119,10 @@ export function ExerciseSessionCard({
             accessibilityRole="button"
             accessibilityLabel="Trocar variação"
           >
-            <MaterialCommunityIcons name="source-branch" size={16} color="#928d80" />
+            <MaterialCommunityIcons name="source-branch" size={16} color={uiColors.muted} />
           </TouchableOpacity>
         )}
-        <MaterialCommunityIcons name="chevron-right" size={16} color="#bdb8aa" />
+        <MaterialCommunityIcons name="chevron-right" size={16} color={uiColors.faint} />
       </TouchableOpacity>
 
       <View style={{ height: 1, backgroundColor: "rgba(38, 36, 31, 0.07)" }} />
@@ -162,32 +163,32 @@ export function ExerciseSessionCard({
                   style={{
                     width: 20,
                     fontSize: 11,
-                    fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
+                    fontFamily: "JetBrains Mono",
                   }}
                 >
                   {s.set_number}
                 </Text>
 
                 {s.distance_km != null ? (
-                  <Text className="text-ink flex-1" style={{ fontSize: 14 }}>
+                  <Text className="font-sans text-ink flex-1" style={{ fontSize: 14 }}>
                     {formatDistanceValue(s.distance_km, modality)} em {formatClock(s.duration_sec)}
                     {formatEffort(s.pace_sec, modality) ? ` · ${formatEffort(s.pace_sec, modality)}` : ""}
                   </Text>
                 ) : (
-                  <Text className="text-ink flex-1" style={{ fontSize: 14 }}>
+                  <Text className="font-sans text-ink flex-1" style={{ fontSize: 14 }}>
                     <Text
                       style={{
-                        fontFamily: "JetBrains Mono, Menlo, Courier New, monospace",
+                        fontFamily: "JetBrains Mono",
                         fontWeight: isBest ? "700" : "400",
                       }}
                     >
                       {s.weight_kg}
                     </Text>
-                    <Text className="text-ink-mute"> kg × </Text>
-                    <Text style={{ fontFamily: "JetBrains Mono, Menlo, Courier New, monospace" }}>
+                    <Text className="font-sans text-ink-mute"> kg × </Text>
+                    <Text style={{ fontFamily: "JetBrains Mono" }}>
                       {s.reps}
                     </Text>
-                    <Text className="text-ink-mute"> reps</Text>
+                    <Text className="font-sans text-ink-mute"> reps</Text>
                   </Text>
                 )}
 
@@ -195,7 +196,7 @@ export function ExerciseSessionCard({
                   <MaterialCommunityIcons
                     name="trophy-outline"
                     size={13}
-                    color="#b9791f"
+                    color={uiColors.record}
                     style={{ marginRight: hasIntensity ? 6 : 0 }}
                   />
                 )}
@@ -209,7 +210,7 @@ export function ExerciseSessionCard({
                       paddingVertical: 2,
                     }}
                   >
-                    <Text
+                    <Text className="font-sans"
                       style={{
                         color: intensityColor(s.rpe, s.rir, s.failure),
                         fontSize: 10,

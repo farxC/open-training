@@ -1,127 +1,242 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState, type ComponentProps } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { RoutineCalendar } from "@/components/RoutineCalendar";
 import { DayDetailModal } from "@/components/DayDetailModal";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { Button } from "@/components/ui/button";
 import { useRoutine } from "@/hooks/useRoutine";
-import { modalityConfig, modalityLabel } from "@/data/modalities";
-
-type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+import { modalityLabel } from "@/data/modalities";
+import { todayISO } from "@/utils/cycle";
+import colors from "@/theme/palette.json";
 
 export default function RoutineScreen() {
-  const r = useRoutine();
+  const routine = useRoutine();
+  const { refreshAll } = routine;
+  const { width } = useWindowDimensions();
+  const desktop = width >= 960;
   const [monthDate, setMonthDate] = useState(() => new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
+  const [selectedDate, setSelectedDate] = useState(todayISO);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      r.refreshAll();
-    }, [r.refreshAll])
+      refreshAll();
+    }, [refreshAll]),
+  );
+  const schedule = routine.scheduleForDate(selectedDate);
+  const workouts = schedule.planned.filter(
+    (entry) => entry.status === "workout" && entry.unit,
   );
 
-  const summary =
-    r.splits.length === 0 ? "Nenhum split" : `${r.splits.length} split${r.splits.length !== 1 ? "s" : ""}`;
-  const schedule = selectedDate ? r.scheduleForDate(selectedDate) : null;
-
   return (
-    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
-        <View className="px-4 pt-3 pb-4 flex-row items-start">
-          <View className="flex-1">
-            <Text style={{ color: "#928d80", fontSize: 10, fontWeight: "700", letterSpacing: 2, marginBottom: 2 }}>
-              TRAINING SPLIT
-            </Text>
-            <Text className="text-ink font-display font-semibold text-3xl" style={{ letterSpacing: -0.6 }}>
-              Minha Rotina
-            </Text>
-            <Text className="text-ink-mute text-xs mt-0.5">{summary}</Text>
-          </View>
-          <TouchableOpacity
-            className="px-3 py-2 rounded-xl bg-brand-500"
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.paper }}
+      edges={["top"]}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+      >
+        <View style={styles.heading}>
+          <Text className="font-display" style={styles.title}>
+            Rotina
+          </Text>
+          <ActionButton
+            label="Novo split"
+            icon="plus"
             onPress={() => router.push("/routine/new-split")}
-          >
-            <Text className="text-white text-sm font-medium">+ Novo split</Text>
-          </TouchableOpacity>
+          />
         </View>
-
-        <View style={{ height: 1, backgroundColor: "#ddd8ce", marginHorizontal: 16, marginBottom: 16 }} />
-
-        {r.splits.length === 0 ? (
-          <View className="items-center justify-center px-8" style={{ paddingTop: 60 }}>
-            <Text className="text-ink-soft text-base font-medium text-center">Monte seus splits</Text>
-            <Text className="text-ink-mute text-sm mt-1 text-center">
-              Crie splits cíclicos (rodízio) ou semanais (dias fixos) e veja tudo no calendário.
-            </Text>
-            <TouchableOpacity
-              className="mt-4 px-4 py-2.5 rounded-xl bg-brand-500"
-              onPress={() => router.push("/routine/new-split")}
-            >
-              <Text className="text-white text-sm font-medium">+ Criar split</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            <View className="px-4 mb-4" style={{ gap: 8 }}>
-              {r.splits.map((split) => (
-                <TouchableOpacity
-                  key={split.id}
-                  className="flex-row items-center px-4 py-3 rounded-2xl"
-                  style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
-                  onPress={() => router.push(`/routine/${split.id}`)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 15,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "#ebe7df",
-                      marginRight: 10,
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name={modalityConfig(split.modality).icon as MciName}
-                      size={15}
-                      color="#5c594f"
-                    />
-                  </View>
-                  <Text className="text-ink font-medium text-sm flex-1">{split.name}</Text>
-                  <Text className="text-ink-mute text-xs">
-                    {modalityLabel(split.modality)} · {split.mode === "cyclic" ? "Cíclico" : "Semanal"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
+        <View style={{ flexDirection: desktop ? "row" : "column", gap: 24 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <RoutineCalendar
               monthDate={monthDate}
-              scheduleForDate={r.scheduleForDate}
-              onPrevMonth={() => setMonthDate(new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1))}
-              onNextMonth={() => setMonthDate(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1))}
-              onSelectDate={(iso) => setSelectedDate(iso)}
+              selectedDate={selectedDate}
+              scheduleForDate={routine.scheduleForDate}
+              onPrevMonth={() =>
+                setMonthDate(
+                  new Date(
+                    monthDate.getFullYear(),
+                    monthDate.getMonth() - 1,
+                    1,
+                  ),
+                )
+              }
+              onNextMonth={() =>
+                setMonthDate(
+                  new Date(
+                    monthDate.getFullYear(),
+                    monthDate.getMonth() + 1,
+                    1,
+                  ),
+                )
+              }
+              onSelectDate={setSelectedDate}
             />
-          </>
-        )}
+          </View>
+          <View style={desktop ? { width: 290, gap: 20 } : { gap: 20 }}>
+            <View style={styles.selectedDay}>
+              <Text className="font-sans" style={styles.label}>
+                {selectedDate === todayISO()
+                  ? "HOJE"
+                  : selectedDate.split("-").reverse().join("/")}
+              </Text>
+              {workouts.length > 0 ? (
+                workouts.map((entry) => (
+                  <View key={entry.split.id} style={{ marginTop: 12 }}>
+                    <Text
+                      className="font-display"
+                      style={{ color: colors.ink, fontSize: 24 }}
+                    >
+                      {entry.unit!.label}
+                    </Text>
+                    <Text
+                      className="font-sans"
+                      style={[styles.caption, { marginTop: 6 }]}
+                    >
+                      {(routine.exercisesByUnit[entry.unit!.id] ?? []).length}{" "}
+                      exercícios · {entry.split.name}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text
+                  className="font-sans"
+                  style={{ color: colors.ink, fontSize: 16, marginTop: 12 }}
+                >
+                  Nenhum treino previsto
+                </Text>
+              )}
+              {schedule.override && (
+                <Text
+                  className="font-sans"
+                  style={[
+                    styles.caption,
+                    {
+                      marginTop: 12,
+                      color:
+                        schedule.override === "trained"
+                          ? colors.success
+                          : colors.secondary,
+                    },
+                  ]}
+                >
+                  {schedule.override === "trained"
+                    ? "Treino realizado"
+                    : "Descanso registrado"}
+                </Text>
+              )}
+              <View style={{ marginTop: 18 }}>
+                <ActionButton
+                  label="Ver e editar dia"
+                  variant="secondary"
+                  icon="calendar-edit"
+                  onPress={() => setEditingDate(selectedDate)}
+                />
+              </View>
+            </View>
+            <View style={styles.panel}>
+              <Text className="font-sans" style={styles.label}>
+                SEUS SPLITS
+              </Text>
+              {routine.splits.length === 0 ? (
+                <View style={{ gap: 12, marginTop: 14 }}>
+                  <Text className="font-sans" style={styles.caption}>
+                    Crie um split para organizar os treinos no calendário.
+                  </Text>
+                  <ActionButton
+                    label="Criar split"
+                    icon="plus"
+                    onPress={() => router.push("/routine/new-split")}
+                  />
+                </View>
+              ) : (
+                routine.splits.map((split) => (
+                  <Button
+                    key={split.id}
+                    accessibilityLabel={`Editar split ${split.name}`}
+                    onPress={() => router.push(`/routine/${split.id}`)}
+                    className="flex-col items-start"
+                    style={{
+                      paddingVertical: 16,
+                      alignItems: "flex-start",
+                      borderBottomWidth: 1,
+                      borderColor: colors.line,
+                    }}
+                  >
+                    <Text
+                      className="font-sans"
+                      style={{
+                        color: colors.ink,
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {split.name}
+                    </Text>
+                    <Text
+                      className="font-sans"
+                      style={[styles.caption, { marginTop: 5 }]}
+                    >
+                      {modalityLabel(split.modality)} ·{" "}
+                      {split.mode === "cyclic" ? "Cíclico" : "Semanal"}
+                    </Text>
+                  </Button>
+                ))
+              )}
+            </View>
+          </View>
+        </View>
       </ScrollView>
-
       <DayDetailModal
-        dateISO={selectedDate}
-        schedule={schedule}
-        exercisesByUnit={r.exercisesByUnit}
-        onClose={() => setSelectedDate(null)}
-        onRenameUnit={r.renameUnit}
-        onAddExercise={r.addExercise}
-        onRemoveExercise={r.removeExercise}
-        onUpdateTargets={r.updateExerciseTargets}
-        onReorderExercises={r.reorderExercises}
-        onSetOverride={r.markOverride}
-        onClearOverride={r.clearOverrideMark}
+        dateISO={editingDate}
+        schedule={editingDate ? routine.scheduleForDate(editingDate) : null}
+        exercisesByUnit={routine.exercisesByUnit}
+        onClose={() => setEditingDate(null)}
+        onRenameUnit={routine.renameUnit}
+        onAddExercise={routine.addExercise}
+        onRemoveExercise={routine.removeExercise}
+        onUpdateTargets={routine.updateExerciseTargets}
+        onReorderExercises={routine.reorderExercises}
+        onSetOverride={routine.markOverride}
+        onClearOverride={routine.clearOverrideMark}
       />
     </SafeAreaView>
   );
 }
+const styles = StyleSheet.create({
+  heading: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 22,
+  },
+  title: { fontSize: 32, color: colors.ink, letterSpacing: -1 },
+  label: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+  },
+  caption: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  selectedDay: {
+    backgroundColor: colors.sidebar,
+    borderRadius: 12,
+    padding: 22,
+  },
+  panel: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 22,
+  },
+});

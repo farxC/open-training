@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useState } from "react";
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,13 +44,13 @@ export function SessionFinishModal({
             Finalizar sessão
           </Text>
           <TouchableOpacity onPress={onCancel}>
-            <Text className="text-ink-soft text-base">Cancelar</Text>
+            <Text className="font-sans text-ink-soft text-base">Cancelar</Text>
           </TouchableOpacity>
         </View>
 
         <View className="px-4">
           <Text
-            className="text-ink-mute text-xs mb-2"
+            className="font-sans text-ink-mute text-xs mb-2"
             style={{ fontWeight: "700", letterSpacing: 1 }}
           >
             DURAÇÃO (m:ss)
@@ -58,12 +59,12 @@ export function SessionFinishModal({
             value={durationText}
             onChangeText={setDurationText}
             placeholder="0:00"
-            placeholderTextColor="#bdb8aa"
+            placeholderTextColor={uiColors.faint}
             keyboardType="numbers-and-punctuation"
-            className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-2"
-            style={{ borderWidth: 1, borderColor: "#ddd8ce", fontSize: 18, textAlign: "center" }}
+            className="font-sans bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-2"
+            style={{ borderWidth: 1, borderColor: uiColors.line, fontSize: 18, textAlign: "center" }}
           />
-          <Text className="text-ink-faint text-xs mb-6" style={{ textAlign: "center" }}>
+          <Text className="font-sans text-ink-faint text-xs mb-6" style={{ textAlign: "center" }}>
             Revise ou ajuste o tempo antes de salvar.
           </Text>
 
@@ -72,7 +73,7 @@ export function SessionFinishModal({
             onPress={handleConfirm}
             activeOpacity={0.85}
           >
-            <Text className="text-white text-sm font-semibold">Salvar e finalizar</Text>
+            <Text className="font-sans text-white text-sm font-semibold">Salvar e finalizar</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

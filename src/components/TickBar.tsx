@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
@@ -8,8 +9,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-const INK = "#26241f";
-const TRACK = "#e9e5dc";
+const INK = uiColors.secondary;
+const TRACK = uiColors.sidebar;
 
 interface Props {
   value: number;
@@ -36,8 +37,8 @@ export function TickBar({
   value,
   capacity,
   slots,
-  height = 10,
-  grooveColor = "#ffffff",
+  height = 6,
+  grooveColor = uiColors.white,
   delay = 0,
   cycle,
 }: Props) {

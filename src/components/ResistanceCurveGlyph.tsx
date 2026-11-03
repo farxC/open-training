@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { View } from "react-native";
 import { resistanceCurvePoints } from "@/data/resistanceCurves";
 import type { ResistanceCurve } from "@/types";
@@ -26,7 +27,7 @@ export function ResistanceCurveGlyph({
   variant,
   width = 40,
   height = 15,
-  color = "#26241f",
+  color = uiColors.ink,
 }: Props) {
   const points = resistanceCurvePoints(variant);
   const step = (points.length - 1) / (COLUMNS - 1);

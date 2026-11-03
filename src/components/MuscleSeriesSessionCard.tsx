@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useState } from "react";
 import { Text, View, type LayoutChangeEvent } from "react-native";
 import Animated, {
@@ -12,9 +13,9 @@ import { TickBar } from "@/components/TickBar";
 import { formatMuscleSeriesValue, formatSeriesNumber, muscleGroupLabel } from "@/data/muscleGroups";
 import type { MuscleSeriesRow } from "@/types";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const FAINT = "#928d80";
+const MONO = "JetBrains Mono";
+const INK = uiColors.ink;
+const FAINT = uiColors.muted;
 const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Widest pip pitch we'll use — beyond this the pips start reading as a sparse
@@ -83,13 +84,13 @@ export function MuscleSeriesSessionCard({ data }: Props) {
         }}
       >
         <View style={{ width: 2, height: 12, backgroundColor: INK, borderRadius: 1 }} />
-        <Text style={{ color: FAINT, fontSize: 10, fontWeight: "700", letterSpacing: 1.4, flex: 1 }}>
+        <Text className="font-sans" style={{ color: FAINT, fontSize: 10, fontWeight: "700", letterSpacing: 1.4, flex: 1 }}>
           SÉRIES POR GRUPO
         </Text>
         <Text style={{ color: INK, fontSize: 12, fontFamily: MONO }}>
           {formatSeriesNumber(total, false)}
         </Text>
-        <Text style={{ color: FAINT, fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>
+        <Text className="font-sans" style={{ color: FAINT, fontSize: 9, fontWeight: "700", letterSpacing: 1 }}>
           SÉRIES
         </Text>
       </View>
@@ -112,7 +113,7 @@ export function MuscleSeriesSessionCard({ data }: Props) {
                 gap: 10,
               }}
             >
-              <Text
+              <Text className="font-sans"
                 style={{
                   color: INK,
                   fontSize: 11,

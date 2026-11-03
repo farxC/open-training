@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -120,7 +121,7 @@ export default function EditProgramWeekScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         {isWizard && (
-          <Text className="text-ink-mute text-xs mb-3">
+          <Text className="font-sans text-ink-mute text-xs mb-3">
             Semana {wizardStep! + 1} de {wizardIds!.length} · defina o treino de cada dia
           </Text>
         )}
@@ -131,19 +132,19 @@ export default function EditProgramWeekScreen() {
               className="flex-row items-center self-start px-2.5 py-1 rounded-full mb-4"
               style={{ backgroundColor: "#e3efe8", gap: 5 }}
             >
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#2f9e6e" }} />
-              <Text style={{ color: "#227a54", fontSize: 12, fontWeight: "700" }}>Semana atual do plano</Text>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: uiColors.success }} />
+              <Text className="font-sans" style={{ color: uiColors.success, fontSize: 12, fontWeight: "700" }}>Semana atual do plano</Text>
             </View>
           ) : (
             <View
               className="rounded-2xl px-4 py-3 mb-4"
               style={{ backgroundColor: "#faf1de", borderWidth: 1, borderColor: "#e8d6ac" }}
             >
-              <Text className="text-sm mb-2" style={{ color: "#8a6a1f" }}>
+              <Text className="font-sans text-sm mb-2" style={{ color: "#8a6a1f" }}>
                 Você está editando a Semana {week.week_number}. A semana atual do plano é a Semana {currentWeekNumber}.
               </Text>
               <TouchableOpacity onPress={goToCurrentWeek} className="self-start">
-                <Text style={{ color: "#8a6a1f", fontSize: 13, fontWeight: "700", textDecorationLine: "underline" }}>
+                <Text className="font-sans" style={{ color: "#8a6a1f", fontSize: 13, fontWeight: "700", textDecorationLine: "underline" }}>
                   Ir para a semana atual →
                 </Text>
               </TouchableOpacity>
@@ -155,8 +156,8 @@ export default function EditProgramWeekScreen() {
           value={week.label ?? ""}
           onChangeText={(label) => { r.renameWeek(week.id, label.trim() === "" ? null : label); refresh(); }}
           placeholder="Rótulo (ex.: Semana de recuperação)"
-          placeholderTextColor="#bdb8aa"
-          className="bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
+          placeholderTextColor={uiColors.faint}
+          className="font-sans bg-surface-elevated text-ink rounded-xl px-4 py-3 mb-4"
         />
 
         {units.map((unit) => {
@@ -165,19 +166,19 @@ export default function EditProgramWeekScreen() {
             <View
               key={unit.id}
               className="bg-surface-card rounded-2xl mb-3 p-4"
-              style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+              style={{ borderWidth: 1, borderColor: uiColors.line }}
             >
-              <Text className="text-ink font-semibold text-sm mb-3">{unit.label}</Text>
+              <Text className="font-sans text-ink font-semibold text-sm mb-3">{unit.label}</Text>
               {exercises.map((ex) => {
                 const entry = entryFor(unit.id, ex.exercise_id);
                 const value = mergedTarget(ex, entry);
                 return (
                   <View key={ex.id} className="mb-3">
                     <View className="flex-row items-center justify-between mb-2">
-                      <Text className="text-ink-mute text-xs font-medium flex-1">{ex.exercise_name}</Text>
+                      <Text className="font-sans text-ink-mute text-xs font-medium flex-1">{ex.exercise_name}</Text>
                       {entry && (
                         <TouchableOpacity onPress={() => resetToDefault(entry)}>
-                          <Text className="text-ink-mute text-xs underline">Usar padrão</Text>
+                          <Text className="font-sans text-ink-mute text-xs underline">Usar padrão</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -191,13 +192,13 @@ export default function EditProgramWeekScreen() {
                           suffix="séries"
                           integer
                         />
-                        <Text className="text-ink-faint text-sm">×</Text>
+                        <Text className="font-sans text-ink-faint text-sm">×</Text>
                         <NumField
                           value={value.target_reps}
                           onChange={(n) => handleChange(unit.id, ex, { target_reps: n })}
                           integer
                         />
-                        <Text className="text-ink-faint text-xs">–</Text>
+                        <Text className="font-sans text-ink-faint text-xs">–</Text>
                         <NumField
                           value={value.target_reps_max}
                           onChange={(n) => handleChange(unit.id, ex, { target_reps_max: n })}
@@ -215,7 +216,7 @@ export default function EditProgramWeekScreen() {
                 );
               })}
               {exercises.length === 0 && (
-                <Text className="text-ink-faint text-xs">Sem exercícios definidos neste dia.</Text>
+                <Text className="font-sans text-ink-faint text-xs">Sem exercícios definidos neste dia.</Text>
               )}
             </View>
           );
@@ -227,12 +228,12 @@ export default function EditProgramWeekScreen() {
               className="mt-2 py-2.5 rounded-xl items-center bg-brand-500"
               onPress={goToNextWizardWeek}
             >
-              <Text className="text-white text-sm font-medium">
+              <Text className="font-sans text-white text-sm font-medium">
                 {isLastWizardWeek ? "Concluir e ver split" : "Próxima semana →"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity className="mt-4 py-1 items-center" onPress={close}>
-              <Text className="text-ink-mute text-sm" style={{ textDecorationLine: "underline" }}>
+              <Text className="font-sans text-ink-mute text-sm" style={{ textDecorationLine: "underline" }}>
                 Continuar depois
               </Text>
             </TouchableOpacity>

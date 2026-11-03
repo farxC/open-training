@@ -1,12 +1,14 @@
+import uiColors from "@/theme/palette.json";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AnalyticsFilters } from "@/components/AnalyticsFilters";
 import { AnalyticsMuscleBreakdown } from "@/components/AnalyticsMuscleBreakdown";
 import { AnalyticsRecords } from "@/components/AnalyticsRecords";
 import { AnalyticsSummary } from "@/components/AnalyticsSummary";
 import { AnalyticsTrend } from "@/components/AnalyticsTrend";
+import { IconButton } from "@/components/ui/ActionButton";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { StreakBadge } from "@/components/StreakBadge";
 import { isStrengthCategory, targetKindOf } from "@/data/modalities";
@@ -15,6 +17,9 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { todayISO } from "@/utils/cycle";
 
 export default function ProfileScreen() {
+  const [showProfile, setShowProfile] = useState(false);
+  const { width } = useWindowDimensions();
+  const desktop = width >= 960;
   const {
     modality,
     granularity,
@@ -38,22 +43,23 @@ export default function ProfileScreen() {
     analysisWindow,
     refresh,
   } = useAnalytics();
-  const { profile, refresh: refreshProfile, update: updateProfile } = useUserProfile();
+  const {
+    profile,
+    refresh: refreshProfile,
+    update: updateProfile,
+  } = useUserProfile();
 
   useFocusEffect(
     useCallback(() => {
       refresh();
       refreshProfile();
-    }, [refresh, refreshProfile])
+    }, [refresh, refreshProfile]),
   );
 
   // Two different questions: which summary/records shape to render (metric),
   // and whether muscle-group breakdowns mean anything here (training type).
   const isStrengthMetric = targetKindOf(modality) === "strength";
   const tracksMuscles = isStrengthCategory(modality);
-  // The bar chart only earns its space as per-day bars, or as the long-view
-  // fallback for modalities with no muscle breakdown to show instead.
-  const showChart = granularity === "week" || !tracksMuscles;
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
@@ -61,34 +67,38 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Sits outside the px-4 block on purpose: the cover photo is full-bleed
-            and the avatar overlaps it with a negative margin. ProfileHeader also
-            draws the divider that separates it from the stats below. */}
-        <ProfileHeader profile={profile} onUpdate={updateProfile} />
-
-        <View className="px-4">
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 20,
+            paddingTop: 14,
+            paddingBottom: 20,
+          }}
+        >
           <Text
-            style={{
-              color: "#928d80",
-              fontSize: 10,
-              fontWeight: "700",
-              letterSpacing: 2,
-              marginBottom: 14,
-            }}
+            className="font-display"
+            style={{ color: uiColors.ink, fontSize: 32, letterSpacing: -1 }}
           >
-            DESEMPENHO
+            Evolução
           </Text>
-
+          <IconButton
+            label={showProfile ? "Ocultar perfil" : "Editar perfil"}
+            icon="account-circle-outline"
+            onPress={() => setShowProfile((value) => !value)}
+          />
+        </View>
+        {showProfile && (
+          <ProfileHeader profile={profile} onUpdate={updateProfile} />
+        )}
+        <View style={{ paddingHorizontal: 20 }}>
           <AnalyticsFilters
             modality={modality}
             granularity={granularity}
             onModalityChange={setModality}
             onGranularityChange={setGranularity}
           />
-
-          <View style={{ marginTop: 20 }}>
-            <StreakBadge days={streak} recentDates={streakDates} />
-          </View>
 
           {isStrengthMetric ? (
             <AnalyticsSummary
@@ -108,38 +118,48 @@ export default function ProfileScreen() {
             />
           )}
 
-          {showChart && (
-            <View style={{ marginTop: 28 }}>
-              <AnalyticsTrend
+          <View style={{ marginTop: 20 }}>
+            <StreakBadge days={streak} recentDates={streakDates} />
+          </View>
+          <View
+            style={{
+              flexDirection: desktop ? "row" : "column",
+              gap: 24,
+              marginTop: 26,
+            }}
+          >
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <View>
+                <AnalyticsTrend
+                  modality={modality}
+                  granularity={granularity}
+                  trend={trend}
+                  dayBars={dayBars}
+                  dayBreakdown={dayBreakdown}
+                  todayISO={todayISO()}
+                />
+              </View>
+
+              {tracksMuscles && (
+                <View style={{ marginTop: 28 }}>
+                  <AnalyticsMuscleBreakdown
+                    series={muscleSeries}
+                    frequency={muscleFreq}
+                    caption={analysisWindow.label}
+                    breakdown={muscleBreakdown}
+                  />
+                </View>
+              )}
+            </View>
+            <View style={desktop ? { width: 340 } : {}}>
+              <AnalyticsRecords
                 modality={modality}
-                granularity={granularity}
-                trend={trend}
-                dayBars={dayBars}
-                dayBreakdown={dayBreakdown}
-                todayISO={todayISO()}
+                recordsByGroup={recordsByGroup}
+                hotExercises={hotExercises}
+                distanceRecords={distanceRecords}
+                currentRange={analysisWindow.range}
               />
             </View>
-          )}
-
-          {tracksMuscles && (
-            <View style={{ marginTop: 28 }}>
-              <AnalyticsMuscleBreakdown
-                series={muscleSeries}
-                frequency={muscleFreq}
-                caption={analysisWindow.label}
-                breakdown={muscleBreakdown}
-              />
-            </View>
-          )}
-
-          <View style={{ marginTop: 28 }}>
-            <AnalyticsRecords
-              modality={modality}
-              recordsByGroup={recordsByGroup}
-              hotExercises={hotExercises}
-              distanceRecords={distanceRecords}
-              currentRange={analysisWindow.range}
-            />
           </View>
         </View>
       </ScrollView>

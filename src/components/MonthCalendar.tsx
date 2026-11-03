@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, TouchableOpacity, View } from "react-native";
 import { dateToISO, todayISO } from "@/utils/cycle";
 
@@ -33,20 +34,20 @@ export function MonthCalendar({ monthDate, onMonthChange, selectedDate, onSelect
     <View>
       <View className="flex-row items-center justify-between mb-3">
         <TouchableOpacity onPress={() => onMonthChange(new Date(year, month - 1, 1))} className="px-3 py-2">
-          <Text className="text-ink-mute text-lg">‹</Text>
+          <Text className="font-sans text-ink-mute text-lg">‹</Text>
         </TouchableOpacity>
         <Text className="text-ink font-display font-semibold text-lg">
           {MONTHS[month]} {year}
         </Text>
         <TouchableOpacity onPress={() => onMonthChange(new Date(year, month + 1, 1))} className="px-3 py-2">
-          <Text className="text-ink-mute text-lg">›</Text>
+          <Text className="font-sans text-ink-mute text-lg">›</Text>
         </TouchableOpacity>
       </View>
 
       <View className="flex-row mb-1">
         {WEEKDAYS.map((w) => (
           <View key={w} className="flex-1 items-center">
-            <Text className="text-ink-faint text-xs">{w}</Text>
+            <Text className="font-sans text-ink-faint text-xs">{w}</Text>
           </View>
         ))}
       </View>
@@ -69,14 +70,14 @@ export function MonthCalendar({ monthDate, onMonthChange, selectedDate, onSelect
                   borderRadius: 10,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: isSelected ? "#26241f" : "transparent",
+                  backgroundColor: isSelected ? uiColors.ink : "transparent",
                   borderWidth: isToday && !isSelected ? 1.5 : 0,
-                  borderColor: "#26241f",
+                  borderColor: uiColors.ink,
                 }}
               >
-                <Text
+                <Text className="font-sans"
                   style={{
-                    color: isSelected ? "#ffffff" : "#26241f",
+                    color: isSelected ? uiColors.white : uiColors.ink,
                     fontSize: 14,
                     fontWeight: isToday || isSelected ? "700" : "500",
                   }}

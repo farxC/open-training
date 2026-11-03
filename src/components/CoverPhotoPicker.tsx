@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import * as ImagePicker from "expo-image-picker";
 import { Image, TouchableOpacity } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -26,12 +27,12 @@ export function CoverPhotoPicker({ uri, onChange, height = 140, editable = false
     <TouchableOpacity
       onPress={editable ? handlePick : undefined}
       activeOpacity={editable ? 0.9 : 1}
-      style={{ height, backgroundColor: "#ebe7df", alignItems: "center", justifyContent: "center", overflow: "hidden" }}
+      style={{ height, backgroundColor: uiColors.sidebar, alignItems: "center", justifyContent: "center", overflow: "hidden" }}
     >
       {uri ? (
         <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
       ) : editable ? (
-        <MaterialCommunityIcons name="image-plus" size={28} color="#928d80" />
+        <MaterialCommunityIcons name="image-plus" size={28} color={uiColors.muted} />
       ) : null}
     </TouchableOpacity>
   );

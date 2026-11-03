@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import type { ComponentProps } from "react";
 import { Fragment } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -9,13 +10,13 @@ import type { Modality } from "@/types";
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-const INK = "#26241f";
-const INK_SOFT = "#5c594f";
-const INK_MUTE = "#928d80";
-const HAIRLINE = "#ddd8ce";
-const RULE = "#f0ede6";
+const INK = uiColors.ink;
+const INK_SOFT = uiColors.muted;
+const INK_MUTE = uiColors.muted;
+const HAIRLINE = uiColors.line;
+const RULE = uiColors.sidebar;
 /** Cream fill that makes an unselected chip read as a recessed key on a white card. */
-const RECESSED = "#f4f2ee";
+const RECESSED = uiColors.paper;
 
 /** Horizontal room a chip row needs before it stops fitting; below this we wrap. */
 export const MODALITY_CHIPS_MIN_ROW_WIDTH = 720;
@@ -53,7 +54,7 @@ interface ChipProps {
  */
 function Chip({ modality, active, onPress, block = false, fill = false }: ChipProps) {
   const { pressed, hovered, handlers } = useInteractionState();
-  const color = active ? "#ffffff" : hovered ? INK_SOFT : block ? INK_SOFT : INK_MUTE;
+  const color = active ? uiColors.white : hovered ? INK_SOFT : block ? INK_SOFT : INK_MUTE;
 
   return (
     <Pressable
@@ -70,11 +71,11 @@ function Chip({ modality, active, onPress, block = false, fill = false }: ChipPr
         paddingHorizontal: block && !fill ? 22 : 14,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: active ? INK : hovered ? "#c9c3b7" : HAIRLINE,
+        borderColor: active ? INK : hovered ? uiColors.line : HAIRLINE,
         backgroundColor: active
           ? INK
           : pressed
-            ? "#e7e3da"
+            ? uiColors.sidebar
             : hovered
               ? RULE
               : block
@@ -93,7 +94,7 @@ function Chip({ modality, active, onPress, block = false, fill = false }: ChipPr
       }}
     >
       <MaterialCommunityIcons name={modality.icon as MciName} size={16} color={color} />
-      <Text
+      <Text className="font-sans"
         numberOfLines={1}
         style={{
           fontSize: 13,
@@ -112,7 +113,7 @@ function Chip({ modality, active, onPress, block = false, fill = false }: ChipPr
 function CategoryCaption({ label }: { label: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-      <Text style={{ fontSize: 9, fontWeight: "700", letterSpacing: 1, color: INK_MUTE }}>
+      <Text className="font-sans" style={{ fontSize: 9, fontWeight: "700", letterSpacing: 1, color: INK_MUTE }}>
         {label.toUpperCase()}
       </Text>
       <View style={{ flex: 1, height: 1, backgroundColor: RULE }} />
@@ -174,7 +175,7 @@ export function ModalityChips({ value, onChange, layout = "scroll" }: Props) {
             />
           )}
           <Text
-            className="text-ink-faint"
+            className="font-sans text-ink-faint"
             style={{ fontSize: 9, fontWeight: "700", letterSpacing: 1, marginRight: 2 }}
           >
             {cat.label.toUpperCase()}

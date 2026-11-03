@@ -13,6 +13,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Expo SQLite 15** — synchronous API (`openDatabaseSync`, `getAllSync`, `runSync`); WASM driver on web
 - **NativeWind v4** + **Tailwind CSS v3** for styling (Tailwind v4 is incompatible with NativeWind 4.x)
 - **Victory Native 41** + **@shopify/react-native-skia 1.5** for analytics charts
+- **gluestack UI** — local components in `src/components/ui/`, using core/utils 3.x with NativeWind 4 (no Tailwind 4 migration)
+- **Shared UI palette** — `src/theme/palette.json`, consumed by both Tailwind and inline styles; carmine actions, slate charts, gold records, green progress
+- **Bundled fonts** — Hanken Grotesk, Fraunces and JetBrains Mono through `expo-font`; no runtime font requests to external services
 - **TypeScript** throughout
 
 ## Commands
@@ -82,6 +85,18 @@ All persistence goes through `src/db/`. The singleton (`src/db/client.ts`) opens
 ### Migration timing
 
 `runMigrations()` is called inside a `useEffect` in `app/_layout.tsx`, not at module load time. This avoids Expo Router's SSR pre-render pass from trying to open SQLite in a Node.js context. The app shows a brief `ActivityIndicator` while the DB initializes (migrations are fast — typically <20ms).
+
+### UI layout
+
+`AppShell` surrounds the root stack. At widths of 960px or more it shows the
+animated `DesktopNavigation`; smaller screens use bottom tabs and the workout
+shortcut opens `/session/new`. Keep primary screen content compact, with no
+promotional hero or generic descriptive heading. The history's today strip is
+rendered from the routine or live recorder state, never from sample data.
+
+Use `ActionButton`, `IconButton` and `FilterChip` for shared controls. Gluestack's
+overlay provider is mounted within `SafeAreaProvider`. Theme tokens belong in
+`src/theme/palette.json`; import them rather than hardcoding colors in components.
 
 ### Navigation
 

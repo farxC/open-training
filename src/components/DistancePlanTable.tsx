@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { Modality, RoutineUnit, RoutineUnitExercise } from "@/types";
@@ -58,7 +59,7 @@ export function DistancePlanTable({
   return (
     <View
       className="bg-surface-card rounded-2xl mb-3 overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+      style={{ borderWidth: 1, borderColor: uiColors.line }}
     >
       {units.map((unit, i) => {
         const exercises = exercisesByUnit[unit.id] ?? [];
@@ -71,7 +72,7 @@ export function DistancePlanTable({
         return (
           <View
             key={unit.id}
-            style={i > 0 ? { borderTopWidth: 1, borderTopColor: "#ddd8ce" } : undefined}
+            style={i > 0 ? { borderTopWidth: 1, borderTopColor: uiColors.line } : undefined}
           >
             {/* Compact summary row */}
             <TouchableOpacity
@@ -85,44 +86,44 @@ export function DistancePlanTable({
                   width: 22,
                   height: 22,
                   borderRadius: 11,
-                  backgroundColor: "#26241f",
+                  backgroundColor: uiColors.ink,
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>{i + 1}</Text>
+                <Text className="font-sans" style={{ color: uiColors.white, fontSize: 10, fontWeight: "700" }}>{i + 1}</Text>
               </View>
 
-              <Text className="text-ink text-sm font-medium" style={{ flex: 1 }} numberOfLines={1}>
+              <Text className="font-sans text-ink text-sm font-medium" style={{ flex: 1 }} numberOfLines={1}>
                 {unit.label}
               </Text>
 
               {typeLabel && (
                 <View
                   style={{
-                    backgroundColor: "#ebe7df",
+                    backgroundColor: uiColors.sidebar,
                     paddingHorizontal: 6,
                     paddingVertical: 2,
                     borderRadius: 6,
                     flexShrink: 0,
                   }}
                 >
-                  <Text style={{ color: "#5c594f", fontSize: 10, fontWeight: "600" }}>
+                  <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "600" }}>
                     {typeLabel}
                   </Text>
                 </View>
               )}
 
               <Text
-                className="text-ink-mute text-xs"
+                className="font-sans text-ink-mute text-xs"
                 numberOfLines={1}
                 style={{ maxWidth: 150, flexShrink: 1 }}
               >
                 {summary}
               </Text>
 
-              <Text className="text-ink-faint text-xs" style={{ flexShrink: 0 }}>
+              <Text className="font-sans text-ink-faint text-xs" style={{ flexShrink: 0 }}>
                 {expanded ? "▲" : "▼"}
               </Text>
             </TouchableOpacity>
@@ -131,7 +132,7 @@ export function DistancePlanTable({
             {expanded && (
               <View
                 className="px-4 pb-4"
-                style={{ borderTopWidth: 1, borderTopColor: "#ebe7df" }}
+                style={{ borderTopWidth: 1, borderTopColor: uiColors.sidebar }}
               >
                 {/* Label + controls */}
                 <View className="flex-row items-center mt-3 mb-3" style={{ gap: 8 }}>
@@ -139,17 +140,17 @@ export function DistancePlanTable({
                     value={unit.label}
                     onChangeText={(label) => onRename(unit.id, label)}
                     placeholder="Nome do treino"
-                    placeholderTextColor="#bdb8aa"
-                    className="flex-1 text-ink text-sm bg-surface-elevated rounded-lg px-3 py-2"
+                    placeholderTextColor={uiColors.faint}
+                    className="font-sans flex-1 text-ink text-sm bg-surface-elevated rounded-lg px-3 py-2"
                   />
                   {onMoveUp && i > 0 && (
                     <TouchableOpacity onPress={() => onMoveUp(unit.id)} className="px-1">
-                      <Text className="text-ink-mute text-base">↑</Text>
+                      <Text className="font-sans text-ink-mute text-base">↑</Text>
                     </TouchableOpacity>
                   )}
                   {onMoveDown && i < units.length - 1 && (
                     <TouchableOpacity onPress={() => onMoveDown(unit.id)} className="px-1">
-                      <Text className="text-ink-mute text-base">↓</Text>
+                      <Text className="font-sans text-ink-mute text-base">↓</Text>
                     </TouchableOpacity>
                   )}
                   {onDelete && (

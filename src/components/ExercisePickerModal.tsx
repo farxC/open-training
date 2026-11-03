@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -241,7 +242,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         >
           <Animated.View
-            style={{ flex: 1, backgroundColor: "#26241f", opacity: backdropOpacity.interpolate({
+            style={{ flex: 1, backgroundColor: uiColors.ink, opacity: backdropOpacity.interpolate({
               inputRange: [0, 1],
               outputRange: [0, 0.45],
             }) }}
@@ -252,7 +253,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
           style={{
             transform: [{ translateY: translateY.interpolate({ inputRange: [0, 48], outputRange: [0, 420] }) }],
             opacity: backdropOpacity.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
-            backgroundColor: "#f4f2ee",
+            backgroundColor: uiColors.paper,
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             maxHeight: "88%",
@@ -266,7 +267,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
         >
           <SafeAreaView edges={["bottom"]} style={{ flex: 1 }}>
             <View style={{ alignItems: "center", paddingTop: 10, paddingBottom: 2 }}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: "#ddd8ce" }} />
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: uiColors.line }} />
             </View>
 
             <View className="flex-row items-center px-4 pt-3 pb-2">
@@ -275,7 +276,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                   {editingExercise ? "Editar grupos musculares" : creating ? "Novo exercício" : "Selecionar exercícios"}
                 </Text>
                 {!creating && !editingExercise && (
-                  <Text className="text-ink-mute text-xs mt-0.5">
+                  <Text className="font-sans text-ink-mute text-xs mt-0.5">
                     Toque para escolher — pode selecionar vários
                   </Text>
                 )}
@@ -285,13 +286,13 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                 hitSlop={10}
                 style={{ padding: 4 }}
               >
-                <Text className="text-ink-soft text-base">{editingExercise || creating ? "Voltar" : "Fechar"}</Text>
+                <Text className="font-sans text-ink-soft text-base">{editingExercise || creating ? "Voltar" : "Fechar"}</Text>
               </TouchableOpacity>
             </View>
 
             {editingExercise ? (
               <View className="mx-4 flex-1">
-                <Text className="text-ink text-sm font-medium mb-3">{editingExercise.name}</Text>
+                <Text className="font-sans text-ink text-sm font-medium mb-3">{editingExercise.name}</Text>
                 <MuscleGroupEditor value={editMuscles} onChange={setEditMuscles} />
                 <TouchableOpacity
                   className="py-3 rounded-xl items-center bg-brand-500"
@@ -299,15 +300,15 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                   disabled={editMuscles.size === 0}
                   onPress={handleSaveEdit}
                 >
-                  <Text className="text-white font-semibold text-sm">Salvar</Text>
+                  <Text className="font-sans text-white font-semibold text-sm">Salvar</Text>
                 </TouchableOpacity>
               </View>
             ) : creating ? (
               <View className="mx-4 flex-1">
                 <TextInput
-                  className="bg-surface-card text-ink rounded-xl px-4 py-3 mb-3"
+                  className="font-sans bg-surface-card text-ink rounded-xl px-4 py-3 mb-3"
                   placeholder="Nome do exercício"
-                  placeholderTextColor="#bdb8aa"
+                  placeholderTextColor={uiColors.faint}
                   value={name}
                   onChangeText={setName}
                   autoFocus
@@ -315,13 +316,13 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
 
                 {!modality && (
                   <>
-                    <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+                    <Text className="font-sans text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                       MODALIDADE
                     </Text>
                     {MODALITY_CATEGORIES.map((cat) => (
                       <View key={cat.key} className="mb-3">
                         <Text
-                          className="text-ink-faint mb-1.5"
+                          className="font-sans text-ink-faint mb-1.5"
                           style={{ fontSize: 10, letterSpacing: 1, fontWeight: "700" }}
                         >
                           {cat.label.toUpperCase()}
@@ -337,12 +338,12 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                                   flexGrow: 1,
                                   flexBasis: 90,
                                   borderWidth: 1,
-                                  borderColor: on ? "#26241f" : "#ddd8ce",
-                                  backgroundColor: on ? "#26241f" : "transparent",
+                                  borderColor: on ? uiColors.ink : uiColors.line,
+                                  backgroundColor: on ? uiColors.ink : "transparent",
                                 }}
                                 onPress={() => setFormModality(m.key)}
                               >
-                                <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 13, fontWeight: "600" }}>
+                                <Text className="font-sans" style={{ color: on ? uiColors.white : uiColors.muted, fontSize: 13, fontWeight: "600" }}>
                                   {m.label}
                                 </Text>
                               </TouchableOpacity>
@@ -356,7 +357,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
 
                 {isStrengthCategory(effModality) && (
                   <>
-                    <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+                    <Text className="font-sans text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
                       GRUPO MUSCULAR
                     </Text>
                     <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
@@ -368,12 +369,12 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                             className="px-3 py-1.5 rounded-full"
                             style={{
                               borderWidth: 1,
-                              borderColor: on ? "#26241f" : "#ddd8ce",
-                              backgroundColor: on ? "#26241f" : "transparent",
+                              borderColor: on ? uiColors.ink : uiColors.line,
+                              backgroundColor: on ? uiColors.ink : "transparent",
                             }}
                             onPress={() => toggleFormMuscle(mg)}
                           >
-                            <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+                            <Text className="font-sans" style={{ color: on ? uiColors.white : uiColors.muted, fontSize: 12, fontWeight: "600" }}>
                               {MUSCLE_LABELS[mg]}
                             </Text>
                           </TouchableOpacity>
@@ -383,7 +384,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                   </>
                 )}
 
-                <Text className="text-ink-faint text-xs mb-4">
+                <Text className="font-sans text-ink-faint text-xs mb-4">
                   Modalidade: {modalityLabel(effModality)}
                 </Text>
 
@@ -393,16 +394,16 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                   disabled={!name.trim() || (isStrengthCategory(effModality) && formMuscles.size === 0)}
                   onPress={handleCreate}
                 >
-                  <Text className="text-white font-semibold text-sm">Criar e selecionar</Text>
+                  <Text className="font-sans text-white font-semibold text-sm">Criar e selecionar</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
                 <View className="mx-4 mb-3 flex-row" style={{ gap: 8 }}>
                   <TextInput
-                    className="bg-surface-card text-ink rounded-xl px-4 py-3 flex-1"
+                    className="font-sans bg-surface-card text-ink rounded-xl px-4 py-3 flex-1"
                     placeholder="Buscar…"
-                    placeholderTextColor="#bdb8aa"
+                    placeholderTextColor={uiColors.faint}
                     value={search}
                     onChangeText={setSearch}
                   />
@@ -410,7 +411,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                     className="rounded-xl items-center justify-center px-4 bg-brand-500"
                     onPress={() => setCreating(true)}
                   >
-                    <Text className="text-white text-sm font-medium">+ Novo</Text>
+                    <Text className="font-sans text-white text-sm font-medium">+ Novo</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -426,7 +427,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                   renderItem={({ item }) => {
                     if (item.kind === "header") {
                       return (
-                        <Text className="text-ink-mute text-xs font-semibold uppercase tracking-wider px-4 pt-4 pb-1">
+                        <Text className="font-sans text-ink-mute text-xs font-semibold uppercase tracking-wider px-4 pt-4 pb-1">
                           {item.label}
                         </Text>
                       );
@@ -441,8 +442,8 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                           style={{
                             gap: 12,
                             borderBottomWidth: item.expanded ? 0 : 1,
-                            borderBottomColor: "#ddd8ce",
-                            backgroundColor: selected ? "#ebe7df" : "transparent",
+                            borderBottomColor: uiColors.line,
+                            backgroundColor: selected ? uiColors.sidebar : "transparent",
                           }}
                           onPress={() => toggleExercise(defaultVariation)}
                           activeOpacity={0.6}
@@ -453,17 +454,17 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                               height: 22,
                               borderRadius: 11,
                               borderWidth: selected ? 0 : 1.5,
-                              borderColor: "#c9c3b6",
-                              backgroundColor: selected ? "#26241f" : "transparent",
+                              borderColor: uiColors.line,
+                              backgroundColor: selected ? uiColors.ink : "transparent",
                               alignItems: "center",
                               justifyContent: "center",
                             }}
                           >
-                            {selected && <MaterialCommunityIcons name="check" size={13} color="#ffffff" />}
+                            {selected && <MaterialCommunityIcons name="check" size={13} color={uiColors.white} />}
                           </View>
                           <View className="flex-1">
-                            <Text className="text-ink text-sm">{item.root.name}</Text>
-                            <Text className="text-ink-mute text-xs">{defaultVariation.name}</Text>
+                            <Text className="font-sans text-ink text-sm">{item.root.name}</Text>
+                            <Text className="font-sans text-ink-mute text-xs">{defaultVariation.name}</Text>
                           </View>
                           <TouchableOpacity
                             onPress={(e) => {
@@ -476,7 +477,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                             <MaterialCommunityIcons
                               name={item.expanded ? "chevron-up" : "chevron-down"}
                               size={20}
-                              color="#928d80"
+                              color={uiColors.muted}
                             />
                           </TouchableOpacity>
                         </TouchableOpacity>
@@ -490,8 +491,8 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                           gap: 12,
                           paddingLeft: item.indent ? 32 : 16,
                           borderBottomWidth: 1,
-                          borderBottomColor: "#ddd8ce",
-                          backgroundColor: selected ? "#ebe7df" : "transparent",
+                          borderBottomColor: uiColors.line,
+                          backgroundColor: selected ? uiColors.sidebar : "transparent",
                         }}
                         onPress={() => toggleExercise(item.exercise)}
                         activeOpacity={0.6}
@@ -502,17 +503,17 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                             height: 22,
                             borderRadius: 11,
                             borderWidth: selected ? 0 : 1.5,
-                            borderColor: "#c9c3b6",
-                            backgroundColor: selected ? "#26241f" : "transparent",
+                            borderColor: uiColors.line,
+                            backgroundColor: selected ? uiColors.ink : "transparent",
                             alignItems: "center",
                             justifyContent: "center",
                           }}
                         >
-                          {selected && <MaterialCommunityIcons name="check" size={13} color="#ffffff" />}
+                          {selected && <MaterialCommunityIcons name="check" size={13} color={uiColors.white} />}
                         </View>
                         <View className="flex-1">
-                          <Text className="text-ink text-sm">{item.exercise.name}</Text>
-                          <Text className="text-ink-mute text-xs capitalize">
+                          <Text className="font-sans text-ink text-sm">{item.exercise.name}</Text>
+                          <Text className="font-sans text-ink-mute text-xs capitalize">
                             {[
                               item.exercise.muscle_groups.map((g) => muscleGroupLabel(g.muscle_group)).join(", "),
                               item.exercise.equipment,
@@ -531,7 +532,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                             hitSlop={10}
                             style={{ padding: 6 }}
                           >
-                            <MaterialCommunityIcons name="pencil-outline" size={18} color="#928d80" />
+                            <MaterialCommunityIcons name="pencil-outline" size={18} color={uiColors.muted} />
                           </TouchableOpacity>
                         )}
                       </TouchableOpacity>
@@ -547,8 +548,8 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                       paddingTop: 10,
                       paddingBottom: 14,
                       borderTopWidth: 1,
-                      borderTopColor: "#ddd8ce",
-                      backgroundColor: "#f4f2ee",
+                      borderTopColor: uiColors.line,
+                      backgroundColor: uiColors.paper,
                     }}
                   >
                     <TouchableOpacity
@@ -556,7 +557,7 @@ export function ExercisePickerModal({ visible, onConfirm, onClose, modality }: P
                       onPress={handleConfirm}
                       activeOpacity={0.85}
                     >
-                      <Text className="text-white font-semibold text-sm">
+                      <Text className="font-sans text-white font-semibold text-sm">
                         Adicionar {selectedIds.size} exercício{selectedIds.size > 1 ? "s" : ""}
                       </Text>
                     </TouchableOpacity>

@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, View } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import { resistanceCurvePoints } from "@/data/resistanceCurves";
@@ -15,14 +16,14 @@ export function ResistanceCurveChartImpl({ variant }: Props) {
   return (
     <View className="h-40 bg-surface-card rounded-2xl p-3">
       <View className="flex-row justify-between mb-2">
-        <Text className="text-ink-mute text-xs uppercase tracking-wider">Amplitude</Text>
-        <Text className="text-ink-mute text-xs uppercase tracking-wider">Resistência</Text>
+        <Text className="font-sans text-ink-mute text-xs uppercase tracking-wider">Amplitude</Text>
+        <Text className="font-sans text-ink-mute text-xs uppercase tracking-wider">Resistência</Text>
       </View>
       <CartesianChart data={chartData} xKey="x" yKeys={["y"]} domain={{ y: [0, 1] }}>
         {({ points }) => (
           <Line
             points={points.y}
-            color="#26241f"
+            color={uiColors.ink}
             strokeWidth={2}
             curveType="natural"
             animate={{ type: "timing", duration: 300 }}

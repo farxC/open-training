@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import Animated, {
@@ -59,12 +60,12 @@ export function PeriodTabs<T extends string>({ options, value, onChange }: Props
                 paddingVertical: 9,
               }}
             >
-              <Text
+              <Text className="font-sans"
                 numberOfLines={1}
                 style={{
                   fontSize: 13,
                   fontWeight: active ? "700" : "500",
-                  color: active ? "#26241f" : "#928d80",
+                  color: active ? uiColors.ink : uiColors.muted,
                   letterSpacing: -0.1,
                 }}
               >
@@ -76,7 +77,7 @@ export function PeriodTabs<T extends string>({ options, value, onChange }: Props
       </View>
 
       {/* Hairline baseline + sliding ink indicator */}
-      <View style={{ height: 2, backgroundColor: "#ebe7df", borderRadius: 1, position: "relative" }}>
+      <View style={{ height: 2, backgroundColor: uiColors.sidebar, borderRadius: 1, position: "relative" }}>
         {rowW > 0 && (
           <Animated.View
             pointerEvents="none"
@@ -86,7 +87,7 @@ export function PeriodTabs<T extends string>({ options, value, onChange }: Props
                 top: 0,
                 bottom: 0,
                 left: 0,
-                backgroundColor: "#26241f",
+                backgroundColor: uiColors.ink,
                 borderRadius: 1,
               },
               indicatorStyle,

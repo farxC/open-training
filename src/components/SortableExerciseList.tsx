@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useCallback, useState } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { View } from "react-native";
@@ -85,7 +86,7 @@ function Row<T>({
 
   const dragHandleIcon = (
     <View style={{ padding: 8 }}>
-      <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color="#928d80" />
+      <MaterialCommunityIcons name="drag-horizontal-variant" size={20} color={uiColors.muted} />
     </View>
   );
 

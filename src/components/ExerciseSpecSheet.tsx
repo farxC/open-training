@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, View } from "react-native";
 import { ResistanceCurveGlyph } from "@/components/ResistanceCurveGlyph";
 import { EQUIPMENT_LABELS, TYPE_LABELS } from "@/data/exerciseMeta";
@@ -6,7 +7,7 @@ import { MUSCLE_LABELS } from "@/data/muscleGroups";
 import { isStrengthCategory, modalityLabel } from "@/data/modalities";
 import type { Exercise } from "@/types";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
+const MONO = "JetBrains Mono";
 const HAIRLINE = "#efece5";
 
 interface Props {
@@ -40,7 +41,7 @@ export function ExerciseSpecSheet({ exercise }: Props) {
   return (
     <View
       className="bg-surface-card rounded-xl overflow-hidden"
-      style={{ borderWidth: 1, borderColor: "#e7e4dc" }}
+      style={{ borderWidth: 1, borderColor: uiColors.line }}
     >
       {pairs.map((pair, rowIndex) => (
         <View key={rowIndex} className="flex-row">
@@ -75,7 +76,7 @@ export function ExerciseSpecSheet({ exercise }: Props) {
           paddingVertical: 10,
           borderTopWidth: pairs.length > 0 ? 1 : 0,
           borderTopColor: HAIRLINE,
-          backgroundColor: "#fbfaf7",
+          backgroundColor: uiColors.paper,
         }}
       >
         {exercise.muscle_groups.length > 0 ? (
@@ -89,9 +90,9 @@ export function ExerciseSpecSheet({ exercise }: Props) {
             ))}
           </View>
         ) : null}
-        <Text
+        <Text className="font-sans"
           style={{
-            color: "#a8a293",
+            color: uiColors.faint,
             fontSize: 9.5,
             fontWeight: "700",
             letterSpacing: 0.8,
@@ -131,8 +132,8 @@ function SpecCell({
       }}
     >
       <View className="flex-row items-center" style={{ gap: 6 }}>
-        <Text
-          style={{ color: "#a8a293", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
+        <Text className="font-sans"
+          style={{ color: uiColors.faint, fontSize: 8.5, fontWeight: "700", letterSpacing: 0.8, flex: 1 }}
           numberOfLines={1}
         >
           {row.label.toUpperCase()}
@@ -142,14 +143,14 @@ function SpecCell({
             variant={curve}
             width={32}
             height={12}
-            color={row.isDefault ? "#bdb8aa" : "#26241f"}
+            color={row.isDefault ? uiColors.faint : uiColors.ink}
           />
         ) : null}
       </View>
-      <Text
+      <Text className="font-sans"
         style={{
           // Defaults recede; anything deliberate stays in ink.
-          color: row.isDefault ? "#a8a293" : "#26241f",
+          color: row.isDefault ? uiColors.faint : uiColors.ink,
           fontSize: 12,
           fontWeight: row.isDefault ? "500" : "600",
           marginTop: 3,
@@ -176,17 +177,17 @@ function MuscleTag({ label, factor }: { label: string; factor: number }) {
         paddingVertical: 3,
         gap: 5,
         borderWidth: 1,
-        borderColor: "#e7e4dc",
-        backgroundColor: "#ffffff",
+        borderColor: uiColors.line,
+        backgroundColor: uiColors.white,
       }}
     >
-      <Text style={{ color: "#5c594f", fontSize: 10.5, fontWeight: "600" }}>{label}</Text>
+      <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10.5, fontWeight: "600" }}>{label}</Text>
       {half ? (
         <View
           className="rounded-full"
-          style={{ paddingHorizontal: 4, paddingVertical: 0.5, backgroundColor: "#ebe7df" }}
+          style={{ paddingHorizontal: 4, paddingVertical: 0.5, backgroundColor: uiColors.sidebar }}
         >
-          <Text style={{ color: "#928d80", fontSize: 8.5, fontWeight: "700", fontFamily: MONO }}>
+          <Text style={{ color: uiColors.muted, fontSize: 8.5, fontWeight: "700", fontFamily: MONO }}>
             ½×
           </Text>
         </View>

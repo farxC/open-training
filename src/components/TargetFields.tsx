@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import {
@@ -38,12 +39,12 @@ export function NumField({
           if (!Number.isNaN(n)) onChange(n);
         }}
         placeholder="—"
-        placeholderTextColor="#bdb8aa"
+        placeholderTextColor={uiColors.faint}
         keyboardType={integer ? "number-pad" : "decimal-pad"}
-        className="text-ink text-sm text-center"
+        className="font-sans text-ink text-sm text-center"
         style={{ width: 34, flexShrink: 1, minWidth: 0 }}
       />
-      {suffix ? <Text className="text-ink-mute text-xs">{suffix}</Text> : null}
+      {suffix ? <Text className="font-sans text-ink-mute text-xs">{suffix}</Text> : null}
     </View>
   );
 }
@@ -70,11 +71,11 @@ export function TimeField({
           onChange(parseClock(v));
         }}
         placeholder={placeholder}
-        placeholderTextColor="#bdb8aa"
-        className="text-ink text-sm text-center"
+        placeholderTextColor={uiColors.faint}
+        className="font-sans text-ink text-sm text-center"
         style={{ width: 44, flexShrink: 1, minWidth: 0 }}
       />
-      {suffix ? <Text className="text-ink-mute text-xs">{suffix}</Text> : null}
+      {suffix ? <Text className="font-sans text-ink-mute text-xs">{suffix}</Text> : null}
     </View>
   );
 }
@@ -121,12 +122,12 @@ export function EffortField({
           onChange(parseEffort(v, modality));
         }}
         placeholder={display.effortPlaceholder}
-        placeholderTextColor="#bdb8aa"
+        placeholderTextColor={uiColors.faint}
         keyboardType={display.effortMode === "speed" ? "decimal-pad" : "default"}
-        className="text-ink text-sm text-center"
+        className="font-sans text-ink text-sm text-center"
         style={{ width: 44, flexShrink: 1, minWidth: 0 }}
       />
-      <Text className="text-ink-mute text-xs">{display.effortSuffix}</Text>
+      <Text className="font-sans text-ink-mute text-xs">{display.effortSuffix}</Text>
     </View>
   );
 }
@@ -171,23 +172,23 @@ export function DistanceTargetFields({
       {/* Run type toggle */}
       <View
         className="flex-row mb-2 rounded-lg overflow-hidden self-start"
-        style={{ borderWidth: 1, borderColor: "#ddd8ce" }}
+        style={{ borderWidth: 1, borderColor: uiColors.line }}
       >
         <TouchableOpacity
           className="px-3 py-1"
-          style={{ backgroundColor: isInterval ? "transparent" : "#26241f" }}
+          style={{ backgroundColor: isInterval ? "transparent" : uiColors.ink }}
           onPress={() => onChange({ run_type: "continuous" })}
         >
-          <Text style={{ color: isInterval ? "#928d80" : "#ffffff", fontSize: 12, fontWeight: "600" }}>
+          <Text className="font-sans" style={{ color: isInterval ? uiColors.muted : uiColors.white, fontSize: 12, fontWeight: "600" }}>
             Contínuo
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           className="px-3 py-1"
-          style={{ backgroundColor: isInterval ? "#26241f" : "transparent" }}
+          style={{ backgroundColor: isInterval ? uiColors.ink : "transparent" }}
           onPress={() => onChange({ run_type: "interval" })}
         >
-          <Text style={{ color: isInterval ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+          <Text className="font-sans" style={{ color: isInterval ? uiColors.white : uiColors.muted, fontSize: 12, fontWeight: "600" }}>
             Intervalado
           </Text>
         </TouchableOpacity>
@@ -207,7 +208,7 @@ export function DistanceTargetFields({
               modality={modality}
               onChange={(km) => onChange({ interval_work_km: km })}
             />
-            <Text className="text-ink-faint text-xs">ou</Text>
+            <Text className="font-sans text-ink-faint text-xs">ou</Text>
             <TimeField
               value={value.interval_work_sec}
               onChange={(s) => onChange({ interval_work_sec: s })}
@@ -227,7 +228,7 @@ export function DistanceTargetFields({
             />
           </View>
           {intervalSummary(value, modality) && (
-            <Text className="text-ink-mute text-xs" style={{ flexWrap: "wrap" }}>
+            <Text className="font-sans text-ink-mute text-xs" style={{ flexWrap: "wrap" }}>
               {intervalSummary(value, modality)}
             </Text>
           )}
@@ -246,7 +247,7 @@ export function DistanceTargetFields({
               onChange={(s) => onChange({ target_pace_sec: s })}
             />
           </View>
-          {totalSec != null && <Text className="text-ink-mute text-xs">≈ {formatClock(totalSec)} total</Text>}
+          {totalSec != null && <Text className="font-sans text-ink-mute text-xs">≈ {formatClock(totalSec)} total</Text>}
         </View>
       )}
     </View>

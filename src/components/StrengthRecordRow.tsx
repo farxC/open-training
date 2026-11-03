@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -12,7 +13,7 @@ import { Stamp } from "@/components/RecordStamp";
 import type { StrengthRecord } from "@/types";
 import { daysSinceRecord, formatAgo, medalFor, type StampTone } from "@/utils/recordsGamification";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
+const MONO = "JetBrains Mono";
 /** Past this the stagger stops paying for itself and just delays the tail. */
 const MAX_STAGGERED = 6;
 
@@ -73,7 +74,7 @@ export function StrengthRecordRow({
         activeOpacity={0.7}
         accessibilityRole="button"
         className="rounded-xl mb-2 flex-row"
-        style={{ backgroundColor: isChampion ? "#fffdf6" : "#ffffff" }}
+        style={{ backgroundColor: isChampion ? "#fffdf6" : uiColors.white }}
       >
         {/* Podium metal bleeds into the card edge — the ranking stays readable
             down the left gutter even when the labels blur past. The card can't
@@ -82,7 +83,7 @@ export function StrengthRecordRow({
         <View
           style={{
             width: 3,
-            backgroundColor: medal?.ring ?? "#ebe7df",
+            backgroundColor: medal?.ring ?? uiColors.sidebar,
             borderTopLeftRadius: 12,
             borderBottomLeftRadius: 12,
           }}
@@ -95,14 +96,14 @@ export function StrengthRecordRow({
               width: 26,
               height: 26,
               borderRadius: 13,
-              backgroundColor: medal?.bg ?? "#f4f2ee",
+              backgroundColor: medal?.bg ?? uiColors.paper,
               borderWidth: medal ? 1.5 : 1,
-              borderColor: medal?.ring ?? "#e7e4dc",
+              borderColor: medal?.ring ?? uiColors.line,
             }}
           >
             <Text
               style={{
-                color: medal?.ink ?? "#a8a293",
+                color: medal?.ink ?? uiColors.faint,
                 fontSize: 11,
                 fontWeight: "700",
                 fontFamily: MONO,
@@ -119,9 +120,9 @@ export function StrengthRecordRow({
             {/* Raised too: the load sits on the line *after* this one, so with
                 equal stacking the "kg" would paint straight over the bubble. */}
             <View className="flex-row items-center" style={[{ gap: 5 }, raised]}>
-              <Text
+              <Text className="font-sans"
                 style={{
-                  color: "#26241f",
+                  color: uiColors.ink,
                   fontSize: 11,
                   fontWeight: "700",
                   letterSpacing: 0.9,
@@ -142,13 +143,13 @@ export function StrengthRecordRow({
             </View>
 
             <View className="flex-row items-baseline" style={{ gap: 4 }}>
-              <Text className="text-ink-mute text-xs" numberOfLines={1} style={{ flex: 1 }}>
+              <Text className="font-sans text-ink-mute text-xs" numberOfLines={1} style={{ flex: 1 }}>
                 {record.reps_at_max} {record.reps_at_max === 1 ? "rep" : "reps"}
                 {days != null ? ` · ${formatAgo(days)}` : ""}
               </Text>
               <Text
                 style={{
-                  color: "#26241f",
+                  color: uiColors.ink,
                   fontSize: isChampion ? 21 : 18,
                   fontWeight: "700",
                   fontFamily: MONO,
@@ -157,13 +158,13 @@ export function StrengthRecordRow({
               >
                 {record.max_weight_kg}
               </Text>
-              <Text className="text-ink-mute" style={{ fontSize: 10 }}>
+              <Text className="font-sans text-ink-mute" style={{ fontSize: 10 }}>
                 kg
               </Text>
             </View>
           </View>
 
-          <MaterialCommunityIcons name="chevron-right" size={18} color="#cfcabf" />
+          <MaterialCommunityIcons name="chevron-right" size={18} color={uiColors.line} />
         </View>
       </TouchableOpacity>
     </Animated.View>

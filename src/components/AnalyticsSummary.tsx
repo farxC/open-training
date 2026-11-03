@@ -1,6 +1,7 @@
+import uiColors from "@/theme/palette.json";
 import { Text, View } from "react-native";
 import { ComparisonTile } from "@/components/ComparisonTile";
-import { SectionHeader } from "@/components/SectionHeader";
+
 import { distanceDisplay, formatDistanceValue, formatEffort, modalityConfig } from "@/data/modalities";
 import type { DistanceSummary, Modality, StrengthSummary } from "@/types";
 import { delta } from "@/utils/analyticsAgg";
@@ -16,16 +17,15 @@ type Props = { comparisonLabel: string } & (
  *  says more than a generic "vs período anterior" once the window is rolling. */
 export function AnalyticsSummary(props: Props) {
   return (
-    <View>
-      <SectionHeader title="Resumo" />
-      <View className="flex-row" style={{ gap: 8 }}>
+    <View style={{ backgroundColor: uiColors.white, borderTopWidth: 1, borderBottomWidth: 1, borderColor: uiColors.line, padding: 20 }}>
+      <View className="flex-row" style={{ gap: 20 }}>
         {props.kind === "strength" ? (
           <StrengthTiles modality={props.modality} current={props.current} previous={props.previous} />
         ) : (
           <DistanceTiles modality={props.modality} current={props.current} previous={props.previous} />
         )}
       </View>
-      <Text className="text-ink-mute" style={{ fontSize: 10, marginTop: 6 }}>
+      <Text className="font-sans text-ink-mute" style={{ fontSize: 12, marginTop: 12 }}>
         {props.comparisonLabel}
       </Text>
     </View>

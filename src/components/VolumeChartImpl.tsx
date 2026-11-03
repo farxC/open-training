@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, View } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 
@@ -15,7 +16,7 @@ export function VolumeChartImpl({ data }: Props) {
   if (data.length === 0) {
     return (
       <View className="h-48 items-center justify-center bg-surface-card rounded-2xl">
-        <Text className="text-ink-mute text-sm">No data yet</Text>
+        <Text className="font-sans text-ink-mute text-sm">Sem dados ainda</Text>
       </View>
     );
   }
@@ -28,14 +29,14 @@ export function VolumeChartImpl({ data }: Props) {
 
   return (
     <View className="h-48 bg-surface-card rounded-2xl p-3">
-      <Text className="text-ink-mute text-xs mb-2 uppercase tracking-wider">
+      <Text className="font-sans text-ink-mute text-xs mb-2 uppercase tracking-wider">
         Volume per week (kg)
       </Text>
       <CartesianChart data={chartData} xKey="x" yKeys={["volume_kg"]}>
         {({ points }) => (
           <Line
             points={points.volume_kg}
-            color="#26241f"
+            color={uiColors.secondary}
             strokeWidth={2}
             animate={{ type: "timing", duration: 400 }}
           />

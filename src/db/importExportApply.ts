@@ -20,7 +20,6 @@ import type {
   ExportedExercise,
   ExportedExerciseMuscleGroup,
   ExportedSession,
-  ExportedSessionExercise,
   ExportedSplit,
   ExportedProgram,
   ExportPayload,

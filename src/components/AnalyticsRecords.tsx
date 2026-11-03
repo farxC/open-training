@@ -87,7 +87,7 @@ export function AnalyticsRecords({
 
   return (
     <View>
-      <SectionHeader title="Records" />
+      <SectionHeader title="Recordes" />
       {isStrength ? (
         <RecordsByMuscleGroup
           groups={recordsByGroup}
@@ -109,7 +109,7 @@ export function AnalyticsRecords({
               />
             ))
           ) : (
-            <Text className="text-ink-mute text-xs">Nenhum record ainda</Text>
+            <Text className="font-sans text-ink-mute text-xs">Nenhum record ainda</Text>
           );
         })()
       )}

@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { Text, TouchableOpacity, View } from "react-native";
 import { MUSCLE_LABELS, MUSCLE_OPTIONS } from "@/data/muscleGroups";
 import { ModalityToggle } from "@/components/ModalityToggle";
@@ -33,7 +34,7 @@ export function MuscleGroupEditor({ value, onChange, title = "Grupo muscular" }:
 
   return (
     <View>
-      <Text className="text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
+      <Text className="font-sans text-ink-mute text-xs mb-2" style={{ letterSpacing: 1, fontWeight: "700" }}>
         {title.toUpperCase()}
       </Text>
       <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
@@ -45,12 +46,12 @@ export function MuscleGroupEditor({ value, onChange, title = "Grupo muscular" }:
                 className="px-3 py-1.5 rounded-full"
                 style={{
                   borderWidth: 1,
-                  borderColor: on ? "#26241f" : "#ddd8ce",
-                  backgroundColor: on ? "#26241f" : "transparent",
+                  borderColor: on ? uiColors.ink : uiColors.line,
+                  backgroundColor: on ? uiColors.ink : "transparent",
                 }}
                 onPress={() => toggle(mg)}
               >
-                <Text style={{ color: on ? "#ffffff" : "#928d80", fontSize: 12, fontWeight: "600" }}>
+                <Text className="font-sans" style={{ color: on ? uiColors.white : uiColors.muted, fontSize: 12, fontWeight: "600" }}>
                   {MUSCLE_LABELS[mg]}
                 </Text>
               </TouchableOpacity>

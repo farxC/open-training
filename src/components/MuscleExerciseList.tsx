@@ -1,3 +1,4 @@
+import uiColors from "@/theme/palette.json";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
@@ -14,9 +15,9 @@ import type { MuscleExerciseRow } from "@/types";
 import { useInteractionState } from "@/hooks/useInteractionState";
 import { EXERCISE_HEAD, splitExerciseRows, type ExerciseTail } from "@/utils/muscleLoad";
 
-const MONO = "JetBrains Mono, Menlo, Courier New, monospace";
-const INK = "#26241f";
-const MUTED = "#5c594f";
+const MONO = "JetBrains Mono";
+const INK = uiColors.ink;
+const MUTED = uiColors.muted;
 const HAIRLINE = "rgba(38, 36, 31, 0.07)";
 
 /** Lines up under the group row's frequency cluster. */
@@ -46,8 +47,8 @@ export function MuscleExerciseList({ rows, cycle }: Props) {
 
   if (rows.length === 0) {
     return (
-      <View style={{ paddingHorizontal: 14, paddingBottom: 12, backgroundColor: "#fbfaf7" }}>
-        <Text className="text-ink-faint" style={{ fontSize: 11 }}>
+      <View style={{ paddingHorizontal: 14, paddingBottom: 12, backgroundColor: uiColors.paper }}>
+        <Text className="font-sans text-ink-faint" style={{ fontSize: 11 }}>
           Nenhum exercício registrado para este grupo na janela.
         </Text>
       </View>
@@ -55,10 +56,10 @@ export function MuscleExerciseList({ rows, cycle }: Props) {
   }
 
   return (
-    <View style={{ backgroundColor: "#fbfaf7", paddingBottom: 6 }}>
-      <Text
+    <View style={{ backgroundColor: uiColors.paper, paddingBottom: 6 }}>
+      <Text className="font-sans"
         style={{
-          color: "#bdb8aa",
+          color: uiColors.faint,
           fontSize: 9,
           fontWeight: "700",
           letterSpacing: 1.1,
@@ -131,7 +132,7 @@ function ExerciseRow({
       }}
     >
       <View className="flex-row items-center" style={{ gap: 8 }}>
-        <Text style={{ color: MUTED, fontSize: 12, flex: 1 }} numberOfLines={1}>
+        <Text className="font-sans" style={{ color: MUTED, fontSize: 12, flex: 1 }} numberOfLines={1}>
           {row.exercise_name}
         </Text>
 
@@ -150,7 +151,7 @@ function ExerciseRow({
             <ShareBar share={row.share} delay={120 + stagger * STEP} cycle={cycle} />
           </View>
           <Text
-            style={{ color: "#928d80", fontSize: 10, fontFamily: MONO, width: 30, textAlign: "right" }}
+            style={{ color: uiColors.muted, fontSize: 10, fontFamily: MONO, width: 30, textAlign: "right" }}
           >
             {sharePct}%
           </Text>
@@ -159,7 +160,7 @@ function ExerciseRow({
         {/* Sessions counted, not averaged: a movement trained eight times in
             half a year is "8 sessões", never "0,3×/sem". */}
         <View className="flex-row items-center justify-end" style={{ width: FREQ_COL }}>
-          <Text style={{ color: "#928d80", fontSize: 10 }} numberOfLines={1}>
+          <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10 }} numberOfLines={1}>
             em <Text style={{ fontFamily: MONO, color: MUTED }}>{row.sessionCount}</Text>{" "}
             {row.sessionCount === 1 ? "sessão" : "sessões"}
           </Text>
@@ -222,22 +223,22 @@ function TailRow({
           paddingLeft: 24,
           paddingRight: 14,
           paddingVertical: 9,
-          backgroundColor: hovered ? "#f4f2ee" : "transparent",
+          backgroundColor: hovered ? uiColors.paper : "transparent",
         }}
       >
         <View className="flex-row items-center" style={{ gap: 6 }}>
           <MaterialCommunityIcons
             name={expanded ? "chevron-up" : "chevron-down"}
             size={14}
-            color="#928d80"
+            color={uiColors.muted}
           />
-          <Text style={{ color: "#928d80", fontSize: 11, flex: 1 }} numberOfLines={1}>
+          <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 11, flex: 1 }} numberOfLines={1}>
             {expanded ? "recolher lista" : `+ outros ${tail.count} exercícios`}
           </Text>
 
           {expanded ? null : (
             <>
-              <Text style={{ color: "#928d80", fontSize: 10, fontFamily: MONO, marginRight: 2 }}>
+              <Text style={{ color: uiColors.muted, fontSize: 10, fontFamily: MONO, marginRight: 2 }}>
                 {sharePct}%
               </Text>
               <Text style={{ color: MUTED, fontSize: 12, fontWeight: "700", fontFamily: MONO }}>
@@ -281,7 +282,7 @@ function ShareBar({
       style={{
         height: 5,
         borderRadius: 3,
-        backgroundColor: "#e9e5dc",
+        backgroundColor: uiColors.sidebar,
         overflow: "hidden",
       }}
     >
@@ -300,11 +301,11 @@ function HalfBadge() {
         paddingHorizontal: 5,
         paddingVertical: 1,
         borderWidth: 1,
-        borderColor: "#ddd8ce",
-        backgroundColor: "#f4f2ee",
+        borderColor: uiColors.line,
+        backgroundColor: uiColors.paper,
       }}
     >
-      <Text style={{ color: "#928d80", fontSize: 9, fontWeight: "700", fontFamily: MONO }}>
+      <Text style={{ color: uiColors.muted, fontSize: 9, fontWeight: "700", fontFamily: MONO }}>
         ½×
       </Text>
     </View>
