@@ -29,6 +29,8 @@ import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { DistanceSessionForm } from "@/components/DistanceSessionForm";
 import { DistanceSessionSplits } from "@/components/DistanceSessionSplits";
+import { HealthMetrics } from "@/components/HealthMetrics";
+import { FitMetrics } from "@/components/FitMetrics";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { ExerciseSessionCard } from "@/components/ExerciseSessionCard";
 import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
@@ -481,6 +483,9 @@ export default function SessionDetailScreen() {
                   </Text>
                 </View>
               </View>
+
+              <HealthMetrics sessionId={session.id} />
+              <FitMetrics sessionId={session.id} />
 
               {session.notes && (
                 <View
