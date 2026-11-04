@@ -75,7 +75,7 @@ function DistanceFields({ set, modality, legNumber, onChange }: FieldsProps) {
     <View style={{ marginBottom: legNumber != null ? 18 : 0 }}>
       {legNumber != null && (
         <Text className="font-sans text-ink-faint text-xs" style={{ marginBottom: 8 }}>
-          Trecho {legNumber}
+          Parcial {legNumber}
         </Text>
       )}
 
@@ -180,7 +180,7 @@ export function DistanceSessionForm({ sessionId, exerciseId, modality, targets, 
         className="font-sans text-ink-mute"
         style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: label ? 4 : 12 }}
       >
-        {modalityLabel(modality).toUpperCase()}
+        {multiLeg ? "PARCIAIS" : modalityLabel(modality).toUpperCase()}
       </Text>
       {label && (
         <Text className="font-sans text-ink-faint text-xs" style={{ marginBottom: 12 }}>{label}</Text>

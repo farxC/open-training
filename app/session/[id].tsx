@@ -28,6 +28,7 @@ import { PhotoAttachment } from "@/components/PhotoAttachment";
 import { ExercisePickerModal } from "@/components/ExercisePickerModal";
 import { SetLogger } from "@/components/SetLogger";
 import { DistanceSessionForm } from "@/components/DistanceSessionForm";
+import { DistanceSessionSplits } from "@/components/DistanceSessionSplits";
 import { SortableExerciseList } from "@/components/SortableExerciseList";
 import { ExerciseSessionCard } from "@/components/ExerciseSessionCard";
 import { MuscleSeriesSessionCard } from "@/components/MuscleSeriesSessionCard";
@@ -473,10 +474,10 @@ export default function SessionDetailScreen() {
                       fontFamily: "JetBrains Mono",
                     }}
                   >
-                    {exerciseCount}
+                    {isDistance ? session.sets.length : exerciseCount}
                   </Text>
                   <Text className="font-sans" style={{ color: uiColors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1, marginTop: 2 }}>
-                    EXERCÍCIOS
+                    {isDistance ? "PARCIAIS" : "EXERCÍCIOS"}
                   </Text>
                 </View>
               </View>
@@ -499,7 +500,7 @@ export default function SessionDetailScreen() {
               )}
 
               <View style={{ marginTop: 20 }}>
-                {Object.entries(grouped).map(([exerciseName, sets], groupIndex) => {
+                {isDistance ? <DistanceSessionSplits sets={session.sets} modality={session.modality} /> : Object.entries(grouped).map(([exerciseName, sets], groupIndex) => {
                   const exerciseId = sets[0].exercise_id;
                   const eligible = familyOf(exerciseId) !== null;
                   return (
@@ -524,7 +525,7 @@ export default function SessionDetailScreen() {
 
                 {session.sets.length === 0 && (
                   <Text className="font-sans text-ink-mute text-center mt-8">
-                    Nenhum set registrado.
+                    {isDistance ? "Nenhuma parcial registrada." : "Nenhum set registrado."}
                   </Text>
                 )}
               </View>
