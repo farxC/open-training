@@ -12,6 +12,7 @@ import {
 import type { ConfigRow } from "./configColumns";
 import { snapshotSessionExercise } from "./queries";
 import { getHealthImport, writeHealthImport } from "./healthConnect";
+import { getFitImport, writeFitImport } from "./fit";
 import {
   CURRENT_EXPORT_FORMAT_VERSION,
   planExerciseMerge,
@@ -145,6 +146,7 @@ export function buildExportPayload(): ExportPayload {
     return {
       uuid: s.uuid,
       healthConnect: getHealthImport(s.id) ?? undefined,
+      fitImport: getFitImport(s.id) ?? undefined,
       date: s.date,
       name: s.name,
       notes: s.notes,
@@ -463,6 +465,7 @@ export function applyImport(payload: ExportPayload): ImportSummary {
       );
       const sessionId = result.lastInsertRowId;
       if (session.healthConnect) writeHealthImport(sessionId, session.healthConnect);
+      if (session.fitImport) writeFitImport(sessionId, session.fitImport);
       for (const set of session.sets) {
         const exerciseId = exerciseIdByUuid.get(set.exercise_uuid);
         if (exerciseId === undefined) continue;

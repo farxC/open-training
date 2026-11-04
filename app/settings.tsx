@@ -48,6 +48,8 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View style={{ marginBottom: 20, gap: 8 }}>
           <Text className="font-sans text-ink font-semibold">Relógio e corridas</Text>
+          <ActionButton label="Importar arquivo .fit" icon="file-upload-outline" disabled={busy !== null}
+            onPress={() => router.push("/import-fit")} />
           <ActionButton label="Importar do Health Connect" icon="watch" disabled={busy !== null}
             onPress={() => router.push("/health-connect")} />
           <Text className="font-sans text-ink-mute text-xs">

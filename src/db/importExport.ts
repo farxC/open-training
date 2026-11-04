@@ -1,6 +1,8 @@
 import type { ExerciseConfig, Modality, SplitMode } from "@/types";
 import type { HealthImport } from "../health/types";
 import { validateHealthImport } from "../health/model";
+import type { FitImport } from "../fit/types";
+import { validateFitImport } from "../fit/validate";
 
 // v7: exercises can now reference a parent exercise (variations) and mark
 // themselves as the parent's default. Bumping this means older backup files
@@ -9,7 +11,8 @@ import { validateHealthImport } from "../health/model";
 // validateExportPayload below.
 // v8 includes Health Connect snapshots. v7 remains readable; older clients reject
 // v8 instead of silently dropping imported health data on a subsequent export.
-export const CURRENT_EXPORT_FORMAT_VERSION = 8;
+// v9 adds FIT snapshots, while still reading v7 and v8 backups.
+export const CURRENT_EXPORT_FORMAT_VERSION = 9;
 
 export interface ExportedExerciseMuscleGroup {
   muscle_group: string;
@@ -59,6 +62,7 @@ export interface ExportedSessionExercise {
 }
 
 export interface ExportedSession {
+  fitImport?: FitImport;
   healthConnect?: HealthImport;
   uuid: string;
   date: string;
@@ -158,7 +162,7 @@ export function validateExportPayload(data: unknown): ExportPayload {
     throw new Error("Arquivo de backup inválido: conteúdo não é um objeto JSON.");
   }
   const payload = data as Partial<ExportPayload>;
-  if (payload.exportFormatVersion !== CURRENT_EXPORT_FORMAT_VERSION && payload.exportFormatVersion !== 7) {
+  if (payload.exportFormatVersion !== CURRENT_EXPORT_FORMAT_VERSION && payload.exportFormatVersion !== 8 && payload.exportFormatVersion !== 7) {
     throw new Error(
       `Arquivo de backup em formato não suportado (versão ${String(payload.exportFormatVersion)}).`
     );
@@ -173,7 +177,18 @@ export function validateExportPayload(data: unknown): ExportPayload {
   }
   const healthIds = new Set<string>();
   const healthUuids = new Set<string>();
+  const fitKeys = new Set<string>();
+  const fitHashes = new Set<string>();
+  const fitUuids = new Set<string>();
   for (const session of payload.sessions) {
+    if (session.fitImport !== undefined) {
+      validateFitImport(session.fitImport);
+      const { uuid, activity } = session.fitImport;
+      if (session.modality !== "corrida" || fitKeys.has(activity.activityKey) || fitHashes.has(activity.fileHash) || fitUuids.has(uuid)) {
+        throw new Error("Vínculo FIT duplicado ou em modalidade inválida no backup.");
+      }
+      fitKeys.add(activity.activityKey); fitHashes.add(activity.fileHash); fitUuids.add(uuid);
+    }
     if (session.healthConnect !== undefined) {
       validateHealthImport(session.healthConnect);
       if (session.modality !== "corrida") throw new Error("Dados de corrida vinculados a outra modalidade no backup.");

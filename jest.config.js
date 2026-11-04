@@ -1,6 +1,14 @@
 module.exports = {
   projects: [
     {
+      displayName: "fit",
+      testEnvironment: "node",
+      modulePathIgnorePatterns: ["<rootDir>/.claude/"],
+      testMatch: ["<rootDir>/src/fit/**/*.test.ts"],
+      transform: { "^.+\\.[jt]sx?$": ["babel-jest", { configFile: "./babel.config.js" }] },
+      transformIgnorePatterns: ["/node_modules/(?!@garmin/fitsdk/)"],
+    },
+    {
       displayName: "app",
       preset: "jest-expo",
       testMatch: ["**/*.test.ts", "**/*.test.tsx"],
@@ -9,6 +17,7 @@ module.exports = {
         "<rootDir>/src/db/__tests__/",
         "<rootDir>/src/db/migrations.test.ts",
         "<rootDir>/scripts/import-history/",
+        "<rootDir>/src/fit/",
       ],
     },
     {

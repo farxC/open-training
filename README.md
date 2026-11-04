@@ -101,6 +101,14 @@ gráficos, médias do Health Connect e máximas das amostras, quando disponívei
 Os dados ficam no banco local e no backup. Exige um novo build Android;
 [instruções de configuração e validação](docs/health-connect.md).
 
+### Importar corridas de arquivo FIT
+
+`Configurações → Importar arquivo .fit`: prévia de distância, tempo ativo e
+decorrido, voltas, batimentos e cadência antes de salvar. Funciona no navegador,
+Android e iOS; o arquivo é lido localmente. Pode criar uma corrida ou complementar
+uma sessão existente, com identificação de arquivos repetidos e backup das métricas.
+[Formatos aceitos e regras da importação](docs/import-fit.md).
+
 ---
 
 ## Tecnologias

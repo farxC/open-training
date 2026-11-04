@@ -1,7 +1,8 @@
 # Health Connect no Android
 
 O primeiro incremento faz importação **manual** de corridas. Segundo plano e
-notificações são trabalhos posteriores.
+notificações são trabalhos posteriores. A [importação FIT](import-fit.md) é uma
+alternativa disponível no navegador, Android e iOS.
 
 ## Usar
 
@@ -48,8 +49,8 @@ sessão, com unicidade de `(source_scope, origin_app, external_id)` e UUID próp
 Este incremento ainda não implementa os registros manuais normalizados de FC/
 cadência nem o RPE da sessão previstos na proposta de modelagem.
 
-O backup formato 8 inclui snapshots do Health Connect e ainda aceita arquivos
-no formato 7.
+O backup formato 9 inclui snapshots do Health Connect e FIT, e ainda aceita
+arquivos nos formatos 7 e 8.
 UUIDs preservam os relacionamentos, sem transportar IDs locais ou permissões.
 O namespace local da integração não é reutilizado automaticamente após uma
 restauração: a tela permite reconectar explicitamente uma sessão restaurada da

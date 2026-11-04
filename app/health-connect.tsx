@@ -66,6 +66,7 @@ export default function HealthConnectScreen() {
               Os dados do celular e do navegador são armazenados separadamente.
             </Text>
             <ActionButton label="Abrir configurações de backup" variant="secondary" onPress={() => router.push("/settings")} />
+            <ActionButton label="Importar corrida de arquivo .fit" variant="secondary" onPress={() => router.push("/import-fit")} />
           </View>
         ) : <>
           <ActionButton label="Conectar e buscar corridas" icon="sync" disabled={busy} onPress={() => { void search(); }} />
