@@ -1,11 +1,15 @@
 import type { ExerciseConfig, Modality, SplitMode } from "@/types";
+import type { HealthImport } from "../health/types";
+import { validateHealthImport } from "../health/model";
 
 // v7: exercises can now reference a parent exercise (variations) and mark
 // themselves as the parent's default. Bumping this means older backup files
 // (format 6 and earlier) are rejected outright rather than silently importing
 // with no way to tell "no parent" from "predates this field" — see
 // validateExportPayload below.
-export const CURRENT_EXPORT_FORMAT_VERSION = 7;
+// v8 includes Health Connect snapshots. v7 remains readable; older clients reject
+// v8 instead of silently dropping imported health data on a subsequent export.
+export const CURRENT_EXPORT_FORMAT_VERSION = 8;
 
 export interface ExportedExerciseMuscleGroup {
   muscle_group: string;
@@ -55,6 +59,7 @@ export interface ExportedSessionExercise {
 }
 
 export interface ExportedSession {
+  healthConnect?: HealthImport;
   uuid: string;
   date: string;
   name: string | null;
@@ -153,7 +158,7 @@ export function validateExportPayload(data: unknown): ExportPayload {
     throw new Error("Arquivo de backup inválido: conteúdo não é um objeto JSON.");
   }
   const payload = data as Partial<ExportPayload>;
-  if (payload.exportFormatVersion !== CURRENT_EXPORT_FORMAT_VERSION) {
+  if (payload.exportFormatVersion !== CURRENT_EXPORT_FORMAT_VERSION && payload.exportFormatVersion !== 7) {
     throw new Error(
       `Arquivo de backup em formato não suportado (versão ${String(payload.exportFormatVersion)}).`
     );
@@ -165,6 +170,19 @@ export function validateExportPayload(data: unknown): ExportPayload {
     !Array.isArray(payload.trainingPrograms)
   ) {
     throw new Error("Arquivo de backup inválido: uma ou mais seções de dados estão ausentes.");
+  }
+  const healthIds = new Set<string>();
+  const healthUuids = new Set<string>();
+  for (const session of payload.sessions) {
+    if (session.healthConnect !== undefined) {
+      validateHealthImport(session.healthConnect);
+      if (session.modality !== "corrida") throw new Error("Dados de corrida vinculados a outra modalidade no backup.");
+      const link = session.healthConnect;
+      const key = JSON.stringify([link.sourceScope, link.workout.origin, link.workout.externalId]);
+      if (healthIds.has(key) || healthUuids.has(link.uuid)) throw new Error("Corrida do Health Connect duplicada no backup.");
+      healthIds.add(key);
+      healthUuids.add(link.uuid);
+    }
   }
   return payload as ExportPayload;
 }

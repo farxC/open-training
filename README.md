@@ -93,6 +93,14 @@ A biblioteca começa com ~70 exercícios pré-cadastrados; exercícios customiza
 
 `Configurações → Exportar / Importar dados`: um JSON com todo o histórico, exercícios, splits e programas. O import é **aditivo** e deduplicado por `uuid` — dá para juntar dados de dois dispositivos sem duplicar sessão.
 
+### Corridas do Health Connect (Android)
+
+`Configurações → Importar do Health Connect`: buscar corridas recentes e importar
+como sessão nova ou vincular a uma sessão existente. Batimentos e cadência têm
+gráficos, médias do Health Connect e máximas das amostras, quando disponíveis.
+Os dados ficam no banco local e no backup. Exige um novo build Android;
+[instruções de configuração e validação](docs/health-connect.md).
+
 ---
 
 ## Tecnologias

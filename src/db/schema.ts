@@ -1,6 +1,18 @@
-export const SCHEMA_VERSION = 20;
+export const SCHEMA_VERSION = 21;
 
 export const CREATE_TABLES: string[] = [
+  // One source snapshot per linked running session. The JSON payload is versioned
+  // and contains record identities, device provenance and original samples.
+  // Tokens/cursors and local permission state are never stored in this table.
+  `CREATE TABLE IF NOT EXISTS session_health_connect (
+    session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    uuid TEXT NOT NULL UNIQUE,
+    source_scope TEXT NOT NULL,
+    origin_app TEXT NOT NULL,
+    external_id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    UNIQUE(source_scope, origin_app, external_id)
+  )`,
   `CREATE TABLE IF NOT EXISTS exercises (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,

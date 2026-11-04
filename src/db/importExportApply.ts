@@ -11,6 +11,7 @@ import {
 } from "./configColumns";
 import type { ConfigRow } from "./configColumns";
 import { snapshotSessionExercise } from "./queries";
+import { getHealthImport, writeHealthImport } from "./healthConnect";
 import {
   CURRENT_EXPORT_FORMAT_VERSION,
   planExerciseMerge,
@@ -143,6 +144,7 @@ export function buildExportPayload(): ExportPayload {
     );
     return {
       uuid: s.uuid,
+      healthConnect: getHealthImport(s.id) ?? undefined,
       date: s.date,
       name: s.name,
       notes: s.notes,
@@ -456,10 +458,11 @@ export function applyImport(payload: ExportPayload): ImportSummary {
     const sessionsToInsert = planSessionMerge(existingSessionUuids, payload.sessions);
     for (const session of sessionsToInsert) {
       const result = db.runSync(
-        "INSERT INTO sessions (date, name, notes, modality, uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [session.date, session.name, session.notes, session.modality, session.uuid, session.start_time, session.end_time]
+        "INSERT INTO sessions (date, name, notes, modality, uuid, start_time, end_time, duration_seconds) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [session.date, session.name, session.notes, session.modality, session.uuid, session.start_time, session.end_time, session.duration_seconds ?? null]
       );
       const sessionId = result.lastInsertRowId;
+      if (session.healthConnect) writeHealthImport(sessionId, session.healthConnect);
       for (const set of session.sets) {
         const exerciseId = exerciseIdByUuid.get(set.exercise_uuid);
         if (exerciseId === undefined) continue;

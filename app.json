@@ -15,6 +15,12 @@
     },
     "android": {
       "package": "com.opentraining.app",
+      "permissions": [
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_DISTANCE",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_STEPS"
+      ],
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1a1a2e"
@@ -26,6 +32,8 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withHealthConnect",
+      ["expo-build-properties", { "android": { "minSdkVersion": 26 } }],
       [
         "expo-image-picker",
         {
